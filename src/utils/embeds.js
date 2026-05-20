@@ -130,3 +130,46 @@ export function buildRoleInfoEmbed(summary) {
     { name: 'Managed', value: formatBoolean(summary.managed), inline: true }
   );
 }
+
+export function buildModerationResultEmbed(title, moderationCase) {
+  return buildSuccessEmbed(
+    title,
+    `Case #${moderationCase.caseId} recorded for <@${moderationCase.targetUserId}>.`
+  );
+}
+
+export function buildWarningsEmbed({ targetUser, warnings }) {
+  const description = warnings.length === 0
+    ? 'No warnings are recorded for this user.'
+    : warnings
+      .slice(0, 8)
+      .map((warning) => `#${warning.caseId} — ${warning.reason}`)
+      .join('\n');
+
+  return buildBaseEmbed({
+    title: `Warnings for ${targetUser.tag ?? targetUser.username}`,
+    description
+  });
+}
+
+export function buildModerationLogEmbed({ moderationCase, targetUser, moderatorUser }) {
+  const embed = buildBaseEmbed({
+    title: `Moderation Case #${moderationCase.caseId}`,
+    description: `Action: \`${moderationCase.actionType}\``,
+    color: COLORS.warning
+  }).addFields(
+    { name: 'Target', value: `${targetUser.tag ?? targetUser.username}\n\`${moderationCase.targetUserId}\``, inline: true },
+    { name: 'Moderator', value: `${moderatorUser.tag ?? moderatorUser.username}\n\`${moderationCase.moderatorId}\``, inline: true },
+    { name: 'Reason', value: moderationCase.reason, inline: false }
+  );
+
+  if (moderationCase.duration) {
+    embed.addFields({ name: 'Duration', value: moderationCase.duration, inline: true });
+  }
+
+  if (Number.isInteger(moderationCase.deletedMessageCount)) {
+    embed.addFields({ name: 'Messages Deleted', value: `${moderationCase.deletedMessageCount}`, inline: true });
+  }
+
+  return embed;
+}

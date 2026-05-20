@@ -1,33 +1,56 @@
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 
-import { purgeMessages } from '../../services/moderationService.js';
+import { moderationService } from '../../services/moderationService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
-import { parsePositiveInteger } from '../../utils/discordResolvers.js';
-import { canRunModerationAction } from '../../middleware/permissionGuard.js';
+import { getInteractionModerator, getMessageAmount } from '../../utils/moderationInputs.js';
+import { replyToInteraction } from '../../utils/responses.js';
 
 export const name = 'purge';
 export const adminOnly = true;
 export const allowNoPrefix = true;
 
+export const data = new SlashCommandBuilder()
+  .setName('purge')
+  .setDescription('Delete recent messages and record a moderation case.')
+  .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageMessages)
+  .addIntegerOption((option) => option.setName('amount').setDescription('Number of messages to delete.').setRequired(true).setMinValue(1).setMaxValue(100))
+  .addStringOption((option) => option.setName('reason').setDescription('Why these messages are being removed.').setRequired(false));
+
+export async function execute(interaction) {
+  const moderatorMember = await getInteractionModerator(interaction);
+  const result = await moderationService.purge({
+    message: {
+      guild: interaction.guild,
+      channel: interaction.channel,
+      author: interaction.user,
+      member: moderatorMember
+    },
+    moderatorMember,
+    amount: interaction.options.getInteger('amount', true),
+    reason: interaction.options.getString('reason') ?? 'Message purge'
+  });
+
+  await replyToInteraction(interaction, {
+    embeds: [
+      result.ok
+        ? buildSuccessEmbed('Messages purged', `Removed ${result.moderationCase.deletedMessageCount} message(s). Case #${result.moderationCase.caseId}.`)
+        : buildErrorEmbed('Purge failed', result.reason)
+    ]
+  }, { ephemeral: !result.ok });
+}
+
 export async function executeMessage(context) {
-  if (!canRunModerationAction(context.member, PermissionsBitField.Flags.ManageMessages)) {
-    await context.respond({
-      embeds: [buildErrorEmbed('Permission required', 'You need Manage Messages permission to purge messages.')]
-    });
-    return;
-  }
-
-  const amount = parsePositiveInteger(context.args[0]);
-  const result = await purgeMessages({ message: context.message, amount });
-
-  if (!result.ok) {
-    await context.respond({
-      embeds: [buildErrorEmbed('Purge failed', result.reason)]
-    });
-    return;
-  }
+  const result = await moderationService.purge({
+    message: context.message,
+    moderatorMember: context.member,
+    amount: getMessageAmount(context)
+  });
 
   await context.respond({
-    embeds: [buildSuccessEmbed('Messages purged', `Removed ${result.deletedCount} message(s).`)]
+    embeds: [
+      result.ok
+        ? buildSuccessEmbed('Messages purged', `Removed ${result.moderationCase.deletedMessageCount} message(s). Case #${result.moderationCase.caseId}.`)
+        : buildErrorEmbed('Purge failed', result.reason)
+    ]
   });
 }

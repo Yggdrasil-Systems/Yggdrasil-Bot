@@ -2,6 +2,7 @@ import { buildErrorEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 import { replyToInteraction } from '../utils/responses.js';
 import { handleInteractionError } from './errorHandler.js';
+import { canUseAdminCommand } from './permissionGuard.js';
 
 async function handleUnknownCommand(interaction, log) {
   log.warn(`No command handler found for /${interaction.commandName}.`);
@@ -25,6 +26,28 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
 
   if (!command) {
     await handleUnknownCommand(interaction, log);
+    return;
+  }
+
+  if (command.adminOnly && !canUseAdminCommand({
+    userId: interaction.user.id,
+    guildOwnerId: interaction.guild?.ownerId ?? null,
+    botOwnerId: interaction.client.runtimeConfig?.botOwnerId ?? null,
+    member: interaction.member,
+    trustedAdminRoleIds: interaction.client.runtimeConfig?.trustedAdminRoleIds ?? []
+  })) {
+    await replyToInteraction(
+      interaction,
+      {
+        embeds: [
+          buildErrorEmbed(
+            'Permission required',
+            'You do not have permission to use that command.'
+          )
+        ]
+      },
+      { ephemeral: true }
+    );
     return;
   }
 
