@@ -8,8 +8,13 @@ export const COLORS = Object.freeze({
 
 export const BOT = Object.freeze({
   name: 'World Tree',
+  prefix: 'tree',
   activity: 'over the server'
 });
 
 export const COMMANDS_PATH = 'src/commands';
 export const EVENTS_PATH = 'src/events';
+
+export const LIMITS = Object.freeze({
+  maxPurgeAmount: 100
+});

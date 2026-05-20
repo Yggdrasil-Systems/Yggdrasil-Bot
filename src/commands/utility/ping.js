@@ -1,16 +1,29 @@
 import { SlashCommandBuilder } from 'discord.js';
 
 import { getPingSummary } from '../../services/utilityService.js';
-import { buildSuccessEmbed } from '../../utils/embeds.js';
+import { buildPingEmbed } from '../../utils/embeds.js';
+import { replyToInteraction } from '../../utils/responses.js';
+
+export const name = 'ping';
+export const aliases = [];
+export const allowNoPrefix = true;
 
 export const data = new SlashCommandBuilder()
   .setName('ping')
   .setDescription('Check whether World Tree is responsive.');
 
 export async function execute(interaction) {
-  const ping = getPingSummary(interaction);
+  const ping = getPingSummary(interaction.client);
 
-  await interaction.reply({
-    embeds: [buildSuccessEmbed('Tree Status', ping.description)]
+  await replyToInteraction(interaction, {
+    embeds: [buildPingEmbed(ping)]
+  });
+}
+
+export async function executeMessage(context) {
+  const ping = getPingSummary(context.client);
+
+  await context.respond({
+    embeds: [buildPingEmbed(ping)]
   });
 }

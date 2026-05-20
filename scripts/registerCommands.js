@@ -2,7 +2,7 @@ import { REST, Routes } from 'discord.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { getEnv } from '../src/config/env.js';
+import { getCommandRegistrationEnv } from '../src/config/env.js';
 import { loadCommands } from '../src/loaders/commandLoader.js';
 import { logger } from '../src/utils/logger.js';
 
@@ -11,9 +11,11 @@ const projectRoot = path.resolve(__dirname, '..');
 const commandsPath = path.join(projectRoot, 'src', 'commands');
 
 async function registerCommands() {
-  const env = getEnv();
+  const env = getCommandRegistrationEnv();
   const commands = await loadCommands(commandsPath);
-  const commandPayload = commands.map((command) => command.data.toJSON());
+  const commandPayload = commands
+    .filter((command) => command.data)
+    .map((command) => command.data.toJSON());
   const rest = new REST({ version: '10' }).setToken(env.discordToken);
 
   logger.info(`Registering ${commandPayload.length} guild slash command(s).`);

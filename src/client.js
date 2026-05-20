@@ -1,8 +1,11 @@
-import { Client, Collection, GatewayIntentBits } from 'discord.js';
+import { Client, Collection } from 'discord.js';
 
-export function createClient() {
+import { CLIENT_INTENTS, CLIENT_PARTIALS } from './config/discord.js';
+
+export function createClient({ intents = CLIENT_INTENTS, partials = CLIENT_PARTIALS } = {}) {
   const client = new Client({
-    intents: [GatewayIntentBits.Guilds]
+    intents,
+    partials
   });
 
   client.commands = new Collection();

@@ -45,3 +45,44 @@ test('loadCommands rejects modules without the expected command contract', async
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('loadCommands rejects duplicate command names', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'world-tree-duplicates-'));
+
+  try {
+    await writeFile(
+      path.join(root, 'first.js'),
+      "export const data = { name: 'duplicate', toJSON() { return { name: 'duplicate' }; } }; export async function execute() {}"
+    );
+    await writeFile(
+      path.join(root, 'second.js'),
+      "export const data = { name: 'duplicate', toJSON() { return { name: 'duplicate' }; } }; export async function execute() {}"
+    );
+
+    await assert.rejects(
+      () => loadCommands(root),
+      /Duplicate command name: duplicate/
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('loadCommands loads prefix-only command modules', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'world-tree-prefix-only-'));
+
+  try {
+    await writeFile(
+      path.join(root, 'purge.js'),
+      "export const name = 'purge'; export async function executeMessage() {}"
+    );
+
+    const commands = await loadCommands(root);
+
+    assert.equal(commands.size, 1);
+    assert.equal(commands.get('purge').name, 'purge');
+    assert.equal(typeof commands.get('purge').executeMessage, 'function');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

@@ -1,5 +1,6 @@
 import { buildErrorEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
+import { replyToInteraction } from '../utils/responses.js';
 
 export async function handleInteractionError(interaction, error) {
   logger.error(`Command failed: ${interaction.commandName}`, error);
@@ -10,14 +11,27 @@ export async function handleInteractionError(interaction, error) {
         'Something went wrong',
         'The command could not be completed. Please try again later.'
       )
-    ],
-    ephemeral: true
+    ]
   };
 
-  if (interaction.replied || interaction.deferred) {
-    await interaction.followUp(payload);
-    return;
+  try {
+    await replyToInteraction(interaction, payload, { ephemeral: true });
+  } catch (responseError) {
+    logger.error('Failed to send command error response.', responseError);
   }
+}
 
-  await interaction.reply(payload);
+export async function handleMessageCommandError(message, error) {
+  logger.error('Message command failed.', error);
+
+  await message.reply({
+    embeds: [
+      buildErrorEmbed(
+        'Something went wrong',
+        'The command could not be completed. Please try again later.'
+      )
+    ]
+  }).catch((responseError) => {
+    logger.error('Failed to send message command error response.', responseError);
+  });
 }

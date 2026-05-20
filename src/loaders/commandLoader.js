@@ -1,39 +1,32 @@
 import { Collection } from 'discord.js';
-import { readdir } from 'node:fs/promises';
-import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-async function collectJavaScriptFiles(directory) {
-  const entries = await readdir(directory, { withFileTypes: true });
-  const files = [];
-
-  for (const entry of entries) {
-    const fullPath = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      files.push(...await collectJavaScriptFiles(fullPath));
-      continue;
-    }
-
-    if (entry.isFile() && entry.name.endsWith('.js')) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-}
+import { collectJavaScriptFiles } from '../utils/fileDiscovery.js';
 
 function getCommandModule(module) {
   return module.default ?? module;
 }
 
 function assertCommandContract(command, filePath) {
-  const hasData = command?.data && typeof command.data.name === 'string' && typeof command.data.toJSON === 'function';
-  const hasExecute = typeof command?.execute === 'function';
+  const hasSlashData = command?.data && typeof command.data.name === 'string' && typeof command.data.toJSON === 'function';
+  const hasSlashExecute = typeof command?.execute === 'function';
+  const hasMessageExecute = typeof command?.executeMessage === 'function';
+  const hasExplicitName = typeof command?.name === 'string' && command.name.length > 0;
 
-  if (!hasData || !hasExecute) {
+  if ((!hasSlashData || !hasSlashExecute) && (!hasExplicitName || !hasMessageExecute)) {
     throw new Error(`Invalid command module: ${filePath}`);
   }
+}
+
+function getCommandName(command) {
+  return command.name ?? command.data.name;
+}
+
+function normalizeCommand(command) {
+  return {
+    ...command,
+    name: getCommandName(command)
+  };
 }
 
 export async function loadCommands(commandsPath) {
@@ -42,10 +35,15 @@ export async function loadCommands(commandsPath) {
 
   for (const filePath of commandFiles) {
     const module = await import(pathToFileURL(filePath).href);
-    const command = getCommandModule(module);
+    const command = normalizeCommand(getCommandModule(module));
 
     assertCommandContract(command, filePath);
-    commands.set(command.data.name, command);
+
+    if (commands.has(command.name)) {
+      throw new Error(`Duplicate command name: ${command.name}`);
+    }
+
+    commands.set(command.name, command);
   }
 
   return commands;

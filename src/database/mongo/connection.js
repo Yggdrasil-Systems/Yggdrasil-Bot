@@ -2,14 +2,26 @@ import mongoose from 'mongoose';
 
 import { logger } from '../../utils/logger.js';
 
-export async function connectMongo(mongoUri) {
+let hasRegisteredConnectionLogger = false;
+
+export async function connectMongo(mongoUri, options = {}) {
   mongoose.set('strictQuery', true);
 
-  mongoose.connection.on('error', (error) => {
-    logger.error('MongoDB connection error.', error);
-  });
+  if (!hasRegisteredConnectionLogger) {
+    mongoose.connection.on('error', (error) => {
+      logger.error('MongoDB connection error.', error);
+    });
+    hasRegisteredConnectionLogger = true;
+  }
 
-  await mongoose.connect(mongoUri);
+  if (mongoose.connection.readyState === 1) {
+    logger.info('MongoDB already connected.');
+    return mongoose.connection;
+  }
+
+  await mongoose.connect(mongoUri, {
+    serverSelectionTimeoutMS: options.serverSelectionTimeoutMS
+  });
   logger.info('MongoDB connected.');
 
   return mongoose.connection;
