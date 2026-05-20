@@ -1,0 +1,850 @@
+
+# World Tree — System Architecture, Command List, MongoDB Design, and Build Order
+
+---
+
+# 1) System Architecture
+
+## 1.1 High-level architecture
+
+```text
+Discord Server
+   ↓
+Discord API
+   ↓
+World Tree Bot (Node.js + discord.js)
+   ↓
+Command Layer
+   ↓
+Service Layer
+   ↓
+MongoDB Atlas
+```
+
+### What each part does
+
+**Discord Server**
+This is where people type commands and where moderation happens.
+
+**Discord API**
+This is the bridge between Discord and your bot.
+
+**World Tree Bot**
+This is the running program that listens to events and replies.
+
+**Command Layer**
+This decides which command was used, like `/warn` or `/userinfo`.
+
+**Service Layer**
+This contains the real logic: moderation, automod, logging, validation.
+
+**MongoDB Atlas**
+This stores all permanent data like settings and moderation cases.
+
+---
+
+## 1.2 Runtime architecture
+
+The bot should run as **one Node.js application**.
+
+That means:
+
+* one process
+* one Discord client
+* one database connection
+* multiple feature modules inside the same project
+
+This is the cleanest design for version 1.
+
+---
+
+## 1.3 Code architecture
+
+Use this layering:
+
+```text
+Commands → Services → Database → Response
+```
+
+### Meaning
+
+* **Commands** receive the slash command.
+* **Services** handle the actual business logic.
+* **Database** saves or reads data.
+* **Response** goes back to Discord.
+
+This separation is important because it keeps the project clean.
+
+---
+
+# 2) Internal module design
+
+## 2.1 Main modules
+
+### Bot core
+
+Handles:
+
+* login
+* Discord client setup
+* event registration
+* command loading
+
+### Command handler
+
+Handles:
+
+* reading slash commands
+* matching command names
+* sending to the right file
+
+### Permission guard
+
+Checks:
+
+* does this person have permission?
+* is their role high enough?
+* is the bot allowed to act?
+
+### Validation guard
+
+Checks:
+
+* is the duration valid?
+* is the target user valid?
+* is the reason present?
+* are inputs safe?
+
+### Service layer
+
+Handles:
+
+* warning a user
+* timing out a user
+* banning a user
+* fetching server settings
+* logging actions
+* automod checks
+
+### Database layer
+
+Handles:
+
+* saving data
+* reading data
+* updating data
+* deleting data
+
+---
+
+# 3) Exact folder structure
+
+Use this structure:
+
+```text
+src/
+├── index.js
+├── client.js
+├── events/
+│   ├── ready.js
+│   ├── interactionCreate.js
+│   ├── messageCreate.js
+│   └── guildMemberAdd.js
+├── commands/
+│   ├── utility/
+│   │   ├── ping.js
+│   │   ├── avatar.js
+│   │   ├── userinfo.js
+│   │   └── serverinfo.js
+│   ├── moderation/
+│   │   ├── warn.js
+│   │   ├── warnings.js
+│   │   ├── timeout.js
+│   │   ├── untimeout.js
+│   │   ├── kick.js
+│   │   ├── ban.js
+│   │   └── purge.js
+│   └── setup/
+│       ├── setmodlog.js
+│       ├── automodOn.js
+│       ├── automodOff.js
+│       └── automodConfig.js
+├── services/
+│   ├── moderationService.js
+│   ├── automodService.js
+│   ├── loggingService.js
+│   ├── settingsService.js
+│   └── utilityService.js
+├── database/
+│   └── mongo/
+│       ├── connection.js
+│       ├── models/
+│       │   ├── GuildSettings.js
+│       │   ├── ModerationCase.js
+│       │   └── CommandUsage.js
+│       └── repositories/
+│           ├── settingsRepository.js
+│           ├── moderationRepository.js
+│           └── usageRepository.js
+├── middleware/
+│   ├── permissionGuard.js
+│   ├── validationGuard.js
+│   └── errorHandler.js
+├── utils/
+│   ├── embeds.js
+│   ├── time.js
+│   ├── constants.js
+│   └── logger.js
+├── config/
+│   └── env.js
+└── jobs/
+    └── scheduledTasks.js
+```
+
+---
+
+# 4) Command list
+
+This is the exact command plan for version 1.
+
+## 4.1 Utility commands
+
+### `/ping`
+
+Checks whether the bot is alive and responsive.
+
+### `/avatar`
+
+Shows a user’s profile picture.
+
+### `/userinfo`
+
+Shows:
+
+* username
+* user ID
+* join date
+* account creation date
+* roles
+
+### `/serverinfo`
+
+Shows:
+
+* server name
+* member count
+* channel count
+* creation date
+* server icon
+
+---
+
+## 4.2 Moderation commands
+
+### `/warn`
+
+Adds a warning to a user.
+
+**Inputs**
+
+* target user
+* reason
+
+**Result**
+
+* warning saved in MongoDB
+* mod-log entry created
+
+---
+
+### `/warnings`
+
+Shows warnings for a user.
+
+**Inputs**
+
+* target user
+
+**Result**
+
+* list of warnings from database
+
+---
+
+### `/timeout`
+
+Temporarily restricts a user from speaking.
+
+**Inputs**
+
+* target user
+* duration
+* reason
+
+**Result**
+
+* Discord timeout applied
+* case saved
+* log created
+
+---
+
+### `/untimeout`
+
+Removes timeout from a user.
+
+**Inputs**
+
+* target user
+* optional reason
+
+**Result**
+
+* timeout removed
+* action logged
+
+---
+
+### `/kick`
+
+Removes a user from the server.
+
+**Inputs**
+
+* target user
+* reason
+
+**Result**
+
+* user kicked
+* case saved
+* log created
+
+---
+
+### `/ban`
+
+Bans a user from the server.
+
+**Inputs**
+
+* target user
+* reason
+
+**Result**
+
+* user banned
+* case saved
+* log created
+
+---
+
+### `/purge`
+
+Deletes a number of recent messages.
+
+**Inputs**
+
+* number of messages
+
+**Result**
+
+* messages deleted
+* action logged
+
+---
+
+## 4.3 Setup commands
+
+### `/setmodlog`
+
+Sets the channel where moderation logs should go.
+
+**Inputs**
+
+* channel
+
+**Result**
+
+* saved in server settings
+
+---
+
+### `/automod on`
+
+Turns automod on for the server.
+
+### `/automod off`
+
+Turns automod off for the server.
+
+### `/automod config`
+
+Shows or updates automod settings.
+
+Possible settings:
+
+* bad words list
+* spam threshold
+* mention threshold
+* link filtering
+
+---
+
+# 5) Database design
+
+You asked for MongoDB from the start, so this is the proper schema.
+
+---
+
+## 5.1 Collection: `guild_settings`
+
+Stores per-server configuration.
+
+### Purpose
+
+Each Discord server can have different settings.
+
+### Fields
+
+* `guildId`
+* `modLogChannelId`
+* `automodEnabled`
+* `badWords`
+* `spamThreshold`
+* `mentionThreshold`
+* `linkFilterEnabled`
+* `allowedModRoleIds`
+* `createdAt`
+* `updatedAt`
+
+### Example document
+
+```json
+{
+  "guildId": "1234567890",
+  "modLogChannelId": "9876543210",
+  "automodEnabled": true,
+  "badWords": ["word1", "word2"],
+  "spamThreshold": 5,
+  "mentionThreshold": 6,
+  "linkFilterEnabled": false,
+  "allowedModRoleIds": ["111", "222"],
+  "createdAt": "2026-05-20T00:00:00.000Z",
+  "updatedAt": "2026-05-20T00:00:00.000Z"
+}
+```
+
+---
+
+## 5.2 Collection: `moderation_cases`
+
+Stores all moderation actions.
+
+### Purpose
+
+This is the full moderation history.
+
+### Fields
+
+* `caseId`
+* `guildId`
+* `targetUserId`
+* `moderatorId`
+* `actionType`
+* `reason`
+* `duration`
+* `status`
+* `createdAt`
+* `expiresAt`
+* `deletedMessageCount` if relevant for purge
+
+### Example document
+
+```json
+{
+  "caseId": "case_001",
+  "guildId": "1234567890",
+  "targetUserId": "4444444444",
+  "moderatorId": "5555555555",
+  "actionType": "timeout",
+  "reason": "spam",
+  "duration": "10m",
+  "status": "active",
+  "createdAt": "2026-05-20T00:10:00.000Z",
+  "expiresAt": "2026-05-20T00:20:00.000Z"
+}
+```
+
+---
+
+## 5.3 Collection: `command_usage`
+
+Optional for version 1, but useful later.
+
+### Purpose
+
+Tracks command usage by user or server.
+
+### Fields
+
+* `guildId`
+* `userId`
+* `commandName`
+* `count`
+* `lastUsedAt`
+
+---
+
+# 6) Service design
+
+This is where the logic lives.
+
+---
+
+## 6.1 `moderationService.js`
+
+Handles:
+
+* warn
+* warnings lookup
+* timeout
+* untimeout
+* kick
+* ban
+* purge
+* case creation
+
+This service should:
+
+* check target validity
+* check hierarchy
+* write to database
+* return a result object to the command
+
+---
+
+## 6.2 `automodService.js`
+
+Handles:
+
+* spam detection
+* repeated messages
+* bad word detection
+* mention spam
+* link spam
+
+This service should:
+
+* inspect incoming messages
+* decide whether an action is needed
+* return what action to take
+
+---
+
+## 6.3 `loggingService.js`
+
+Handles:
+
+* sending mod-log embeds
+* formatting case data
+* posting moderation history
+
+---
+
+## 6.4 `settingsService.js`
+
+Handles:
+
+* getting server settings
+* updating server settings
+* creating default settings when a server is first seen
+
+---
+
+## 6.5 `utilityService.js`
+
+Handles:
+
+* generating user info data
+* generating server info data
+* formatting responses
+
+---
+
+# 7) Event flow
+
+Here is how the bot should behave at runtime.
+
+---
+
+## 7.1 Slash command flow
+
+Example: `/warn`
+
+```text
+User runs command
+   ↓
+interactionCreate event
+   ↓
+permission check
+   ↓
+validation check
+   ↓
+moderation service
+   ↓
+database write
+   ↓
+log channel message
+   ↓
+reply to moderator
+```
+
+---
+
+## 7.2 Automod flow
+
+Example: user sends spam message
+
+```text
+User sends message
+   ↓
+messageCreate event
+   ↓
+automod service checks message
+   ↓
+if violation found:
+   - delete message
+   - warn or timeout
+   - log action
+```
+
+---
+
+## 7.3 Setup flow
+
+Example: `/setmodlog`
+
+```text
+Admin runs command
+   ↓
+permission check
+   ↓
+validate channel
+   ↓
+save to guild_settings
+   ↓
+reply with success message
+```
+
+---
+
+# 8) Permission design
+
+Moderation bots need strict permission handling.
+
+## Required checks
+
+### Discord permissions
+
+Examples:
+
+* Manage Messages
+* Moderate Members
+* Ban Members
+* Kick Members
+
+### Role hierarchy
+
+The bot must not act on a user with a higher role.
+
+### Command restrictions
+
+Some commands should only work for:
+
+* admins
+* moderators
+* specific allowed roles
+
+---
+
+# 9) Validation design
+
+Every dangerous command needs validation.
+
+## Examples
+
+* timeout duration must be valid
+* target user must exist
+* the bot must be able to act on the target
+* reason should not be empty for moderation commands
+* purge amount must be reasonable
+
+---
+
+# 10) Build order
+
+Now the most important part: the correct order.
+
+## Phase 1 — Foundation
+
+Build:
+
+* Node.js project
+* Discord client
+* environment variables
+* MongoDB connection
+* event loader
+* command loader
+
+### Result
+
+Bot goes online and can receive slash commands.
+
+---
+
+## Phase 2 — Utility commands
+
+Build:
+
+* `/ping`
+* `/avatar`
+* `/userinfo`
+* `/serverinfo`
+
+### Result
+
+The bot becomes useful immediately.
+
+---
+
+## Phase 3 — Settings system
+
+Build:
+
+* `guild_settings` collection
+* `/setmodlog`
+* `/automod on`
+* `/automod off`
+
+### Result
+
+The bot can be configured per server.
+
+---
+
+## Phase 4 — Moderation system
+
+Build:
+
+* `/warn`
+* `/warnings`
+* `/timeout`
+* `/untimeout`
+* `/kick`
+* `/ban`
+* `/purge`
+
+### Result
+
+The bot can actually moderate the server.
+
+---
+
+## Phase 5 — Logging system
+
+Build:
+
+* mod-log embeds
+* case formatting
+* database records
+* audit trail
+
+### Result
+
+Moderation becomes traceable.
+
+---
+
+## Phase 6 — Automod
+
+Build:
+
+* spam detection
+* bad word filtering
+* mention spam filtering
+* simple auto actions
+
+### Result
+
+The bot becomes more autonomous.
+
+---
+
+## Phase 7 — Polish
+
+Build:
+
+* better embeds
+* cleaner errors
+* consistent naming
+* command help
+* better feedback messages
+
+### Result
+
+The bot feels complete.
+
+---
+
+# 11) What version 1 should look like
+
+Version 1 is done when:
+
+* the bot runs
+* commands work
+* moderation works
+* logs are saved
+* settings are stored
+* automod basics are working
+* the code is organized
+
+That is enough for a real first project.
+
+---
+
+# 12) What not to add yet
+
+Do not add these in version 1:
+
+* dashboard
+* Redis
+* Supabase
+* AI features
+* memory system
+* fancy world simulation
+* analytics engine
+* web app
+
+Those can come later.
+
+---
+
+# 13) Final architecture summary
+
+## Final stack
+
+* Node.js
+* discord.js
+* MongoDB Atlas
+* Render later for hosting
+
+## Final purpose
+
+A practical Discord moderation and utility bot for your server.
+
+## Final identity
+
+A clean, polished bot named **World Tree**.
+
+---

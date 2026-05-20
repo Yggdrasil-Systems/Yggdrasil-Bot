@@ -1,0 +1,488 @@
+
+
+# PRD — World Tree Discord Bot
+
+## 1. Product Summary
+
+**World Tree** is a Discord bot for a small friend server.
+Its first version is a **fast utility + moderation bot** with a strong identity, built to be genuinely useful every day in the server.
+
+The long-term brand/theme is “World Tree,” but version 1 is practical:
+
+* moderation
+* server utilities
+* basic automod
+* clean logs
+* database-backed data storage
+
+---
+
+## 2. Problem Statement
+
+Small Discord servers often need a simple tool that can:
+
+* help moderators manage the server
+* give members useful everyday commands
+* keep moderation actions organized
+* feel like part of the server instead of a generic bot
+
+Current pain points:
+
+* moderation is manual
+* useful commands are scattered across different bots
+* server actions are not logged cleanly
+* the bot identity feels generic
+
+---
+
+## 3. Goal
+
+Build a bot that:
+
+* is useful daily in a friend server
+* handles basic moderation reliably
+* provides common utility commands
+* stores data properly in MongoDB from day 1
+* feels polished and “ours,” not generic
+
+---
+
+## 4. Target Users
+
+### Primary users
+
+* You
+* your friends in the server
+* moderators/admins of the server
+
+### Secondary users
+
+* server members who use utility commands like avatar, user info, server info, ping
+
+---
+
+## 5. Product Scope
+
+### In scope for version 1
+
+* slash commands
+* moderation commands
+* automod basics
+* warning system
+* moderation log system
+* MongoDB Atlas storage
+* clean embeds and response formatting
+* server configuration commands
+
+### Out of scope for version 1
+
+* dashboard
+* AI features
+* analytics engine
+* Supabase
+* Redis
+* JSON file storage
+* “living ecosystem” features
+* advanced memory systems
+* web app
+
+---
+
+## 6. Core Product Principles
+
+1. **Useful first**
+   The bot must solve real server needs.
+
+2. **Simple to use**
+   Commands should be direct and fast.
+
+3. **Reliable storage**
+   Use MongoDB from the start.
+
+4. **Clean identity**
+   The “World Tree” brand should feel subtle and polished.
+
+5. **Easy to expand later**
+   The architecture should allow future features without rewriting everything.
+
+---
+
+## 7. Main Features
+
+### 7.1 Utility Features
+
+These are everyday commands for members.
+
+#### Commands
+
+* `/ping`
+* `/avatar`
+* `/userinfo`
+* `/serverinfo`
+
+#### Purpose
+
+* check bot responsiveness
+* view user avatar
+* view user details
+* view server details
+
+---
+
+### 7.2 Moderation Features
+
+These are the main admin/mod tools.
+
+#### Commands
+
+* `/warn`
+* `/warnings`
+* `/timeout`
+* `/untimeout`
+* `/kick`
+* `/ban`
+* `/purge`
+
+#### Purpose
+
+* handle rule violations
+* moderate users
+* manage message cleanup
+* keep moderation actions clear and traceable
+
+---
+
+### 7.3 Automod Features
+
+Basic automation to reduce manual moderation.
+
+#### Checks
+
+* bad words
+* spam
+* excessive mentions
+* message flooding
+* optional link filtering
+
+#### Actions
+
+* delete message
+* warn user
+* timeout user
+* log the action
+
+---
+
+### 7.4 Server Setup Features
+
+Commands that configure the bot for the server.
+
+#### Commands
+
+* `/setmodlog`
+* `/automod on`
+* `/automod off`
+* `/automod config`
+
+#### Purpose
+
+* define where moderation logs go
+* enable or disable automod
+* configure basic server settings
+
+---
+
+## 8. User Stories
+
+### Member stories
+
+* As a member, I want to use `/avatar` to quickly view my or another user’s profile picture.
+* As a member, I want `/userinfo` so I can inspect account details.
+* As a member, I want `/serverinfo` so I can see server stats.
+
+### Moderator stories
+
+* As a moderator, I want to warn a user with a reason so I can enforce rules.
+* As a moderator, I want to view prior warnings so I can make consistent decisions.
+* As a moderator, I want to timeout a user temporarily for disruptive behavior.
+* As a moderator, I want all moderation actions logged in one place.
+
+### Admin stories
+
+* As an admin, I want to set a mod-log channel.
+* As an admin, I want to turn automod on or off.
+* As an admin, I want to configure basic automod settings for the server.
+
+---
+
+## 9. Functional Requirements
+
+### Bot runtime
+
+* Bot must connect to Discord successfully.
+* Bot must respond to slash commands.
+* Bot must handle errors gracefully.
+
+### Command handling
+
+* Commands must be modular.
+* Commands must be easy to add later.
+* Commands must have permission checks where needed.
+
+### Moderation handling
+
+* Bot must verify moderator permissions.
+* Bot must verify role hierarchy before acting.
+* Bot must record moderation actions in MongoDB.
+* Bot must log actions to a mod-log channel.
+
+### Automod handling
+
+* Bot must detect basic spam patterns.
+* Bot must detect repeated bad words.
+* Bot must prevent obvious abuse where possible.
+* Bot must be configurable per server.
+
+### Database handling
+
+* Bot must store server settings in MongoDB.
+* Bot must store moderation cases in MongoDB.
+* Bot must support fetching prior warnings or cases.
+
+---
+
+## 10. Non-Functional Requirements
+
+### Reliability
+
+* Commands should not fail silently.
+* Moderation actions should be traceable.
+* Database writes should be consistent.
+
+### Performance
+
+* Commands should respond quickly.
+* Automod checks should run efficiently.
+
+### Maintainability
+
+* Code should be split into commands, services, database, and utils.
+* Logic should not be packed into one file.
+
+### Security
+
+* Bot token must stay in environment variables.
+* No secrets in source code.
+* Permission checks must be enforced.
+
+### Usability
+
+* Command responses should use clean embeds.
+* Moderation output should be easy to read.
+
+---
+
+## 11. Data Requirements
+
+### MongoDB collections
+
+#### `guild_settings`
+
+Stores per-server configuration.
+
+Possible fields:
+
+* `guildId`
+* `modLogChannelId`
+* `automodEnabled`
+* `badWords`
+* `spamThreshold`
+* `allowedModRoles`
+* `createdAt`
+* `updatedAt`
+
+#### `moderation_cases`
+
+Stores moderation actions.
+
+Possible fields:
+
+* `caseId`
+* `guildId`
+* `targetUserId`
+* `moderatorId`
+* `actionType`
+* `reason`
+* `duration`
+* `createdAt`
+* `expiresAt`
+* `status`
+
+#### `command_usage`
+
+Optional later, not required for version 1.
+
+---
+
+## 12. Architecture Requirements
+
+### Runtime architecture
+
+* Single Node.js process
+* Discord bot connects directly to Discord
+* Bot calls services
+* Services call MongoDB
+
+### Code architecture
+
+* Commands = entry points
+* Services = business logic
+* Database layer = data access only
+* Utils = shared helpers
+
+### Suggested folder structure
+
+```text
+src/
+├── index.js
+├── client.js
+├── events/
+├── commands/
+│   ├── utility/
+│   └── moderation/
+├── services/
+├── database/
+│   └── mongo/
+├── utils/
+├── middleware/
+└── config/
+```
+
+---
+
+## 13. Permissions and Safety Requirements
+
+### Permission rules
+
+* only authorized users can run moderation commands
+* bot must respect role hierarchy
+* bot must not act on users above its own role
+* admin-only commands must be restricted
+
+### Safety rules
+
+* all destructive commands require validation
+* moderation reason should be required or strongly encouraged
+* timeout duration must be validated
+* commands should fail safely with clear messages
+
+---
+
+## 14. UX Requirements
+
+### Tone
+
+* clean
+* direct
+* lightly branded with World Tree identity
+* not overly dramatic
+
+### Output style
+
+* use embeds for most responses
+* keep confirmations short
+* make mod logs structured
+* keep errors understandable
+
+### Branding
+
+* subtle `🌳` or “World Tree” naming in titles/embeds
+* do not force fantasy lore into version 1
+
+---
+
+## 15. Version 1 Definition of Done
+
+Version 1 is complete when:
+
+* the bot runs reliably
+* slash commands work
+* utility commands work
+* moderation commands work
+* automod basic checks work
+* warnings/cases are stored in MongoDB
+* mod-log messages are sent correctly
+* server settings can be configured
+* the codebase is modular and maintainable
+
+---
+
+## 16. Success Criteria
+
+The project is successful if:
+
+* you and your friends actually use it
+* moderation becomes easier
+* the bot feels polished
+* it works daily without being annoying
+* the codebase is clean enough to expand later
+
+---
+
+## 17. Risks
+
+### Risk 1: Overbuilding
+
+Trying to add too many features too soon.
+
+### Risk 2: Too much theme, not enough utility
+
+World Tree identity should stay subtle.
+
+### Risk 3: Permission mistakes
+
+Moderation bots can break trust if they act incorrectly.
+
+### Risk 4: Database complexity
+
+MongoDB is good, but data models still need to stay simple at first.
+
+---
+
+## 18. MVP Feature Set
+
+If we lock the smallest serious version, it is:
+
+### Utility
+
+* `/ping`
+* `/avatar`
+* `/userinfo`
+* `/serverinfo`
+
+### Moderation
+
+* `/warn`
+* `/warnings`
+* `/timeout`
+* `/untimeout`
+* `/kick`
+* `/ban`
+* `/purge`
+
+### Setup
+
+* `/setmodlog`
+* `/automod on`
+* `/automod off`
+
+### Storage
+
+* MongoDB Atlas only
+
+---
+
+## 19. Final Product Statement
+
+**World Tree** is a database-backed Discord moderation and utility bot for a small friend server, designed to be useful every day, easy to maintain, and ready to grow later without needing a rewrite.
+

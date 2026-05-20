@@ -1,0 +1,375 @@
+Perfect. This is the final bridge from design to building.
+
+# World Tree — Implementation Plan
+
+This is the exact order I would build it in.
+
+---
+
+# 1) Start with the project setup
+
+## Goal
+
+Create a clean Node.js project that can run the bot and connect to MongoDB.
+
+## Do first
+
+* create a new project folder
+* initialize Node.js
+* install the bot library
+* install MongoDB tools
+* set up environment variables
+
+## Required packages
+
+* `discord.js`
+* `mongoose`
+* `dotenv`
+* `nodemon` for development
+* `ms` for time parsing, if needed
+* `chalk` or similar, optional for cleaner logs
+
+---
+
+# 2) Create the basic folder structure
+
+Use this structure first:
+
+```text
+src/
+├── index.js
+├── client.js
+├── events/
+├── commands/
+├── services/
+├── database/
+├── middleware/
+├── utils/
+├── config/
+└── jobs/
+```
+
+## Why this matters
+
+This keeps the project organized from day 1 so the code does not turn into one huge file.
+
+---
+
+# 3) Connect the bot to Discord
+
+## Goal
+
+Make the bot come online and respond to events.
+
+## Build in this order
+
+1. create the Discord client
+2. load the bot token from environment variables
+3. register the ready event
+4. confirm the bot logs in successfully
+
+## Success condition
+
+You should see the bot online in Discord.
+
+---
+
+# 4) Connect MongoDB
+
+## Goal
+
+Make the bot save and read data properly.
+
+## Build in this order
+
+1. create MongoDB Atlas cluster
+2. create database connection file
+3. define the first schema files
+4. test read/write connection
+
+## First schemas
+
+* `GuildSettings`
+* `ModerationCase`
+
+## Success condition
+
+The bot can connect to MongoDB and store a test document.
+
+---
+
+# 5) Build the command system
+
+## Goal
+
+Make slash commands modular.
+
+## Build in this order
+
+1. create a command loader
+2. create an interaction handler
+3. register commands with Discord
+4. test with one simple command
+
+## Start with one command
+
+* `/ping`
+
+## Success condition
+
+Typing `/ping` in Discord gives a bot response.
+
+---
+
+# 6) Build utility commands
+
+These should come before moderation because they are easier and help test the structure.
+
+## Commands to build
+
+* `/avatar`
+* `/userinfo`
+* `/serverinfo`
+
+## Why here
+
+They are low risk, easy to test, and help verify the embed system.
+
+## Success condition
+
+The bot can show user and server information cleanly.
+
+---
+
+# 7) Build the settings system
+
+## Goal
+
+Let each server configure the bot.
+
+## Build in this order
+
+1. create default guild settings
+2. make `/setmodlog`
+3. make `/automod on`
+4. make `/automod off`
+
+## Success condition
+
+The bot stores server configuration in MongoDB and reads it later.
+
+---
+
+# 8) Build moderation commands
+
+This is the core of World Tree.
+
+## Commands to build
+
+* `/warn`
+* `/warnings`
+* `/timeout`
+* `/untimeout`
+* `/kick`
+* `/ban`
+* `/purge`
+
+## Build order inside moderation
+
+1. `/warn`
+2. `/warnings`
+3. `/timeout`
+4. `/untimeout`
+5. `/kick`
+6. `/ban`
+7. `/purge`
+
+## Success condition
+
+Moderation actions work, save to the database, and create logs.
+
+---
+
+# 9) Build the logging system
+
+## Goal
+
+Make every important moderation action visible in a mod-log channel.
+
+## What to log
+
+* warnings
+* timeouts
+* untimeouts
+* kicks
+* bans
+* purges
+
+## Success condition
+
+Every action creates a clear log message in the configured channel.
+
+---
+
+# 10) Build automod
+
+## Goal
+
+Make the bot handle basic rule-breaking automatically.
+
+## Version 1 automod checks
+
+* spam
+* repeated messages
+* too many mentions
+* bad words
+
+## Version 1 actions
+
+* delete message
+* warn user
+* timeout user
+* log the action
+
+## Success condition
+
+The bot can catch obvious spam and abuse automatically.
+
+---
+
+# 11) Add the World Tree identity layer
+
+This is not functionality first. This is branding and atmosphere.
+
+## Add subtle identity through
+
+* embed titles
+* embed colors
+* small tree-themed wording
+* a consistent naming style
+
+## Example style
+
+* “🌳 World Tree”
+* “Branch Log”
+* “Tree Status”
+
+## Important rule
+
+Keep it subtle. Do not turn it into fantasy roleplay yet.
+
+---
+
+# 12) Add safety and validation
+
+This should be tightened before launch.
+
+## Checks to add
+
+* bot permission checks
+* moderator permission checks
+* role hierarchy checks
+* duration validation
+* input validation
+* safe error messages
+
+## Success condition
+
+The bot refuses invalid or dangerous actions safely.
+
+---
+
+# 13) Build test cases manually
+
+## What to test
+
+* bot starts without errors
+* `/ping` works
+* MongoDB saves data
+* `/warn` creates a case
+* `/warnings` fetches cases
+* `/setmodlog` stores a channel
+* automod catches spam
+* logs are sent correctly
+
+## Success condition
+
+All main flows work without manual fixes every time.
+
+---
+
+# 14) Deployment plan
+
+## Development
+
+* run locally with `nodemon`
+
+## Production
+
+* host on Render later
+
+## Required production setup
+
+* environment variables on host
+* MongoDB Atlas connection string
+* Discord token
+* command registration script
+
+## Success condition
+
+The bot stays online without your computer running.
+
+---
+
+# 15) Final build order summary
+
+Here is the shortest version:
+
+1. create project
+2. install packages
+3. connect Discord bot
+4. connect MongoDB
+5. build command loader
+6. build `/ping`
+7. build utility commands
+8. build settings system
+9. build moderation commands
+10. build logging
+11. build automod
+12. add branding
+13. test everything
+14. deploy
+
+---
+
+# 16) What you should not do
+
+Do not start with:
+
+* AI features
+* dashboard
+* Redis
+* Supabase
+* analytics
+* fancy ecosystem features
+
+Those can come later, after the core bot is stable.
+
+---
+
+# 17) Final objective of implementation phase
+
+At the end of this phase, you should have:
+
+* a working Discord bot
+* slash commands
+* moderation tools
+* automod
+* MongoDB storage
+* server configuration
+* clean logs
+* a solid foundation for future features
+
+That is the point where the project becomes real.
+
+---

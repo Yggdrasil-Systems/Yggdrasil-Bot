@@ -1,0 +1,604 @@
+# World Tree
+What was left is now:
+
+1. **exact setup commands**
+2. **first files to create**
+3. **testing checklist**
+4. **deployment plan**
+5. **final “ready to build” checklist**
+
+I will give all of it now.
+
+---
+
+# 1) Exact setup commands
+
+## Step 1: create the project
+
+```bash
+mkdir world-tree
+cd world-tree
+npm init -y
+```
+
+---
+
+## Step 2: install packages
+
+```bash
+npm install discord.js mongoose dotenv ms
+npm install --save-dev nodemon
+```
+
+### Why these packages
+
+* `discord.js` → Discord bot framework
+* `mongoose` → MongoDB helper
+* `dotenv` → environment variables
+* `ms` → duration parsing like `10m`, `2h`
+* `nodemon` → auto-restart during development
+
+---
+
+## Step 3: update `package.json` scripts
+
+Add these:
+
+```json
+{
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  }
+}
+```
+
+---
+
+## Step 4: create `.env`
+
+Create a file named `.env` in the project root:
+
+```env
+DISCORD_TOKEN=your_token_here
+MONGO_URI=your_mongodb_connection_string
+CLIENT_ID=your_application_client_id
+GUILD_ID=your_test_server_id
+```
+
+### What each one means
+
+* `DISCORD_TOKEN` → bot login token
+* `MONGO_URI` → MongoDB Atlas connection string
+* `CLIENT_ID` → Discord application id
+* `GUILD_ID` → your test server id for command registration
+
+---
+
+# 2) First files to create
+
+Create this structure first:
+
+```text
+world-tree/
+├── src/
+│   ├── index.js
+│   ├── client.js
+│   ├── events/
+│   │   ├── ready.js
+│   │   ├── interactionCreate.js
+│   │   └── messageCreate.js
+│   ├── commands/
+│   │   ├── utility/
+│   │   │   └── ping.js
+│   │   ├── moderation/
+│   │   │   └── warn.js
+│   │   └── setup/
+│   │       └── setmodlog.js
+│   ├── services/
+│   │   ├── moderationService.js
+│   │   ├── automodService.js
+│   │   ├── loggingService.js
+│   │   ├── settingsService.js
+│   │   └── utilityService.js
+│   ├── database/
+│   │   └── mongo/
+│   │       ├── connection.js
+│   │       ├── models/
+│   │       │   ├── GuildSettings.js
+│   │       │   └── ModerationCase.js
+│   │       └── repositories/
+│   │           ├── settingsRepository.js
+│   │           └── moderationRepository.js
+│   ├── middleware/
+│   │   ├── permissionGuard.js
+│   │   ├── validationGuard.js
+│   │   └── errorHandler.js
+│   ├── utils/
+│   │   ├── embeds.js
+│   │   ├── time.js
+│   │   ├── constants.js
+│   │   └── logger.js
+│   └── config/
+│       └── env.js
+├── .env
+├── package.json
+└── .gitignore
+```
+
+---
+
+# 3) First file responsibilities
+
+## `src/index.js`
+
+Main entry point.
+
+Responsibilities:
+
+* load environment variables
+* connect MongoDB
+* load the bot client
+* register events
+* login the bot
+
+---
+
+## `src/client.js`
+
+Create and export the Discord client.
+
+Responsibilities:
+
+* define intents
+* create client instance
+* store command collection
+
+---
+
+## `src/events/ready.js`
+
+Runs once when bot starts.
+
+Responsibilities:
+
+* log success
+* set bot activity
+* maybe preload settings later
+
+---
+
+## `src/events/interactionCreate.js`
+
+Handles slash commands.
+
+Responsibilities:
+
+* detect which command was used
+* call the correct command file
+* run permission checks
+* run validation
+* handle errors
+
+---
+
+## `src/database/mongo/connection.js`
+
+Connects to MongoDB Atlas.
+
+Responsibilities:
+
+* connect Mongoose
+* log success/failure
+
+---
+
+## `src/database/mongo/models/GuildSettings.js`
+
+Stores server settings.
+
+---
+
+## `src/database/mongo/models/ModerationCase.js`
+
+Stores moderation records.
+
+---
+
+## `src/commands/utility/ping.js`
+
+First simple command.
+
+Responsibilities:
+
+* reply with latency
+
+This is the best first command because it proves the whole command system works.
+
+---
+
+# 4) Exact first build order
+
+Do not jump around. Build in this order:
+
+## Phase 1
+
+* project setup
+* environment variables
+* MongoDB connection
+* bot login
+* ready event
+
+## Phase 2
+
+* slash command loader
+* `ping` command
+* interaction handler
+
+## Phase 3
+
+* utility commands
+* `avatar`
+* `userinfo`
+* `serverinfo`
+
+## Phase 4
+
+* MongoDB schemas
+* guild settings
+* moderation case schema
+
+## Phase 5
+
+* setup commands
+* `/setmodlog`
+* `/automod on`
+* `/automod off`
+
+## Phase 6
+
+* moderation commands
+* `/warn`
+* `/warnings`
+* `/timeout`
+* `/untimeout`
+* `/kick`
+* `/ban`
+* `/purge`
+
+## Phase 7
+
+* logging
+* automod
+* polish
+
+---
+
+# 5) Testing checklist
+
+This is the part most people skip, but it matters.
+
+---
+
+## A. Startup tests
+
+### Test 1
+
+Run the bot.
+
+Expected result:
+
+* no crash
+* console says bot is online
+
+### Test 2
+
+Check MongoDB connection.
+
+Expected result:
+
+* bot connects successfully
+* no database error
+
+### Test 3
+
+Check environment variables.
+
+Expected result:
+
+* token loads
+* Mongo URI loads
+* no undefined values
+
+---
+
+## B. Command tests
+
+### Test 4
+
+Use `/ping`.
+
+Expected result:
+
+* bot responds quickly
+* latency appears
+
+### Test 5
+
+Use `/avatar`.
+
+Expected result:
+
+* avatar embed appears correctly
+
+### Test 6
+
+Use `/userinfo`.
+
+Expected result:
+
+* correct username, ID, join date, account creation date
+
+### Test 7
+
+Use `/serverinfo`.
+
+Expected result:
+
+* correct server details appear
+
+---
+
+## C. Settings tests
+
+### Test 8
+
+Use `/setmodlog`.
+
+Expected result:
+
+* channel is saved in MongoDB
+* confirmation message appears
+
+### Test 9
+
+Restart the bot.
+
+Expected result:
+
+* settings still exist after restart
+
+---
+
+## D. Moderation tests
+
+### Test 10
+
+Use `/warn`.
+
+Expected result:
+
+* warning is saved
+* log is sent
+* confirmation appears
+
+### Test 11
+
+Use `/warnings`.
+
+Expected result:
+
+* saved warnings are returned correctly
+
+### Test 12
+
+Use `/timeout`.
+
+Expected result:
+
+* user gets timed out
+* case saved
+* log sent
+
+### Test 13
+
+Use `/untimeout`.
+
+Expected result:
+
+* timeout removed
+* case logged
+
+### Test 14
+
+Use `/kick`.
+
+Expected result:
+
+* user removed from server
+* log created
+
+### Test 15
+
+Use `/ban`.
+
+Expected result:
+
+* user banned
+* log created
+
+### Test 16
+
+Use `/purge`.
+
+Expected result:
+
+* requested number of messages removed
+* log created
+
+---
+
+## E. Automod tests
+
+### Test 17
+
+Send repeated spam messages.
+
+Expected result:
+
+* automod detects spam
+* action is taken
+
+### Test 18
+
+Send messages with bad words.
+
+Expected result:
+
+* message deleted or warned depending on config
+
+### Test 19
+
+Send too many mentions.
+
+Expected result:
+
+* automod blocks or warns
+
+---
+
+## F. Permission tests
+
+### Test 20
+
+Try moderation command with a normal user.
+
+Expected result:
+
+* command denied
+
+### Test 21
+
+Try acting on a higher-role member.
+
+Expected result:
+
+* bot refuses safely
+
+### Test 22
+
+Try a command without bot permissions.
+
+Expected result:
+
+* clean error message instead of crash
+
+---
+
+# 6) Deployment plan
+
+You asked for everything left, so here is the deployment plan too.
+
+---
+
+## Development deployment
+
+During coding:
+
+* run locally with:
+
+```bash
+npm run dev
+```
+
+This uses `nodemon` so the bot restarts automatically when you edit files.
+
+---
+
+## Production deployment
+
+When the bot is stable, host it on Render.
+
+### What you need
+
+* GitHub repository
+* Render account
+* MongoDB Atlas cluster
+* Discord bot token
+* client ID
+* server ID for testing
+
+### Steps
+
+1. push project to GitHub
+2. connect Render to GitHub
+3. create a new web service or background service depending on how you deploy it
+4. set environment variables on Render
+5. set the start command:
+
+   ```bash
+   npm start
+   ```
+6. deploy
+
+---
+
+## Production environment variables on Render
+
+Set the same values as your local `.env`:
+
+* `DISCORD_TOKEN`
+* `MONGO_URI`
+* `CLIENT_ID`
+* `GUILD_ID`
+
+---
+
+## Production checks
+
+After deployment:
+
+* bot should come online
+* `/ping` should work
+* MongoDB should still connect
+* moderation commands should still function
+* logs should still post correctly
+
+---
+
+# 7) Final “ready to build” checklist
+
+You are ready when all of these are true:
+
+* project folder created
+* Node.js initialized
+* packages installed
+* `.env` created
+* MongoDB Atlas cluster ready
+* bot application created in Discord Developer Portal
+* slash command plan finalized
+* first command chosen (`/ping`)
+* folder structure created
+* testing server ready
+
+---
+
+# 8) One-line final build order
+
+If you want the shortest usable path, it is this:
+
+```text
+Setup → Connect bot → Connect MongoDB → Build ping → Build utility commands → Build settings → Build moderation → Build logging → Build automod → Test → Deploy
+```
+
+---
+
+# 9) Final answer
+
+Everything left is now covered:
+
+* setup commands
+* first files
+* testing checklist
+* deployment plan
+
