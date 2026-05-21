@@ -1,5 +1,20 @@
 import mongoose from 'mongoose';
 
+const punishmentSchema = new mongoose.Schema(
+  {
+    action: {
+      type: String,
+      enum: ['delete', 'warn', 'timeout'],
+      default: 'delete'
+    },
+    timeoutDuration: {
+      type: String,
+      default: '10m'
+    }
+  },
+  { _id: false }
+);
+
 const guildSettingsSchema = new mongoose.Schema(
   {
     guildId: {
@@ -15,6 +30,46 @@ const guildSettingsSchema = new mongoose.Schema(
     automodEnabled: {
       type: Boolean,
       default: false
+    },
+    automod: {
+      enabled: { type: Boolean, default: false },
+      logActions: { type: Boolean, default: true },
+      ignoredChannelIds: { type: [String], default: [] },
+      ignoredRoleIds: { type: [String], default: [] },
+      rules: {
+        badWords: {
+          enabled: { type: Boolean, default: false },
+          words: { type: [String], default: [] },
+          punishment: { type: punishmentSchema, default: () => ({ action: 'warn', timeoutDuration: '10m' }) }
+        },
+        mentionSpam: {
+          enabled: { type: Boolean, default: true },
+          threshold: { type: Number, default: 5 },
+          windowSeconds: { type: Number, default: 10 },
+          punishment: { type: punishmentSchema, default: () => ({ action: 'warn', timeoutDuration: '10m' }) }
+        },
+        repeatSpam: {
+          enabled: { type: Boolean, default: true },
+          threshold: { type: Number, default: 4 },
+          windowSeconds: { type: Number, default: 12 },
+          punishment: { type: punishmentSchema, default: () => ({ action: 'delete', timeoutDuration: '10m' }) }
+        },
+        linkSpam: {
+          enabled: { type: Boolean, default: false },
+          allowList: { type: [String], default: [] },
+          punishment: { type: punishmentSchema, default: () => ({ action: 'delete', timeoutDuration: '10m' }) }
+        },
+        capsSpam: {
+          enabled: { type: Boolean, default: true },
+          minLength: { type: Number, default: 16 },
+          ratio: { type: Number, default: 0.75 },
+          punishment: { type: punishmentSchema, default: () => ({ action: 'delete', timeoutDuration: '10m' }) }
+        }
+      }
+    },
+    moderation: {
+      requireReason: { type: Boolean, default: true },
+      caseLogEnabled: { type: Boolean, default: true }
     },
     trustedAdminRoleIds: {
       type: [String],

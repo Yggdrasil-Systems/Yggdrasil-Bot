@@ -185,6 +185,48 @@ export function createModerationService({
       return { ok: true, warnings };
     },
 
+    async getCase({ guildId, caseId }) {
+      const moderationCase = await dependencies.moderationRepository.getCaseById(guildId, caseId);
+      return moderationCase
+        ? { ok: true, moderationCase }
+        : fail('No matching moderation case was found.');
+    },
+
+    async listCases({ guildId, targetUserId = null, limit = 10, filters = {} }) {
+      const cases = await dependencies.moderationRepository.listCases(guildId, targetUserId, limit, filters);
+      return { ok: true, cases };
+    },
+
+    async resolveCase({ guildId, caseId, resolvedBy, resolutionReason = 'Resolved' }) {
+      const moderationCase = await dependencies.moderationRepository.resolveCase({
+        guildId,
+        caseId,
+        resolvedBy,
+        resolutionReason: normalizeReason(resolutionReason) || 'Resolved'
+      });
+
+      return moderationCase
+        ? { ok: true, moderationCase }
+        : fail('No matching moderation case was found.');
+    },
+
+    async deleteCase({ guildId, caseId, resolvedBy, resolutionReason = 'Deleted' }) {
+      const moderationCase = await dependencies.moderationRepository.softDeleteCase({
+        guildId,
+        caseId,
+        resolvedBy,
+        resolutionReason: normalizeReason(resolutionReason) || 'Deleted'
+      });
+
+      return moderationCase
+        ? { ok: true, moderationCase }
+        : fail('No matching moderation case was found.');
+    },
+
+    async getCaseStats({ guildId }) {
+      return { ok: true, stats: await dependencies.moderationRepository.getCaseStats(guildId) };
+    },
+
     async timeout({ guild, moderatorMember, targetMember, duration, reason }) {
       const durationMs = parseDuration(duration);
 

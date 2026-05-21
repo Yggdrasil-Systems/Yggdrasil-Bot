@@ -1,13 +1,154 @@
 import { settingsRepository } from '../database/mongo/repositories/settingsRepository.js';
+import { DEFAULT_AUTOMOD, DEFAULT_MODERATION_SETTINGS } from '../utils/constants.js';
 
-export function createSettingsService(repository = settingsRepository) {
+const DEFAULT_CACHE_TTL_MS = 30_000;
+const VALID_RULES = new Set(Object.keys(DEFAULT_AUTOMOD.rules));
+const VALID_ACTIONS = new Set(['delete', 'warn', 'timeout']);
+
+function clone(value) {
+  return structuredClone(value);
+}
+
+function mergeObject(defaults, value = {}) {
+  const merged = { ...clone(defaults), ...value };
+
+  for (const [key, defaultValue] of Object.entries(defaults)) {
+    if (defaultValue && typeof defaultValue === 'object' && !Array.isArray(defaultValue)) {
+      merged[key] = mergeObject(defaultValue, value?.[key]);
+    }
+  }
+
+  return merged;
+}
+
+export function normalizeGuildSettings(settings = {}) {
+  const automod = mergeObject(DEFAULT_AUTOMOD, settings.automod ?? {});
+  const moderation = mergeObject(DEFAULT_MODERATION_SETTINGS, settings.moderation ?? {});
+
+  automod.enabled = Boolean(settings.automod?.enabled ?? settings.automodEnabled ?? automod.enabled);
+
   return {
-    getSettings(guildId) {
-      return repository.getOrCreate(guildId);
+    ...settings,
+    automod,
+    moderation,
+    trustedAdminRoleIds: settings.trustedAdminRoleIds ?? [],
+    featureToggles: {
+      moderation: true,
+      automod: automod.enabled,
+      utility: true,
+      ...(settings.featureToggles ?? {})
+    }
+  };
+}
+
+function assertRuleName(ruleName) {
+  if (!VALID_RULES.has(ruleName)) {
+    throw new Error(`Unsupported automod rule: ${ruleName}`);
+  }
+}
+
+function assertAction(action) {
+  if (!VALID_ACTIONS.has(action)) {
+    throw new Error(`Unsupported automod action: ${action}`);
+  }
+}
+
+export function createSettingsService(repository = settingsRepository, { cacheTtlMs = DEFAULT_CACHE_TTL_MS } = {}) {
+  const cache = new Map();
+
+  function clearCache(guildId) {
+    cache.delete(guildId);
+  }
+
+  async function getEffectiveSettings(guildId) {
+    const cached = cache.get(guildId);
+
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.settings;
+    }
+
+    const settings = normalizeGuildSettings(await repository.getOrCreate(guildId));
+    cache.set(guildId, {
+      settings,
+      expiresAt: Date.now() + cacheTtlMs
+    });
+
+    return settings;
+  }
+
+  return {
+    getSettings: getEffectiveSettings,
+    getEffectiveSettings,
+    clearCache,
+
+    async setModLogChannel(guildId, channelId) {
+      const settings = normalizeGuildSettings(await repository.setModLogChannel(guildId, channelId));
+      clearCache(guildId);
+      return settings;
     },
 
-    setModLogChannel(guildId, channelId) {
-      return repository.setModLogChannel(guildId, channelId);
+    async addTrustedAdminRole(guildId, roleId) {
+      const settings = normalizeGuildSettings(await repository.addTrustedAdminRole(guildId, roleId));
+      clearCache(guildId);
+      return settings;
+    },
+
+    async removeTrustedAdminRole(guildId, roleId) {
+      const settings = normalizeGuildSettings(await repository.removeTrustedAdminRole(guildId, roleId));
+      clearCache(guildId);
+      return settings;
+    },
+
+    async setAutomodEnabled(guildId, enabled) {
+      const settings = normalizeGuildSettings(await repository.setAutomodEnabled(guildId, Boolean(enabled)));
+      clearCache(guildId);
+      return settings;
+    },
+
+    async updateAutomodThreshold(guildId, ruleName, threshold) {
+      assertRuleName(ruleName);
+      if (!Number.isInteger(threshold) || threshold <= 0) {
+        throw new Error('Automod threshold must be a positive integer.');
+      }
+      const settings = normalizeGuildSettings(await repository.updateAutomodRule(guildId, ruleName, { threshold }));
+      clearCache(guildId);
+      return settings;
+    },
+
+    async updateAutomodRule(guildId, ruleName, values) {
+      assertRuleName(ruleName);
+      const settings = normalizeGuildSettings(await repository.updateAutomodRule(guildId, ruleName, values));
+      clearCache(guildId);
+      return settings;
+    },
+
+    async updateAutomodPunishment(guildId, ruleName, { action, timeoutDuration }) {
+      assertRuleName(ruleName);
+      assertAction(action);
+      const settings = normalizeGuildSettings(await repository.updateAutomodPunishment(guildId, ruleName, {
+        action,
+        timeoutDuration
+      }));
+      clearCache(guildId);
+      return settings;
+    },
+
+    async addBadWord(guildId, word) {
+      const normalizedWord = String(word ?? '').trim().toLowerCase();
+
+      if (!normalizedWord) {
+        throw new Error('Bad word cannot be empty.');
+      }
+
+      const settings = normalizeGuildSettings(await repository.addBadWord(guildId, normalizedWord));
+      clearCache(guildId);
+      return settings;
+    },
+
+    async removeBadWord(guildId, word) {
+      const settings = normalizeGuildSettings(await repository.removeBadWord(guildId, String(word ?? '').trim().toLowerCase()));
+      clearCache(guildId);
+      return settings;
     }
   };
 }

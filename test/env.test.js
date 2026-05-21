@@ -19,6 +19,7 @@ test('readRuntimeEnv returns trimmed runtime configuration values', () => {
     clientId: null,
     guildId: null,
     botOwnerId: null,
+    dashboardUrl: null,
     trustedAdminRoleIds: [],
     nodeEnv: 'test',
     isProduction: false,

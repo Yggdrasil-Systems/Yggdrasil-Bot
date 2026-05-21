@@ -1,47 +1,45 @@
 # World Tree
 
-World Tree is a modular Discord utility and moderation bot for a private friend/community server. It is built around a clean Node.js + discord.js + MongoDB foundation, with polished command responses and a hybrid command model for daily use.
+World Tree is a modular Discord utility, settings, automod, and moderation bot for a private friend/community server. It is built with Node.js, discord.js, MongoDB Atlas, Mongoose, and a hybrid command model that supports slash commands, `tree` prefix commands, and privileged no-prefix admin shortcuts.
 
-The project is intentionally practical first: utility commands, persistent moderation history, server configuration, and clean moderator workflows. Future atmosphere, analytics, AI, or dashboard features should build on this foundation instead of replacing it.
+The project favors practical foundations: clean architecture, persistent moderation history, configurable server behavior, polished embeds, and reliable moderator workflows. Future dashboard, analytics, atmosphere, AI, or memory systems should build on these boundaries rather than replacing them.
 
 ## Current Features
 
-- Slash commands
-- Prefix commands using `tree`
+- Slash commands and guild command registration
+- Prefix commands using exactly `tree`
 - Privileged no-prefix admin shortcuts
 - MongoDB-backed guild settings
 - MongoDB-backed moderation cases
-- Moderation logs through a configurable log channel
-- Utility commands for user, server, role, banner, avatar, and bot info
-- Real moderation workflows for warn, warnings, timeout, untimeout, kick, ban, and purge
-- Centralized command loading, event loading, response helpers, embeds, parsing, permissions, and services
+- Configurable mod-log channel
+- Persisted trusted admin roles
+- Configurable automod for bad words, mention spam, repeated messages, link spam, and caps spam
+- Moderation lifecycle commands for viewing, listing, resolving, deleting, and summarizing cases
+- Utility commands for user, server, role, banner, avatar, runtime, stats, and dashboard status
+- Interactive category-based help menu
+- Dependency-free dashboard contracts and planning docs
 - Automated tests with Node's built-in test runner
 
 ## Command Model
 
-World Tree supports three input styles that route into the same command architecture.
+World Tree routes all supported inputs into the same command architecture.
 
 ### Slash Commands
 
-Use Discord slash commands for discoverable interactions:
+Examples:
 
 ```text
 /ping
-/avatar
-/userinfo
-/serverinfo
-/banner
-/botinfo
-/roleinfo
 /help
-/setmodlog
+/settings view
+/settings modlog set
+/settings automod toggle
+/case list
+/case view
 /warn
-/warnings
 /timeout
-/untimeout
-/kick
-/ban
 /purge
+/dashboard
 ```
 
 ### Prefix Commands
@@ -64,38 +62,98 @@ TREE warn @user "Repeated spam"
 
 ### No-Prefix Admin Shortcuts
 
-Trusted admins can use approved shortcuts without the prefix:
+Approved shortcuts can be used by trusted admins only:
 
 ```text
 ping
 userinfo @user
 purge 10
+case list
 ```
 
-Normal users are ignored silently. No-prefix access is limited to server owner, configured bot owner, administrators, or configured trusted admin roles.
+Normal users are ignored silently. Access is limited to server owner, configured bot owner, Administrators, env trusted roles, or persisted trusted admin roles.
+
+## Settings And Automod
+
+Settings are stored per guild in MongoDB.
+
+Useful commands:
+
+- `/settings view`
+- `/settings modlog set`
+- `/settings trusted-role add`
+- `/settings trusted-role remove`
+- `/settings trusted-role list`
+- `/settings automod view`
+- `/settings automod toggle`
+- `/settings automod threshold`
+- `/settings automod punishment`
+- `/settings automod badword add`
+- `/settings automod badword remove`
+- `/settings automod badword list`
+
+Prefix equivalents include:
+
+```text
+tree settings view
+tree modlog #mod-log
+tree trustedrole add @Staff
+tree automod view
+tree automod on
+tree automod threshold mentionSpam 6
+tree automod punishment badWords timeout 10m
+tree automod badword add blockedword
+```
+
+Automod is settings-driven and currently supports:
+
+- Bad word filtering
+- Mention spam
+- Repeated message spam
+- Link spam with allowlist support
+- Caps spam
+- Delete, warn, and timeout punishments
+- Persistent automod cases
+- Mod-log output when configured
+
+Automod uses in-memory rolling windows for spam checks. It does not require Redis in this phase.
+
+## Moderation
+
+Moderation commands:
+
+- `warn`
+- `warnings`
+- `timeout`
+- `untimeout`
+- `kick`
+- `ban`
+- `purge`
+
+Case lifecycle commands:
+
+- `/case view`
+- `/case list`
+- `/case resolve`
+- `/case delete`
+- `/case stats`
+
+Cases are soft-deleted instead of physically removed. Moderation services enforce permissions, role hierarchy, bot capability checks, reason validation, persistence, and logging.
 
 ## Utility Commands
 
-- `ping` - check gateway latency
-- `avatar` - show a user's avatar
-- `banner` - show a user's profile banner when available
-- `userinfo` - show account and server membership details
-- `serverinfo` - show server metadata
-- `roleinfo` - show role metadata
-- `botinfo` - show World Tree runtime details
-- `help` - show command categories and usage examples
-
-## Moderation Commands
-
-- `warn` - record a warning case
-- `warnings` - view warning history
-- `timeout` - apply a timeout and record a case
-- `untimeout` - remove a timeout and record a case
-- `kick` - kick a member and record a case
-- `ban` - ban a user and record a case
-- `purge` - delete recent messages and record a case
-
-Moderation commands enforce permission checks, role hierarchy checks, bot capability checks, required reasons, case persistence, and optional mod-log output.
+- `ping`
+- `avatar`
+- `banner`
+- `userinfo`
+- `serverinfo`
+- `roleinfo`
+- `botinfo`
+- `uptime`
+- `membercount`
+- `stats`
+- `dashboard`
+- `help`
 
 ## Environment Variables
 
@@ -109,28 +167,30 @@ GUILD_ID=your_test_discord_server_id
 MONGO_SERVER_SELECTION_TIMEOUT_MS=10000
 BOT_OWNER_ID=optional_owner_discord_user_id
 TRUSTED_ADMIN_ROLE_IDS=optional_role_id,optional_second_role_id
+DASHBOARD_URL=
 NODE_ENV=development
 ```
 
 `GUILD_ID` is used for development slash-command registration. Runtime startup does not require it.
 
-## Discord Developer Portal Setup
+## Discord Setup
 
-Enable the bot and configure:
+In the Discord Developer Portal:
 
-- Bot token
-- Application client ID
-- Test server/guild ID
-- Required bot permissions for moderation commands
-- Privileged Message Content intent for prefix commands
+- Create or select the application
+- Add a bot user
+- Copy the bot token into `.env`
+- Copy the application client ID into `.env`
+- Enable Message Content intent for prefix commands and automod
+- Invite the bot with permissions needed for moderation actions
 
-World Tree currently uses these gateway intents:
+World Tree currently uses:
 
 - `Guilds`
 - `GuildMessages`
 - `MessageContent`
 
-## MongoDB Setup
+## MongoDB
 
 World Tree uses MongoDB Atlas through Mongoose.
 
@@ -139,7 +199,7 @@ Collections:
 - `guild_settings`
 - `moderation_cases`
 
-The bot creates settings documents as needed and writes moderation cases whenever moderation actions are recorded.
+Existing guild settings are normalized through service defaults, so adding nested Phase 4 settings does not require a migration script.
 
 ## Local Development
 
@@ -192,15 +252,14 @@ src/
 ├── loaders/
 ├── middleware/
 ├── services/
+│   └── automod/
 └── utils/
 ```
 
-## Architecture Summary
-
-World Tree follows this flow:
+## Architecture
 
 ```text
-Discord event or interaction
+Discord interaction or message
 → router / parser
 → command adapter
 → service layer
@@ -209,21 +268,30 @@ Discord event or interaction
 → response or moderation log
 ```
 
-Command files stay thin. Services own business behavior. Repositories isolate MongoDB access. Utilities centralize formatting, parsing, embeds, and response mechanics.
+Commands stay thin. Services own business behavior. Repositories isolate MongoDB access. Utilities centralize formatting, parsing, embeds, and response mechanics.
 
 ## Dashboard Foundation
 
-Dashboard planning lives in [`dashboard/README.md`](dashboard/README.md). A full dashboard is intentionally not implemented yet because authentication, Discord OAuth, guild selection, permissions, and deployment boundaries should be designed as their own phase.
+The dashboard is not a production web app yet. The `dashboard/` directory contains contracts, route plans, and wireframe notes for a later authenticated dashboard phase.
+
+Current dashboard foundation:
+
+- `dashboard/contracts/guild-settings.schema.json`
+- `dashboard/contracts/automod-settings.schema.json`
+- `dashboard/contracts/moderation-case.schema.json`
+- `dashboard/API.md`
+- `dashboard/WIREFRAMES.md`
+
+No OAuth, sessions, API server, or frontend runtime is implemented in this phase.
 
 ## Roadmap
 
 Near-term:
 
-- More settings commands
-- Automod settings and event handling
-- Better moderation history views
-- Case resolution/editing workflows
-- Dashboard implementation after OAuth and permissions design
+- More settings controls for ignored automod roles/channels
+- Better pagination for case history
+- More granular automod allowlists
+- Dashboard OAuth and API implementation
 
 Later:
 
@@ -231,5 +299,3 @@ Later:
 - Analytics summaries
 - AI/context-aware features
 - Memory systems
-
-These later systems should not be added until the core moderation and configuration layers are stable.

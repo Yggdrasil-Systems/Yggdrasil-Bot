@@ -91,6 +91,32 @@ test('handleMessageCommand allows no-prefix shortcuts for privileged users', asy
   assert.equal(context.commandName, 'ping');
 });
 
+test('handleMessageCommand allows persisted trusted roles for admin commands', async () => {
+  let executed = false;
+  const { message } = createMessage({
+    content: 'tree purge 10',
+    commandName: 'purge',
+    command: {
+      name: 'purge',
+      adminOnly: true,
+      executeMessage: async () => {
+        executed = true;
+      }
+    },
+    member: {
+      permissions: new PermissionsBitField([]),
+      roles: { cache: new Map([['trusted-role', { id: 'trusted-role' }]]) }
+    }
+  });
+  message.client.settingsService = {
+    getEffectiveSettings: async () => ({ trustedAdminRoleIds: ['trusted-role'] })
+  };
+
+  await handleMessageCommand(message);
+
+  assert.equal(executed, true);
+});
+
 test('handleMessageCommand does not trigger no-prefix aliases', async () => {
   let executed = false;
   const { message, replies } = createMessage({

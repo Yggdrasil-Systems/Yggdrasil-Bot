@@ -23,7 +23,17 @@ const moderationCaseSchema = new mongoose.Schema(
     actionType: {
       type: String,
       required: true,
-      enum: ['warn', 'timeout', 'untimeout', 'kick', 'ban', 'purge']
+      enum: [
+        'warn',
+        'timeout',
+        'untimeout',
+        'kick',
+        'ban',
+        'purge',
+        'automod_delete',
+        'automod_warn',
+        'automod_timeout'
+      ]
     },
     reason: {
       type: String,
@@ -39,8 +49,20 @@ const moderationCaseSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'resolved'],
+      enum: ['active', 'resolved', 'deleted'],
       default: 'active'
+    },
+    resolvedAt: {
+      type: Date,
+      default: null
+    },
+    resolvedBy: {
+      type: String,
+      default: null
+    },
+    resolutionReason: {
+      type: String,
+      default: null
     },
     expiresAt: {
       type: Date,

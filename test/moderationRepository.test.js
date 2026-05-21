@@ -46,7 +46,38 @@ test('moderationRepository lists active warnings newest first', async () => {
   assert.deepEqual(calls[0], {
     guildId: 'guild-1',
     targetUserId: 'target',
-    actionType: 'warn'
+    actionType: { $in: ['warn', 'automod_warn'] },
+    status: { $ne: 'deleted' }
   });
   assert.equal(warnings[0].caseId, 2);
+});
+
+test('moderationRepository resolves cases without deleting records', async () => {
+  const calls = [];
+  const repository = createModerationRepository({
+    countDocuments: async () => 0,
+    create: async () => ({}),
+    find: () => ({ sort: () => ({ lean: async () => [] }) }),
+    findOneAndUpdate: (filter, update, options) => {
+      calls.push({ filter, update, options });
+      return {
+        lean: async () => ({
+          guildId: filter.guildId,
+          caseId: filter.caseId,
+          status: update.$set.status,
+          resolutionReason: update.$set.resolutionReason
+        })
+      };
+    }
+  });
+
+  const moderationCase = await repository.resolveCase({
+    guildId: 'guild-1',
+    caseId: 12,
+    resolvedBy: 'mod',
+    resolutionReason: 'Handled'
+  });
+
+  assert.equal(moderationCase.status, 'resolved');
+  assert.deepEqual(calls[0].filter, { guildId: 'guild-1', caseId: 12, status: { $ne: 'deleted' } });
 });

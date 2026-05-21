@@ -46,3 +46,32 @@ test('settingsRepository updates the mod log channel', async () => {
   assert.equal(settings.modLogChannelId, 'channel-1');
   assert.deepEqual(updates[0].update, { $set: { modLogChannelId: 'channel-1' } });
 });
+
+test('settingsRepository updates nested automod rule settings', async () => {
+  const updates = [];
+  const repository = createSettingsRepository({
+    findOneAndUpdate: (filter, update, options) => {
+      updates.push({ filter, update, options });
+      return {
+        lean: async () => ({
+          guildId: filter.guildId,
+          automod: {
+            rules: {
+              mentionSpam: {
+                threshold: update.$set['automod.rules.mentionSpam.threshold']
+              }
+            }
+          }
+        })
+      };
+    }
+  });
+
+  await repository.updateAutomodRule('guild-1', 'mentionSpam', { threshold: 6 });
+
+  assert.deepEqual(updates[0].update, {
+    $set: {
+      'automod.rules.mentionSpam.threshold': 6
+    }
+  });
+});

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "World Tree Automod Settings",
+  "type": "object",
+  "required": ["enabled", "logActions", "ignoredChannelIds", "ignoredRoleIds", "rules"],
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "logActions": { "type": "boolean" },
+    "ignoredChannelIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "ignoredRoleIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "rules": {
+      "type": "object",
+      "properties": {
+        "badWords": { "$ref": "#/$defs/rule" },
+        "mentionSpam": { "$ref": "#/$defs/thresholdRule" },
+        "repeatSpam": { "$ref": "#/$defs/thresholdRule" },
+        "linkSpam": { "$ref": "#/$defs/rule" },
+        "capsSpam": { "$ref": "#/$defs/rule" }
+      }
+    }
+  },
+  "$defs": {
+    "punishment": {
+      "type": "object",
+      "properties": {
+        "action": { "enum": ["delete", "warn", "timeout"] },
+        "timeoutDuration": { "type": "string" }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "punishment": { "$ref": "#/$defs/punishment" }
+      }
+    },
+    "thresholdRule": {
+      "allOf": [
+        { "$ref": "#/$defs/rule" },
+        {
+          "type": "object",
+          "properties": {
+            "threshold": { "type": "integer", "minimum": 1 },
+            "windowSeconds": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    }
+  }
+}

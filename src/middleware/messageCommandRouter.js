@@ -29,15 +29,21 @@ function findMessageCommand(commands, commandName) {
   }) ?? null;
 }
 
-function getPrivilegeContext(message) {
+async function getPrivilegeContext(message) {
   const runtimeConfig = message.client.runtimeConfig ?? {};
+  const settings = message.client.settingsService && message.guild?.id
+    ? await message.client.settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
+    : null;
 
   return {
     userId: message.author.id,
     guildOwnerId: message.guild?.ownerId ?? null,
     botOwnerId: runtimeConfig.botOwnerId ?? null,
     member: message.member ?? null,
-    trustedAdminRoleIds: runtimeConfig.trustedAdminRoleIds ?? []
+    trustedAdminRoleIds: [
+      ...(runtimeConfig.trustedAdminRoleIds ?? []),
+      ...(settings?.trustedAdminRoleIds ?? [])
+    ]
   };
 }
 
@@ -54,7 +60,7 @@ async function replyWithPermissionError(message) {
 
 export async function handleMessageCommand(message, { log = logger } = {}) {
   if (!message.guild || message.author.bot) {
-    return;
+    return false;
   }
 
   const noPrefixCommandNames = getNoPrefixCommandNames(message.client.commands);
@@ -65,7 +71,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
   });
 
   if (!parsedCommand) {
-    return;
+    return false;
   }
 
   const command = findMessageCommand(message.client.commands, parsedCommand.commandName);
@@ -82,18 +88,18 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
       });
     }
 
-    return;
+    return true;
   }
 
-  const privilegeContext = getPrivilegeContext(message);
+  const privilegeContext = await getPrivilegeContext(message);
 
   if (parsedCommand.mode === 'no-prefix' && !canUseNoPrefixShortcuts(privilegeContext)) {
-    return;
+    return true;
   }
 
   if (command.adminOnly && !canUseAdminCommand(privilegeContext)) {
     await replyWithPermissionError(message);
-    return;
+    return true;
   }
 
   try {
@@ -108,8 +114,10 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
       member: message.member,
       respond: (payload) => message.reply(payload)
     });
+    return true;
   } catch (error) {
     log.error?.(`Message command failed: ${command.name}`, error);
     await handleMessageCommandError(message, error);
+    return true;
   }
 }

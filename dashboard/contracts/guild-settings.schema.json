@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "World Tree Guild Settings",
+  "type": "object",
+  "required": ["guildId", "trustedAdminRoleIds", "automod", "moderation"],
+  "properties": {
+    "guildId": { "type": "string" },
+    "modLogChannelId": { "type": ["string", "null"] },
+    "trustedAdminRoleIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "automod": { "$ref": "./automod-settings.schema.json" },
+    "moderation": {
+      "type": "object",
+      "properties": {
+        "requireReason": { "type": "boolean" },
+        "caseLogEnabled": { "type": "boolean" }
+      }
+    }
+  }
+}

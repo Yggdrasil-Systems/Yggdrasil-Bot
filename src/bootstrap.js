@@ -6,6 +6,7 @@ import { getRuntimeEnv } from './config/env.js';
 import { connectMongo } from './database/mongo/connection.js';
 import { loadCommands } from './loaders/commandLoader.js';
 import { loadEvents } from './loaders/eventLoader.js';
+import { settingsService } from './services/settingsService.js';
 import { BOT } from './utils/constants.js';
 import { logger } from './utils/logger.js';
 
@@ -25,6 +26,7 @@ export async function bootstrap({
 } = {}) {
   log.info(`Starting ${BOT.name} in ${env.nodeEnv} mode.`);
   client.runtimeConfig = env;
+  client.settingsService = settingsService;
 
   await connectDatabase(env.mongoUri, {
     serverSelectionTimeoutMS: env.mongoServerSelectionTimeoutMs

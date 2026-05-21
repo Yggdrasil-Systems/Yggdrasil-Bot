@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "World Tree Moderation Case",
+  "type": "object",
+  "required": ["caseId", "guildId", "targetUserId", "moderatorId", "actionType", "reason", "status"],
+  "properties": {
+    "caseId": { "type": "integer" },
+    "guildId": { "type": "string" },
+    "targetUserId": { "type": "string" },
+    "moderatorId": { "type": "string" },
+    "actionType": {
+      "enum": ["warn", "timeout", "untimeout", "kick", "ban", "purge", "automod_delete", "automod_warn", "automod_timeout"]
+    },
+    "reason": { "type": "string" },
+    "duration": { "type": ["string", "null"] },
+    "durationMs": { "type": ["integer", "null"] },
+    "status": { "enum": ["active", "resolved", "deleted"] },
+    "resolvedAt": { "type": ["string", "null"], "format": "date-time" },
+    "resolvedBy": { "type": ["string", "null"] },
+    "resolutionReason": { "type": ["string", "null"] },
+    "deletedMessageCount": { "type": ["integer", "null"] },
+    "metadata": { "type": "object" }
+  }
+}

@@ -76,6 +76,26 @@ export function getBotInfoSummary({ client, uptimeMs = process.uptime() * 1000 }
   };
 }
 
+export function getStatsSummary({ client, uptimeMs = process.uptime() * 1000 }) {
+  const guilds = [...client.guilds.cache.values()];
+
+  return {
+    guildCount: guilds.length,
+    memberCount: guilds.reduce((total, guild) => total + (guild.memberCount ?? 0), 0),
+    commandCount: client.commands?.size ?? 0,
+    websocketLatency: Math.round(client.ws.ping),
+    uptimeMs
+  };
+}
+
+export function getMemberCountSummary({ guild }) {
+  return {
+    guildId: guild.id,
+    name: guild.name,
+    memberCount: guild.memberCount
+  };
+}
+
 export function getRoleInfoSummary({ role }) {
   return {
     roleId: role.id,

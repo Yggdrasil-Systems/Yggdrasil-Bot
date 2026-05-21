@@ -2,35 +2,30 @@
 
 This directory is a dashboard foundation, not a production dashboard implementation.
 
-The bot now has persistent guild settings and moderation cases, which are the right backend foundation for a future dashboard. A full dashboard should wait until the project has a deliberate design for Discord OAuth, guild selection, permission checks, hosting, sessions, and API boundaries.
+Phase 4 adds concrete data contracts and planning documents so a future web dashboard can be built against the same settings and moderation boundaries used by the bot.
 
-## Proposed Dashboard Scope
-
-Initial dashboard features should be limited to:
-
-- View connected guilds available to the signed-in admin
-- View and update mod-log channel
-- View moderation cases
-- View warning history by user
-- Configure trusted admin roles
-- Configure automod settings after automod is implemented
-
-## Suggested Future Structure
+## Current Contents
 
 ```text
 dashboard/
+├── API.md
 ├── README.md
-├── app/
-│   ├── guilds/
-│   ├── settings/
-│   └── moderation/
-├── server/
-│   ├── auth/
-│   ├── routes/
-│   └── services/
-└── shared/
-    └── contracts/
+├── WIREFRAMES.md
+└── contracts/
+    ├── automod-settings.schema.json
+    ├── guild-settings.schema.json
+    └── moderation-case.schema.json
 ```
+
+## Intended First Dashboard Scope
+
+- View guild settings
+- Update mod-log channel
+- Manage trusted admin roles
+- View and update automod settings
+- View moderation cases
+- Resolve or soft-delete moderation cases
+- Read command documentation
 
 ## Architecture Boundary
 
@@ -45,7 +40,7 @@ Dashboard UI
 → MongoDB
 ```
 
-Discord actions that require live bot state should go through a carefully designed bot-side API or queue in a later phase. Do not couple the dashboard directly to Discord event handlers.
+Discord actions that require live bot state should go through a deliberately designed bot-side API or queue in a later phase.
 
 ## Not Implemented Yet
 
@@ -55,4 +50,4 @@ Discord actions that require live bot state should go through a carefully design
 - Frontend framework
 - Deployment config
 
-This is intentional scope control. The current phase focuses on the bot's persistent moderation foundation.
+That is intentional. Authentication, guild selection, permission checks, hosting, and deployment boundaries should be their own focused phase.

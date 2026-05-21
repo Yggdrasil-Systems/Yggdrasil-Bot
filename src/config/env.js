@@ -58,6 +58,7 @@ export function readEnv(source = process.env, profile = 'runtime') {
     clientId: cleanValue(source.CLIENT_ID) || null,
     guildId: cleanValue(source.GUILD_ID) || null,
     botOwnerId: cleanValue(source.BOT_OWNER_ID) || null,
+    dashboardUrl: cleanValue(source.DASHBOARD_URL) || null,
     trustedAdminRoleIds: readCsv(source, 'TRUSTED_ADMIN_ROLE_IDS'),
     nodeEnv,
     isProduction: nodeEnv === 'production',

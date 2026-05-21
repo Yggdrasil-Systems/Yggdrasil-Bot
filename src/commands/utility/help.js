@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 
-import { buildHelpEmbed } from '../../services/helpService.js';
+import { buildHelpComponents, buildHelpEmbed } from '../../services/helpService.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
 export const name = 'help';
@@ -13,12 +13,14 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   await replyToInteraction(interaction, {
-    embeds: [buildHelpEmbed()]
+    embeds: [buildHelpEmbed()],
+    components: buildHelpComponents({ requesterId: interaction.user.id })
   }, { ephemeral: true });
 }
 
 export async function executeMessage(context) {
   await context.respond({
-    embeds: [buildHelpEmbed()]
+    embeds: [buildHelpEmbed()],
+    components: buildHelpComponents({ requesterId: context.user.id })
   });
 }

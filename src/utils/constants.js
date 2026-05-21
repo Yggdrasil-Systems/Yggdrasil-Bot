@@ -18,3 +18,59 @@ export const EVENTS_PATH = 'src/events';
 export const LIMITS = Object.freeze({
   maxPurgeAmount: 100
 });
+
+export const AUTOMOD_RULES = Object.freeze({
+  badWords: 'badWords',
+  mentionSpam: 'mentionSpam',
+  repeatSpam: 'repeatSpam',
+  linkSpam: 'linkSpam',
+  capsSpam: 'capsSpam'
+});
+
+export const AUTOMOD_ACTIONS = Object.freeze({
+  delete: 'delete',
+  warn: 'warn',
+  timeout: 'timeout'
+});
+
+export const DEFAULT_AUTOMOD = Object.freeze({
+  enabled: false,
+  logActions: true,
+  ignoredChannelIds: [],
+  ignoredRoleIds: [],
+  rules: {
+    badWords: {
+      enabled: false,
+      words: [],
+      punishment: { action: AUTOMOD_ACTIONS.warn, timeoutDuration: '10m' }
+    },
+    mentionSpam: {
+      enabled: true,
+      threshold: 5,
+      windowSeconds: 10,
+      punishment: { action: AUTOMOD_ACTIONS.warn, timeoutDuration: '10m' }
+    },
+    repeatSpam: {
+      enabled: true,
+      threshold: 4,
+      windowSeconds: 12,
+      punishment: { action: AUTOMOD_ACTIONS.delete, timeoutDuration: '10m' }
+    },
+    linkSpam: {
+      enabled: false,
+      allowList: [],
+      punishment: { action: AUTOMOD_ACTIONS.delete, timeoutDuration: '10m' }
+    },
+    capsSpam: {
+      enabled: true,
+      minLength: 16,
+      ratio: 0.75,
+      punishment: { action: AUTOMOD_ACTIONS.delete, timeoutDuration: '10m' }
+    }
+  }
+});
+
+export const DEFAULT_MODERATION_SETTINGS = Object.freeze({
+  requireReason: true,
+  caseLogEnabled: true
+});
