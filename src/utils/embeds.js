@@ -1,7 +1,9 @@
 import { EmbedBuilder } from 'discord.js';
 
+import { COLORS as ACTION_COLORS } from '../config/colors.js';
 import { BOT, COLORS } from './constants.js';
 import { formatBoolean, formatDiscordTimestamp, formatDuration } from './formatters.js';
+import { sanitizeMentions } from './sanitize.js';
 
 export function buildBaseEmbed({ title, description, color = COLORS.brand }) {
   const embed = new EmbedBuilder()
@@ -156,10 +158,19 @@ export function buildRoleInfoEmbed(summary) {
 }
 
 export function buildModerationResultEmbed(title, moderationCase) {
-  return buildSuccessEmbed(
+  const actionColor = {
+    ban: ACTION_COLORS.BAN,
+    kick: ACTION_COLORS.KICK,
+    timeout: ACTION_COLORS.TIMEOUT,
+    warn: ACTION_COLORS.WARN,
+    untimeout: ACTION_COLORS.RESOLVE
+  }[moderationCase.actionType] ?? COLORS.success;
+
+  return buildBaseEmbed({
     title,
-    `Case #${moderationCase.caseId} recorded for <@${moderationCase.targetUserId}>.`
-  );
+    description: `Case #${moderationCase.caseId} recorded for user \`${moderationCase.targetUserId}\`.`,
+    color: actionColor
+  });
 }
 
 export function buildWarningsEmbed({ targetUser, warnings }) {
@@ -167,7 +178,7 @@ export function buildWarningsEmbed({ targetUser, warnings }) {
     ? 'No warnings are recorded for this user.'
     : warnings
       .slice(0, 8)
-      .map((warning) => `#${warning.caseId} — ${warning.reason}`)
+      .map((warning) => `#${warning.caseId} - ${sanitizeMentions(warning.reason) || 'None'}`)
       .join('\n');
 
   return buildBaseEmbed({
@@ -188,7 +199,7 @@ export function buildModerationLogEmbed({ moderationCase, targetUser, moderatorU
   }).addFields(
     { name: 'Target', value: targetValue, inline: true },
     { name: 'Moderator', value: `${moderatorUser.tag ?? moderatorUser.username}\n\`${moderationCase.moderatorId}\``, inline: true },
-    { name: 'Reason', value: moderationCase.reason, inline: false }
+    { name: 'Reason', value: sanitizeMentions(moderationCase.reason) || 'None', inline: false }
   );
 
   if (moderationCase.duration) {
@@ -246,36 +257,49 @@ export function buildCaseEmbed(moderationCase) {
     { name: 'Target', value: `<@${moderationCase.targetUserId}>`, inline: true },
     { name: 'Moderator', value: `<@${moderationCase.moderatorId}>`, inline: true },
     { name: 'Status', value: moderationCase.status, inline: true },
-    { name: 'Reason', value: moderationCase.reason, inline: false }
+    { name: 'Reason', value: sanitizeMentions(moderationCase.reason) || 'None', inline: false }
   );
 }
 
 export function buildCaseListEmbed(cases) {
+  const pageCases = cases.slice(0, 10);
   const description = cases.length
-    ? cases.map((moderationCase) => `#${moderationCase.caseId} \`${moderationCase.actionType}\` <@${moderationCase.targetUserId}> — ${moderationCase.reason}`).join('\n').slice(0, 4096)
+    ? pageCases.map((moderationCase) => `#${moderationCase.caseId} \`${moderationCase.actionType}\` \`${moderationCase.targetUserId}\` - ${sanitizeMentions(moderationCase.reason) || 'None'}`).join('\n').slice(0, 4096)
     : 'No moderation cases found.';
 
-  return buildBaseEmbed({
+  const embed = buildBaseEmbed({
     title: 'Moderation Cases',
     description
   });
+
+  if (cases.length > 10) {
+    embed.setFooter({ text: `${BOT.name} | Page 1 of ${Math.ceil(cases.length / 10)}` });
+  }
+
+  return embed;
 }
 
 export function buildCaseStatsEmbed(stats) {
-  const byAction = Object.entries(stats.byAction)
+  const byActionSource = {
+    warn: stats.byAction?.warn ?? 0,
+    kick: stats.byAction?.kick ?? 0,
+    ban: stats.byAction?.ban ?? 0,
+    timeout: stats.byAction?.timeout ?? 0
+  };
+  const byAction = Object.entries(byActionSource)
     .map(([action, count]) => `\`${action}\`: ${count}`)
-    .join('\n') || 'None';
+    .join('\n');
 
-  const byStatus = Object.entries(stats.byStatus)
-    .map(([status, count]) => `\`${status}\`: ${count}`)
-    .join('\n') || 'None';
+  const mostRecent = stats.mostRecentCaseDate ?? stats.mostRecentCreatedAt ?? stats.latestCreatedAt ?? null;
 
   return buildBaseEmbed({
     title: 'Moderation Case Stats',
-    description: `${stats.total} total active or resolved case(s).`
+    description: 'Current moderation case totals.'
   }).addFields(
-    { name: 'By Action', value: byAction, inline: true },
-    { name: 'By Status', value: byStatus, inline: true }
+    { name: 'Total Cases', value: `${stats.total ?? 0}`, inline: true },
+    { name: 'Open Cases', value: `${stats.byStatus?.open ?? stats.open ?? 0}`, inline: true },
+    { name: 'Cases By Type', value: byAction, inline: false },
+    { name: 'Most Recent Case', value: mostRecent ? formatDiscordTimestamp(mostRecent, 'D') : 'None', inline: true }
   );
 }
 

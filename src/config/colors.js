@@ -1,0 +1,10 @@
+export const COLORS = Object.freeze({
+  BAN: 0xE53935,
+  KICK: 0xFB8C00,
+  TIMEOUT: 0xFDD835,
+  WARN: 0xFFB300,
+  RESOLVE: 0x43A047,
+  INFO: 0x1E88E5,
+  ERROR: 0xD32F2F,
+  MUTED: 0x757575
+});

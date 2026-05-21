@@ -4,6 +4,7 @@ import { moderationService } from '../../services/moderationService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 import { getInteractionModerator, getMessageAmount } from '../../utils/moderationInputs.js';
 import { replyToInteraction } from '../../utils/responses.js';
+import { validateNumericLimit } from '../../utils/validators.js';
 
 export const name = 'purge';
 export const adminOnly = true;
@@ -18,6 +19,15 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   const moderatorMember = await getInteractionModerator(interaction);
+  const amountValidation = validateNumericLimit(interaction.options.getInteger('amount', true), 1, 100, 'Amount');
+
+  if (!amountValidation.valid) {
+    await replyToInteraction(interaction, {
+      embeds: [buildErrorEmbed('Purge failed', amountValidation.reason)]
+    }, { ephemeral: true });
+    return;
+  }
+
   const result = await moderationService.purge({
     message: {
       guild: interaction.guild,
@@ -26,8 +36,9 @@ export async function execute(interaction) {
       member: moderatorMember
     },
     moderatorMember,
-    amount: interaction.options.getInteger('amount', true),
-    reason: interaction.options.getString('reason') ?? 'Message purge'
+    amount: amountValidation.value,
+    reason: interaction.options.getString('reason') ?? 'Message purge',
+    settings: interaction.guildSettings
   });
 
   await replyToInteraction(interaction, {
@@ -40,10 +51,20 @@ export async function execute(interaction) {
 }
 
 export async function executeMessage(context) {
+  const amountValidation = validateNumericLimit(getMessageAmount(context), 1, 100, 'Amount');
+
+  if (!amountValidation.valid) {
+    await context.respond({
+      embeds: [buildErrorEmbed('Purge failed', amountValidation.reason)]
+    });
+    return;
+  }
+
   const result = await moderationService.purge({
     message: context.message,
     moderatorMember: context.member,
-    amount: getMessageAmount(context)
+    amount: amountValidation.value,
+    settings: context.settings
   });
 
   await context.respond({

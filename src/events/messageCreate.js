@@ -7,5 +7,8 @@ export const name = Events.MessageCreate;
 
 export async function execute(message) {
   const handledCommand = await handleMessageCommand(message);
-  await automodService.handleMessage(message, { isCommand: handledCommand });
+  await automodService.handleMessage(message, {
+    isCommand: handledCommand,
+    settings: message.guildSettings
+  });
 }

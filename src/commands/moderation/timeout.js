@@ -4,6 +4,7 @@ import { moderationService } from '../../services/moderationService.js';
 import { buildErrorEmbed, buildModerationResultEmbed } from '../../utils/embeds.js';
 import { getInteractionModerator, getInteractionTarget, getMessageTarget, getReasonFromArgs } from '../../utils/moderationInputs.js';
 import { replyToInteraction } from '../../utils/responses.js';
+import { validateTimeoutDuration } from '../../utils/validators.js';
 
 export const name = 'timeout';
 export const adminOnly = true;
@@ -17,14 +18,25 @@ export const data = new SlashCommandBuilder()
   .addStringOption((option) => option.setName('reason').setDescription('Why this timeout is being issued.').setRequired(true));
 
 export async function execute(interaction) {
+  const duration = interaction.options.getString('duration', true);
+  const durationValidation = validateTimeoutDuration(duration);
+
+  if (!durationValidation.valid) {
+    await replyToInteraction(interaction, {
+      embeds: [buildErrorEmbed('Timeout failed', durationValidation.reason)]
+    }, { ephemeral: true });
+    return;
+  }
+
   const { targetMember } = await getInteractionTarget(interaction);
   const moderatorMember = await getInteractionModerator(interaction);
   const result = await moderationService.timeout({
     guild: interaction.guild,
     moderatorMember,
     targetMember,
-    duration: interaction.options.getString('duration', true),
-    reason: interaction.options.getString('reason', true)
+    duration,
+    reason: interaction.options.getString('reason', true),
+    settings: interaction.guildSettings
   });
 
   await replyToInteraction(interaction, {
@@ -37,6 +49,15 @@ export async function execute(interaction) {
 }
 
 export async function executeMessage(context) {
+  const durationValidation = validateTimeoutDuration(context.args[1]);
+
+  if (!durationValidation.valid) {
+    await context.respond({
+      embeds: [buildErrorEmbed('Timeout failed', durationValidation.reason)]
+    });
+    return;
+  }
+
   const target = await getMessageTarget(context);
 
   if (!target) {
@@ -48,7 +69,8 @@ export async function executeMessage(context) {
     moderatorMember: context.member,
     targetMember: target.targetMember,
     duration: context.args[1],
-    reason: getReasonFromArgs(context.args, 2)
+    reason: getReasonFromArgs(context.args, 2),
+    settings: context.settings
   });
 
   await context.respond({

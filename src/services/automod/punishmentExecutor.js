@@ -1,5 +1,7 @@
 import { moderationRepository } from '../../database/mongo/repositories/moderationRepository.js';
-import { parseDuration } from '../moderationService.js';
+import { safeLog } from '../../utils/safeLog.js';
+import { sanitizeMentions } from '../../utils/sanitize.js';
+import { validateTimeoutDuration } from '../../utils/validators.js';
 import { loggingService } from '../loggingService.js';
 
 const ACTION_CASE_TYPES = Object.freeze({
@@ -25,10 +27,23 @@ export function createPunishmentExecutor({
     async execute({ message, settings, result }) {
       const deleted = await deleteMessage(message);
       const actionType = ACTION_CASE_TYPES[result.action] ?? 'automod_delete';
-      const durationMs = result.action === 'timeout' ? parseDuration(result.timeoutDuration) : null;
+      const timeoutValidation = result.action === 'timeout'
+        ? validateTimeoutDuration(result.timeoutDuration)
+        : { valid: true, ms: null };
+      const durationMs = timeoutValidation.valid ? timeoutValidation.ms : null;
+      const reason = sanitizeMentions(result.reason);
+
+      if (result.action === 'timeout' && !timeoutValidation.valid) {
+        console.warn('[Automod] Skipping invalid timeout punishment', {
+          guildId: message.guild.id,
+          ruleId: result.ruleId,
+          reason: timeoutValidation.reason
+        });
+        return { ok: false, skipped: true, reason: timeoutValidation.reason };
+      }
 
       if (result.action === 'timeout' && durationMs && message.member?.timeout) {
-        await message.member.timeout(durationMs, result.reason);
+        await message.member.timeout(durationMs, reason);
       }
 
       const moderationCase = await moderationRepo.createCase({
@@ -36,7 +51,7 @@ export function createPunishmentExecutor({
         targetUserId: message.author.id,
         moderatorId: message.client?.user?.id ?? 'automod',
         actionType,
-        reason: result.reason,
+        reason,
         duration: result.action === 'timeout' ? result.timeoutDuration : null,
         durationMs,
         expiresAt: durationMs ? new Date(Date.now() + durationMs) : null,
@@ -49,13 +64,16 @@ export function createPunishmentExecutor({
       });
 
       if (settings.automod.logActions) {
-        await logService.sendModerationLog({
-          guild: message.guild,
-          settings,
-          moderationCase,
-          targetUser: message.author,
-          moderatorUser: message.client?.user ?? { id: 'automod', username: 'World Tree Automod' }
-        });
+        safeLog(
+          () => logService.sendModerationLog({
+            guild: message.guild,
+            settings,
+            moderationCase,
+            targetUser: message.author,
+            moderatorUser: message.client?.user ?? { id: 'automod', username: 'World Tree Automod' }
+          }),
+          { guildId: message.guild.id, action: actionType }
+        );
       }
 
       return { ok: true, moderationCase };

@@ -1,6 +1,7 @@
 import { buildErrorEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 import { replyToInteraction } from '../utils/responses.js';
+import { createTimer } from '../utils/perf.js';
 import { buildHelpCategoryEmbed, buildHelpComponents, parseHelpComponentId } from '../services/helpService.js';
 import { handleInteractionError } from './errorHandler.js';
 import { canUseAdminCommand } from './permissionGuard.js';
@@ -60,18 +61,26 @@ export async function handleComponentInteraction(interaction) {
 }
 
 export async function handleChatInputCommand(interaction, { log = logger } = {}) {
+  const timer = createTimer('interaction_command');
   const command = interaction.client.commands.get(interaction.commandName);
+  timer.mark('parser_router');
 
   if (!command) {
     await handleUnknownCommand(interaction, log);
+    timer.mark('reply_send');
+    timer.finish();
     return;
   }
 
   const settings = interaction.client.settingsService && interaction.guild?.id
     ? await interaction.client.settingsService.getEffectiveSettings(interaction.guild.id).catch(() => null)
     : null;
+  timer.mark('settings_lookup');
+  interaction.guildSettings = settings;
 
+  // PERF AUDIT: settings fetch is single per interaction command request and is attached to interaction.guildSettings.
   if (command.botOwnerOnly && interaction.user.id !== interaction.client.runtimeConfig?.botOwnerId) {
+    timer.mark('permission_checks');
     await replyToInteraction(
       interaction,
       {
@@ -84,6 +93,8 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
       },
       { ephemeral: true }
     );
+    timer.mark('reply_send');
+    timer.finish();
     return;
   }
 
@@ -97,6 +108,7 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
       ...(settings?.trustedAdminRoleIds ?? [])
     ]
   })) {
+    timer.mark('permission_checks');
     await replyToInteraction(
       interaction,
       {
@@ -109,12 +121,19 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
       },
       { ephemeral: true }
     );
+    timer.mark('reply_send');
+    timer.finish();
     return;
   }
+  timer.mark('permission_checks');
 
   try {
     await command.execute(interaction);
+    timer.mark('command_execution');
+    timer.finish();
   } catch (error) {
     await handleInteractionError(interaction, error);
+    timer.mark('command_execution');
+    timer.finish();
   }
 }

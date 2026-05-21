@@ -1,9 +1,10 @@
 import { PermissionsBitField } from 'discord.js';
-import ms from 'ms';
-
 import { moderationRepository } from '../database/mongo/repositories/moderationRepository.js';
 import { settingsRepository } from '../database/mongo/repositories/settingsRepository.js';
 import { LIMITS } from '../utils/constants.js';
+import { safeLog } from '../utils/safeLog.js';
+import { sanitizeMentions } from '../utils/sanitize.js';
+import { validateTimeoutDuration } from '../utils/validators.js';
 import { normalizeGuildSettings } from './settingsService.js';
 import { loggingService } from './loggingService.js';
 
@@ -21,7 +22,7 @@ function hasPermission(member, permission) {
 }
 
 function normalizeReason(reason) {
-  return String(reason ?? '').trim();
+  return sanitizeMentions(String(reason ?? '').trim());
 }
 
 function fail(reason) {
@@ -91,7 +92,11 @@ function effectiveReason(reason, settings, fallback = 'No reason provided.') {
   return normalizeReason(reason) || (settings?.moderation?.requireReason === false ? fallback : '');
 }
 
-async function getGuildSettings(guild, dependencies) {
+async function getGuildSettings(guild, dependencies, providedSettings = null) {
+  if (providedSettings) {
+    return normalizeGuildSettings(providedSettings);
+  }
+
   if (!guild?.id) {
     return normalizeGuildSettings({});
   }
@@ -116,13 +121,18 @@ async function createAndLogCase({
     ...payload
   });
   if (settings?.moderation?.caseLogEnabled !== false) {
-    await dependencies.loggingService.sendModerationLog({
-      guild,
-      settings,
-      moderationCase,
-      targetUser,
-      moderatorUser
-    });
+    // PERF FIX: Moderation actions now complete and return immediately after case creation;
+    // mod-log delivery is isolated so a deleted channel or Discord API failure cannot fail the action.
+    safeLog(
+      () => dependencies.loggingService.sendModerationLog({
+        guild,
+        settings,
+        moderationCase,
+        targetUser,
+        moderatorUser
+      }),
+      { guildId: guild.id, action: actionType }
+    );
   }
 
   return { ok: true, moderationCase };
@@ -141,13 +151,8 @@ export function validatePurgeAmount(amount) {
 }
 
 export function parseDuration(duration) {
-  const parsedDuration = ms(String(duration ?? '').trim());
-
-  if (!Number.isInteger(parsedDuration) || parsedDuration <= 0) {
-    return null;
-  }
-
-  return parsedDuration;
+  const result = validateTimeoutDuration(duration);
+  return result.valid ? result.ms : null;
 }
 
 export function canBotManageMessages(message) {
@@ -170,8 +175,8 @@ export function createModerationService({
   };
 
   return {
-    async warn({ guild, moderatorMember, targetMember, targetUser = targetMember?.user, reason }) {
-      const settings = await getGuildSettings(guild, dependencies);
+    async warn({ guild, moderatorMember, targetMember, targetUser = targetMember?.user, reason, settings: providedSettings = null }) {
+      const settings = await getGuildSettings(guild, dependencies, providedSettings);
       const finalReason = effectiveReason(reason, settings);
       const validationError = validateModerationRequest({
         actionType: 'warn',
@@ -245,13 +250,14 @@ export function createModerationService({
       return { ok: true, stats: await dependencies.moderationRepository.getCaseStats(guildId) };
     },
 
-    async timeout({ guild, moderatorMember, targetMember, duration, reason }) {
-      const durationMs = parseDuration(duration);
-      const settings = await getGuildSettings(guild, dependencies);
+    async timeout({ guild, moderatorMember, targetMember, duration, reason, settings: providedSettings = null }) {
+      const durationValidation = validateTimeoutDuration(duration);
+      const durationMs = durationValidation.valid ? durationValidation.ms : null;
+      const settings = await getGuildSettings(guild, dependencies, providedSettings);
       const finalReason = effectiveReason(reason, settings);
 
-      if (!durationMs) {
-        return fail('Use a valid duration like `10m`, `2h`, or `1d`.');
+      if (!durationValidation.valid) {
+        return fail(durationValidation.reason);
       }
 
       const validationError = validateModerationRequest({
@@ -286,8 +292,8 @@ export function createModerationService({
       });
     },
 
-    async untimeout({ guild, moderatorMember, targetMember, reason = 'Timeout removed' }) {
-      const settings = await getGuildSettings(guild, dependencies);
+    async untimeout({ guild, moderatorMember, targetMember, reason = 'Timeout removed', settings: providedSettings = null }) {
+      const settings = await getGuildSettings(guild, dependencies, providedSettings);
       const finalReason = effectiveReason(reason, settings, 'Timeout removed');
       const validationError = validateModerationRequest({
         actionType: 'untimeout',
@@ -316,8 +322,8 @@ export function createModerationService({
       });
     },
 
-    async kick({ guild, moderatorMember, targetMember, reason }) {
-      const settings = await getGuildSettings(guild, dependencies);
+    async kick({ guild, moderatorMember, targetMember, reason, settings: providedSettings = null }) {
+      const settings = await getGuildSettings(guild, dependencies, providedSettings);
       const finalReason = effectiveReason(reason, settings);
       const validationError = validateModerationRequest({
         actionType: 'kick',
@@ -346,8 +352,8 @@ export function createModerationService({
       });
     },
 
-    async ban({ guild, moderatorMember, targetMember, targetUser = targetMember?.user, reason }) {
-      const settings = await getGuildSettings(guild, dependencies);
+    async ban({ guild, moderatorMember, targetMember, targetUser = targetMember?.user, reason, settings: providedSettings = null }) {
+      const settings = await getGuildSettings(guild, dependencies, providedSettings);
       const finalReason = effectiveReason(reason, settings);
       const validationError = validateModerationRequest({
         actionType: 'ban',
@@ -376,8 +382,8 @@ export function createModerationService({
       });
     },
 
-    async purge({ message, moderatorMember, amount, reason = 'Message purge' }) {
-      const settings = await getGuildSettings(message.guild, dependencies);
+    async purge({ message, moderatorMember, amount, reason = 'Message purge', settings: providedSettings = null }) {
+      const settings = await getGuildSettings(message.guild, dependencies, providedSettings);
       const validationError = validatePurgeAmount(amount);
 
       if (validationError) {
@@ -403,7 +409,7 @@ export function createModerationService({
         },
         moderatorUser: moderatorMember.user,
         payload: {
-          reason,
+          reason: normalizeReason(reason),
           status: 'resolved',
           deletedMessageCount: deletedMessages.size,
           metadata: {

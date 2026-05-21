@@ -1,4 +1,5 @@
 import { buildModerationLogEmbed } from '../utils/embeds.js';
+import { sendToChannel } from '../utils/reply.js';
 
 export function createLoggingService() {
   return {
@@ -14,7 +15,7 @@ export function createLoggingService() {
         return false;
       }
 
-      await channel.send({
+      await sendToChannel(channel, {
         embeds: [
           buildModerationLogEmbed({
             moderationCase,

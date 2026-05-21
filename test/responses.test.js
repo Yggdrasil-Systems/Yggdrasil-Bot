@@ -16,7 +16,7 @@ test('replyToInteraction replies to a fresh interaction', async () => {
 
   await replyToInteraction(interaction, { content: 'Ready' });
 
-  assert.deepEqual(calls, [['reply', { content: 'Ready' }]]);
+  assert.deepEqual(calls, [['reply', { content: 'Ready', allowedMentions: { parse: [] } }]]);
 });
 
 test('replyToInteraction sends ephemeral fresh replies through message flags', async () => {
@@ -47,7 +47,7 @@ test('replyToInteraction follows up after an interaction has already replied', a
 
   await replyToInteraction(interaction, { content: 'Later' });
 
-  assert.deepEqual(calls, [['followUp', { content: 'Later' }]]);
+  assert.deepEqual(calls, [['followUp', { content: 'Later', allowedMentions: { parse: [] } }]]);
 });
 
 test('replyToInteraction edits a deferred interaction', async () => {
@@ -62,7 +62,7 @@ test('replyToInteraction edits a deferred interaction', async () => {
 
   await replyToInteraction(interaction, { content: 'Finished' });
 
-  assert.deepEqual(calls, [['editReply', { content: 'Finished' }]]);
+  assert.deepEqual(calls, [['editReply', { content: 'Finished', allowedMentions: { parse: [] } }]]);
 });
 
 test('replyToMessage falls back to channel send when reply fails', async () => {
@@ -78,5 +78,5 @@ test('replyToMessage falls back to channel send when reply fails', async () => {
 
   await replyToMessage(message, { content: 'Fallback' });
 
-  assert.deepEqual(calls, [['send', { content: 'Fallback' }]]);
+  assert.deepEqual(calls, [['send', { content: 'Fallback', allowedMentions: { parse: [] } }]]);
 });

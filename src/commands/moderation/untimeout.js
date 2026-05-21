@@ -23,7 +23,8 @@ export async function execute(interaction) {
     guild: interaction.guild,
     moderatorMember,
     targetMember,
-    reason: interaction.options.getString('reason') ?? 'Timeout removed'
+    reason: interaction.options.getString('reason') ?? 'Timeout removed',
+    settings: interaction.guildSettings
   });
 
   await replyToInteraction(interaction, {
@@ -46,7 +47,8 @@ export async function executeMessage(context) {
     guild: context.guild,
     moderatorMember: context.member,
     targetMember: target.targetMember,
-    reason: getReasonFromArgs(context.args, 1, 'Timeout removed')
+    reason: getReasonFromArgs(context.args, 1, 'Timeout removed'),
+    settings: context.settings
   });
 
   await context.respond({

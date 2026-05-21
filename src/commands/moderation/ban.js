@@ -23,7 +23,8 @@ export async function execute(interaction) {
     moderatorMember,
     targetMember,
     targetUser,
-    reason: interaction.options.getString('reason', true)
+    reason: interaction.options.getString('reason', true),
+    settings: interaction.guildSettings
   });
 
   await replyToInteraction(interaction, {
@@ -47,7 +48,8 @@ export async function executeMessage(context) {
     moderatorMember: context.member,
     targetMember: target.targetMember,
     targetUser: target.targetUser,
-    reason: getReasonFromArgs(context.args)
+    reason: getReasonFromArgs(context.args),
+    settings: context.settings
   });
 
   await context.respond({

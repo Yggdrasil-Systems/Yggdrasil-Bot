@@ -1,4 +1,5 @@
 import { logger } from '../../utils/logger.js';
+import { createTimer } from '../../utils/perf.js';
 import { settingsService as defaultSettingsService } from '../settingsService.js';
 import { automodState } from './automodState.js';
 import { punishmentExecutor as defaultPunishmentExecutor } from './punishmentExecutor.js';
@@ -46,12 +47,17 @@ export function createAutomodService({
   log = logger
 } = {}) {
   return {
-    async handleMessage(message, { isCommand = false } = {}) {
+    async handleMessage(message, { isCommand = false, settings: providedSettings = null } = {}) {
+      const timer = message.perfTimer ?? createTimer('automod_pipeline');
+
       if (!message.guild || message.author?.bot || isCommand) {
         return { ok: true, skipped: true };
       }
 
-      const settings = await settingsService.getEffectiveSettings(message.guild.id);
+      // PERF FIX: When the command router already fetched guildSettings for this message,
+      // automod reuses that context instead of querying settings again.
+      const settings = providedSettings ?? message.guildSettings ?? await settingsService.getEffectiveSettings(message.guild.id);
+      timer.mark?.('automod_pipeline');
 
       if (!settings.automod.enabled) {
         return { ok: true, skipped: true };

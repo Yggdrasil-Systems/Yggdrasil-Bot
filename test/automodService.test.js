@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import { createAutomodService } from '../src/services/automod/automodService.js';
 import { createAutomodState } from '../src/services/automod/automodState.js';
+import { createPunishmentExecutor } from '../src/services/automod/punishmentExecutor.js';
 import { evaluateBadWords } from '../src/services/automod/rules/badWordsRule.js';
 import { evaluateCapsSpam } from '../src/services/automod/rules/capsSpamRule.js';
 import { evaluateLinkSpam } from '../src/services/automod/rules/linkSpamRule.js';
@@ -140,3 +141,34 @@ test('automod service can punish normal no-prefix lookalikes when routing did no
   assert.equal(punished, true);
 });
 
+test('automod timeout punishment with invalid duration skips case creation', async () => {
+  let caseCreated = false;
+  const originalWarn = console.warn;
+  console.warn = () => {};
+  const executor = createPunishmentExecutor({
+    moderationRepo: {
+      createCase: async () => {
+        caseCreated = true;
+      }
+    },
+    logService: { sendModerationLog: async () => true }
+  });
+
+  try {
+    await executor.execute({
+      message: {
+        guild: { id: 'guild' },
+        author: { id: 'user' },
+        client: { user: { id: 'bot' } },
+        member: { timeout: async () => true },
+        delete: async () => true
+      },
+      settings: { automod: { logActions: true } },
+      result: { action: 'timeout', timeoutDuration: '29d', reason: 'spam', ruleId: 'badWords', metadata: {} }
+    });
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.equal(caseCreated, false);
+});

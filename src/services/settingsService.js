@@ -1,5 +1,6 @@
 import { settingsRepository } from '../database/mongo/repositories/settingsRepository.js';
 import { DEFAULT_AUTOMOD, DEFAULT_MODERATION_SETTINGS } from '../utils/constants.js';
+import { validateTimeoutDuration } from '../utils/validators.js';
 
 const DEFAULT_CACHE_TTL_MS = 30_000;
 const VALID_RULES = new Set(Object.keys(DEFAULT_AUTOMOD.rules));
@@ -125,6 +126,12 @@ export function createSettingsService(repository = settingsRepository, { cacheTt
     async updateAutomodPunishment(guildId, ruleName, { action, timeoutDuration }) {
       assertRuleName(ruleName);
       assertAction(action);
+      if (action === 'timeout') {
+        const validation = validateTimeoutDuration(timeoutDuration);
+        if (!validation.valid) {
+          throw new Error(validation.reason);
+        }
+      }
       const settings = normalizeGuildSettings(await repository.updateAutomodPunishment(guildId, ruleName, {
         action,
         timeoutDuration

@@ -4,6 +4,7 @@ import { settingsService } from '../../services/settingsService.js';
 import { buildAutomodSettingsEmbed, buildErrorEmbed, buildSettingsEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 import { parsePositiveInteger, resolveRoleFromMessage } from '../../utils/discordResolvers.js';
 import { replyToInteraction } from '../../utils/responses.js';
+import { validateChannel, validateNumericLimit, validateRole, validateTimeoutDuration } from '../../utils/validators.js';
 
 const RULE_CHOICES = [
   { name: 'Bad words', value: 'badWords' },
@@ -121,11 +122,23 @@ async function handleSettingsAction({ guildId, group, subcommand, values }) {
     }
 
     if (subcommand === 'threshold') {
+      const validation = validateNumericLimit(values.value, 1, 1000, 'Threshold');
+      if (!validation.valid) {
+        return { embed: buildErrorEmbed('Automod threshold failed', validation.reason) };
+      }
+
       await settingsService.updateAutomodThreshold(guildId, values.rule, values.value);
       return { embed: buildSuccessEmbed('Automod threshold updated', `\`${values.rule}\` threshold is now ${values.value}.`) };
     }
 
     if (subcommand === 'punishment') {
+      if (values.action === 'timeout') {
+        const validation = validateTimeoutDuration(values.duration ?? '10m');
+        if (!validation.valid) {
+          return { embed: buildErrorEmbed('Automod punishment failed', validation.reason) };
+        }
+      }
+
       await settingsService.updateAutomodPunishment(guildId, values.rule, {
         action: values.action,
         timeoutDuration: values.duration ?? '10m'
@@ -156,13 +169,28 @@ async function handleSettingsAction({ guildId, group, subcommand, values }) {
 export async function execute(interaction) {
   const group = interaction.options.getSubcommandGroup(false);
   const subcommand = interaction.options.getSubcommand();
+  const channel = interaction.options.getChannel('channel');
+  const role = interaction.options.getRole('role');
+  const channelValidation = channel ? validateChannel(channel, interaction.guild) : null;
+  const roleValidation = role ? validateRole(role.id, interaction.guild) : null;
+
+  if (channelValidation && !channelValidation.valid) {
+    await replyToInteraction(interaction, { embeds: [buildErrorEmbed('Settings update failed', channelValidation.reason)] }, { ephemeral: true });
+    return;
+  }
+
+  if (roleValidation && !roleValidation.valid) {
+    await replyToInteraction(interaction, { embeds: [buildErrorEmbed('Settings update failed', roleValidation.reason)] }, { ephemeral: true });
+    return;
+  }
+
   const result = await handleSettingsActionSafely({
     guildId: interaction.guild.id,
     group,
     subcommand,
     values: {
-      channelId: interaction.options.getChannel('channel')?.id,
-      roleId: interaction.options.getRole('role')?.id,
+      channelId: channel?.id,
+      roleId: role?.id,
       enabled: interaction.options.getBoolean('enabled'),
       rule: interaction.options.getString('rule'),
       value: interaction.options.getInteger('value'),
