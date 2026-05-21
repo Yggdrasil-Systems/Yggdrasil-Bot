@@ -156,7 +156,7 @@ async function handleSettingsAction({ guildId, group, subcommand, values }) {
 export async function execute(interaction) {
   const group = interaction.options.getSubcommandGroup(false);
   const subcommand = interaction.options.getSubcommand();
-  const result = await handleSettingsAction({
+  const result = await handleSettingsActionSafely({
     guildId: interaction.guild.id,
     group,
     subcommand,
@@ -180,7 +180,7 @@ export async function executeMessage(context) {
   let result;
 
   if (section === 'view') {
-    result = await handleSettingsAction({ guildId: context.guild.id, subcommand: 'view', values: {} });
+    result = await handleSettingsActionSafely({ guildId: context.guild.id, subcommand: 'view', values: {} });
   } else if (section === 'automod') {
     result = await handleAutomodMessage(context, action, rest);
   } else {
@@ -192,11 +192,11 @@ export async function executeMessage(context) {
 
 async function handleAutomodMessage(context, action, rest) {
   if (action === 'view') {
-    return handleSettingsAction({ guildId: context.guild.id, group: 'automod', subcommand: 'view', values: {} });
+    return handleSettingsActionSafely({ guildId: context.guild.id, group: 'automod', subcommand: 'view', values: {} });
   }
 
   if (action === 'on' || action === 'off') {
-    return handleSettingsAction({
+    return handleSettingsActionSafely({
       guildId: context.guild.id,
       group: 'automod',
       subcommand: 'toggle',
@@ -205,7 +205,7 @@ async function handleAutomodMessage(context, action, rest) {
   }
 
   if (action === 'threshold') {
-    return handleSettingsAction({
+    return handleSettingsActionSafely({
       guildId: context.guild.id,
       group: 'automod',
       subcommand: 'threshold',
@@ -214,7 +214,7 @@ async function handleAutomodMessage(context, action, rest) {
   }
 
   if (action === 'punishment') {
-    return handleSettingsAction({
+    return handleSettingsActionSafely({
       guildId: context.guild.id,
       group: 'automod',
       subcommand: 'punishment',
@@ -223,7 +223,7 @@ async function handleAutomodMessage(context, action, rest) {
   }
 
   if (action === 'badword') {
-    return handleSettingsAction({
+    return handleSettingsActionSafely({
       guildId: context.guild.id,
       group: 'automod',
       subcommand: 'badword',
@@ -241,7 +241,7 @@ export async function handleModlogMessage(context) {
     return { embed: buildErrorEmbed('Channel required', 'Mention the channel to use for moderation logs.') };
   }
 
-  return handleSettingsAction({
+  return handleSettingsActionSafely({
     guildId: context.guild.id,
     group: 'modlog',
     subcommand: 'set',
@@ -254,17 +254,30 @@ export async function handleTrustedRoleMessage(context) {
   const role = resolveRoleFromMessage(context.message, context.args.slice(1));
 
   if (action === 'list') {
-    return handleSettingsAction({ guildId: context.guild.id, group: 'trusted-role', subcommand: 'list', values: {} });
+    return handleSettingsActionSafely({ guildId: context.guild.id, group: 'trusted-role', subcommand: 'list', values: {} });
   }
 
   if (!role) {
     return { embed: buildErrorEmbed('Role required', 'Mention a role or provide a role name.') };
   }
 
-  return handleSettingsAction({
+  return handleSettingsActionSafely({
     guildId: context.guild.id,
     group: 'trusted-role',
     subcommand: action,
     values: { roleId: role.id }
   });
+}
+
+async function handleSettingsActionSafely(input) {
+  try {
+    return await handleSettingsAction(input);
+  } catch (error) {
+    return {
+      embed: buildErrorEmbed(
+        'Settings update failed',
+        error.message ?? 'That settings update could not be applied.'
+      )
+    };
+  }
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { MessageFlags } from 'discord.js';
 
-import { replyToInteraction } from '../src/utils/responses.js';
+import { replyToInteraction, replyToMessage } from '../src/utils/responses.js';
 
 test('replyToInteraction replies to a fresh interaction', async () => {
   const calls = [];
@@ -63,4 +63,20 @@ test('replyToInteraction edits a deferred interaction', async () => {
   await replyToInteraction(interaction, { content: 'Finished' });
 
   assert.deepEqual(calls, [['editReply', { content: 'Finished' }]]);
+});
+
+test('replyToMessage falls back to channel send when reply fails', async () => {
+  const calls = [];
+  const message = {
+    reply: async () => {
+      throw new Error('Unknown message');
+    },
+    channel: {
+      send: async (payload) => calls.push(['send', payload])
+    }
+  };
+
+  await replyToMessage(message, { content: 'Fallback' });
+
+  assert.deepEqual(calls, [['send', { content: 'Fallback' }]]);
 });

@@ -10,7 +10,7 @@ function buildNestedSet(prefix, values) {
 
 function updateOptions() {
   return {
-    new: true,
+    returnDocument: 'after',
     upsert: true,
     setDefaultsOnInsert: true,
     runValidators: true
@@ -24,7 +24,7 @@ export function createSettingsRepository(model = GuildSettings) {
         { guildId },
         { $setOnInsert: { guildId } },
         {
-          new: true,
+          returnDocument: 'after',
           upsert: true,
           setDefaultsOnInsert: true,
           runValidators: true
@@ -37,7 +37,7 @@ export function createSettingsRepository(model = GuildSettings) {
         { guildId },
         { $set: { modLogChannelId: channelId } },
         {
-          new: true,
+          returnDocument: 'after',
           upsert: true,
           setDefaultsOnInsert: true,
           runValidators: true

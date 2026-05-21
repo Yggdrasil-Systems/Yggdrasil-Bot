@@ -4,6 +4,7 @@ import ms from 'ms';
 import { moderationRepository } from '../database/mongo/repositories/moderationRepository.js';
 import { settingsRepository } from '../database/mongo/repositories/settingsRepository.js';
 import { LIMITS } from '../utils/constants.js';
+import { normalizeGuildSettings } from './settingsService.js';
 import { loggingService } from './loggingService.js';
 
 const ACTION_PERMISSIONS = Object.freeze({
@@ -54,7 +55,7 @@ function canBotActOnTarget(targetMember, capability) {
   return targetMember[capability] !== false;
 }
 
-function validateModerationRequest({ actionType, guild, moderatorMember, targetMember, reason, targetCapability }) {
+function validateModerationRequest({ actionType, guild, moderatorMember, targetMember, reason, targetCapability, settings }) {
   if (!guild) {
     return 'This command can only be used in a server.';
   }
@@ -63,7 +64,7 @@ function validateModerationRequest({ actionType, guild, moderatorMember, targetM
     return 'You do not have permission to use that moderation action.';
   }
 
-  if (!normalizeReason(reason)) {
+  if (settings?.moderation?.requireReason !== false && !normalizeReason(reason)) {
     return 'A reason is required for this moderation action.';
   }
 
@@ -86,12 +87,25 @@ function validateModerationRequest({ actionType, guild, moderatorMember, targetM
   return null;
 }
 
+function effectiveReason(reason, settings, fallback = 'No reason provided.') {
+  return normalizeReason(reason) || (settings?.moderation?.requireReason === false ? fallback : '');
+}
+
+async function getGuildSettings(guild, dependencies) {
+  if (!guild?.id) {
+    return normalizeGuildSettings({});
+  }
+
+  return normalizeGuildSettings(await dependencies.settingsRepository.getOrCreate(guild.id));
+}
+
 async function createAndLogCase({
   actionType,
   guild,
   targetUser,
   moderatorUser,
   payload,
+  settings,
   dependencies
 }) {
   const moderationCase = await dependencies.moderationRepository.createCase({
@@ -101,15 +115,15 @@ async function createAndLogCase({
     actionType,
     ...payload
   });
-  const settings = await dependencies.settingsRepository.getOrCreate(guild.id);
-
-  await dependencies.loggingService.sendModerationLog({
-    guild,
-    settings,
-    moderationCase,
-    targetUser,
-    moderatorUser
-  });
+  if (settings?.moderation?.caseLogEnabled !== false) {
+    await dependencies.loggingService.sendModerationLog({
+      guild,
+      settings,
+      moderationCase,
+      targetUser,
+      moderatorUser
+    });
+  }
 
   return { ok: true, moderationCase };
 }
@@ -157,13 +171,16 @@ export function createModerationService({
 
   return {
     async warn({ guild, moderatorMember, targetMember, targetUser = targetMember?.user, reason }) {
+      const settings = await getGuildSettings(guild, dependencies);
+      const finalReason = effectiveReason(reason, settings);
       const validationError = validateModerationRequest({
         actionType: 'warn',
         guild,
         moderatorMember,
         targetMember,
         targetCapability: 'manageable',
-        reason
+        reason: finalReason,
+        settings
       });
 
       if (validationError) {
@@ -175,7 +192,8 @@ export function createModerationService({
         guild,
         targetUser,
         moderatorUser: moderatorMember.user,
-        payload: { reason: normalizeReason(reason) },
+        payload: { reason: finalReason },
+        settings,
         dependencies
       });
     },
@@ -229,6 +247,8 @@ export function createModerationService({
 
     async timeout({ guild, moderatorMember, targetMember, duration, reason }) {
       const durationMs = parseDuration(duration);
+      const settings = await getGuildSettings(guild, dependencies);
+      const finalReason = effectiveReason(reason, settings);
 
       if (!durationMs) {
         return fail('Use a valid duration like `10m`, `2h`, or `1d`.');
@@ -240,14 +260,15 @@ export function createModerationService({
         moderatorMember,
         targetMember,
         targetCapability: 'moderatable',
-        reason
+        reason: finalReason,
+        settings
       });
 
       if (validationError) {
         return fail(validationError);
       }
 
-      await targetMember.timeout(durationMs, normalizeReason(reason));
+      await targetMember.timeout(durationMs, finalReason);
 
       return createAndLogCase({
         actionType: 'timeout',
@@ -255,94 +276,108 @@ export function createModerationService({
         targetUser: targetMember.user,
         moderatorUser: moderatorMember.user,
         payload: {
-          reason: normalizeReason(reason),
+          reason: finalReason,
           duration,
           durationMs,
           expiresAt: new Date(Date.now() + durationMs)
         },
+        settings,
         dependencies
       });
     },
 
     async untimeout({ guild, moderatorMember, targetMember, reason = 'Timeout removed' }) {
+      const settings = await getGuildSettings(guild, dependencies);
+      const finalReason = effectiveReason(reason, settings, 'Timeout removed');
       const validationError = validateModerationRequest({
         actionType: 'untimeout',
         guild,
         moderatorMember,
         targetMember,
         targetCapability: 'moderatable',
-        reason
+        reason: finalReason,
+        settings
       });
 
       if (validationError) {
         return fail(validationError);
       }
 
-      await targetMember.timeout(null, normalizeReason(reason));
+      await targetMember.timeout(null, finalReason);
 
       return createAndLogCase({
         actionType: 'untimeout',
         guild,
         targetUser: targetMember.user,
         moderatorUser: moderatorMember.user,
-        payload: { reason: normalizeReason(reason), status: 'resolved' },
+        payload: { reason: finalReason, status: 'resolved' },
+        settings,
         dependencies
       });
     },
 
     async kick({ guild, moderatorMember, targetMember, reason }) {
+      const settings = await getGuildSettings(guild, dependencies);
+      const finalReason = effectiveReason(reason, settings);
       const validationError = validateModerationRequest({
         actionType: 'kick',
         guild,
         moderatorMember,
         targetMember,
         targetCapability: 'kickable',
-        reason
+        reason: finalReason,
+        settings
       });
 
       if (validationError) {
         return fail(validationError);
       }
 
-      await targetMember.kick(normalizeReason(reason));
+      await targetMember.kick(finalReason);
 
       return createAndLogCase({
         actionType: 'kick',
         guild,
         targetUser: targetMember.user,
         moderatorUser: moderatorMember.user,
-        payload: { reason: normalizeReason(reason), status: 'resolved' },
+        payload: { reason: finalReason, status: 'resolved' },
+        settings,
         dependencies
       });
     },
 
     async ban({ guild, moderatorMember, targetMember, targetUser = targetMember?.user, reason }) {
+      const settings = await getGuildSettings(guild, dependencies);
+      const finalReason = effectiveReason(reason, settings);
       const validationError = validateModerationRequest({
         actionType: 'ban',
         guild,
         moderatorMember,
         targetMember,
         targetCapability: 'bannable',
-        reason
+        reason: finalReason,
+        settings
       });
 
       if (validationError) {
         return fail(validationError);
       }
 
-      await guild.members.ban(targetUser.id, { reason: normalizeReason(reason) });
+      await guild.members.ban(targetUser.id, { reason: finalReason });
 
       return createAndLogCase({
         actionType: 'ban',
         guild,
         targetUser,
         moderatorUser: moderatorMember.user,
-        payload: { reason: normalizeReason(reason), status: 'resolved' },
+        payload: { reason: finalReason, status: 'resolved' },
+        settings,
         dependencies
       });
     },
 
     async purge({ message, moderatorMember, amount, reason = 'Message purge' }) {
+      const settings = await getGuildSettings(message.guild, dependencies);
       const validationError = validatePurgeAmount(amount);
 
       if (validationError) {
@@ -362,13 +397,21 @@ export function createModerationService({
       return createAndLogCase({
         actionType: 'purge',
         guild: message.guild,
-        targetUser: message.author,
+        targetUser: {
+          id: message.channel.id,
+          username: message.channel.name ? `#${message.channel.name}` : 'Channel'
+        },
         moderatorUser: moderatorMember.user,
         payload: {
           reason,
           status: 'resolved',
-          deletedMessageCount: deletedMessages.size
+          deletedMessageCount: deletedMessages.size,
+          metadata: {
+            targetType: 'channel',
+            channelId: message.channel.id
+          }
         },
+        settings,
         dependencies
       });
     }

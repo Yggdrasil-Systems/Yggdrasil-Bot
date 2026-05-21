@@ -8,16 +8,17 @@ import {
   hasTrustedAdminRole
 } from '../src/middleware/permissionGuard.js';
 
-test('canUseNoPrefixShortcuts allows server owner and bot owner', () => {
+test('canUseNoPrefixShortcuts allows only bot owner or explicit no-prefix grants', () => {
   assert.equal(
     canUseNoPrefixShortcuts({
       userId: 'owner',
       guildOwnerId: 'owner',
       botOwnerId: null,
       member: null,
-      trustedAdminRoleIds: []
+      trustedAdminRoleIds: [],
+      noPrefixAllowed: false
     }),
-    true
+    false
   );
 
   assert.equal(
@@ -26,27 +27,26 @@ test('canUseNoPrefixShortcuts allows server owner and bot owner', () => {
       guildOwnerId: 'server-owner',
       botOwnerId: 'bot-owner',
       member: null,
-      trustedAdminRoleIds: []
+      trustedAdminRoleIds: [],
+      noPrefixAllowed: false
+    }),
+    true
+  );
+
+  assert.equal(
+    canUseNoPrefixShortcuts({
+      userId: 'trusted',
+      guildOwnerId: 'owner',
+      botOwnerId: null,
+      member: null,
+      trustedAdminRoleIds: [],
+      noPrefixAllowed: true
     }),
     true
   );
 });
 
-test('canUseNoPrefixShortcuts allows administrators and trusted admin roles', () => {
-  assert.equal(
-    canUseNoPrefixShortcuts({
-      userId: 'admin',
-      guildOwnerId: 'owner',
-      botOwnerId: null,
-      member: {
-        permissions: new PermissionsBitField(PermissionsBitField.Flags.Administrator),
-        roles: { cache: new Map() }
-      },
-      trustedAdminRoleIds: []
-    }),
-    true
-  );
-
+test('hasTrustedAdminRole checks guild-level trusted admin roles', () => {
   assert.equal(
     hasTrustedAdminRole(
       { roles: { cache: new Map([['role-a', {}]]) } },
@@ -63,10 +63,11 @@ test('canUseNoPrefixShortcuts rejects normal members', () => {
       guildOwnerId: 'owner',
       botOwnerId: null,
       member: {
-        permissions: new PermissionsBitField([]),
+        permissions: new PermissionsBitField(PermissionsBitField.Flags.Administrator),
         roles: { cache: new Map() }
       },
-      trustedAdminRoleIds: []
+      trustedAdminRoleIds: [],
+      noPrefixAllowed: false
     }),
     false
   );

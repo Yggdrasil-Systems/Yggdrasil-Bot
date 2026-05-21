@@ -13,7 +13,7 @@ export const data = new SlashCommandBuilder()
   .setDescription('Check whether World Tree is responsive.');
 
 export async function execute(interaction) {
-  const ping = getPingSummary(interaction.client);
+  const ping = getPingSummary(interaction);
 
   await replyToInteraction(interaction, {
     embeds: [buildPingEmbed(ping)]
@@ -21,7 +21,7 @@ export async function execute(interaction) {
 }
 
 export async function executeMessage(context) {
-  const ping = getPingSummary(context.client);
+  const ping = getPingSummary(context.message);
 
   await context.respond({
     embeds: [buildPingEmbed(ping)]

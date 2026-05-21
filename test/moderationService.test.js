@@ -45,6 +45,32 @@ function createService() {
   };
 }
 
+function createServiceWithSettings(settings) {
+  const cases = [];
+  const logs = [];
+
+  return {
+    cases,
+    logs,
+    service: createModerationService({
+      moderationRepository: {
+        createCase: async (payload) => {
+          const created = { caseId: cases.length + 1, ...payload };
+          cases.push(created);
+          return created;
+        },
+        listWarnings: async () => cases.filter((item) => item.actionType === 'warn')
+      },
+      settingsRepository: {
+        getOrCreate: async () => settings
+      },
+      loggingService: {
+        sendModerationLog: async (payload) => logs.push(payload)
+      }
+    })
+  };
+}
+
 test('moderationService creates and logs warning cases', async () => {
   const { service, cases, logs } = createService();
   const result = await service.warn({
@@ -70,6 +96,50 @@ test('moderationService rejects moderation without a reason', async () => {
 
   assert.equal(result.ok, false);
   assert.match(result.reason, /reason/i);
+});
+
+test('moderationService respects requireReason and caseLogEnabled settings', async () => {
+  const { service, cases, logs } = createServiceWithSettings({
+    moderation: { requireReason: false, caseLogEnabled: false }
+  });
+
+  const result = await service.warn({
+    guild: { id: 'guild-1' },
+    moderatorMember: createMember({ id: 'mod', permissions: [PermissionsBitField.Flags.ModerateMembers] }),
+    targetMember: createMember({ id: 'target' }),
+    reason: ''
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(cases[0].reason, 'No reason provided.');
+  assert.equal(logs.length, 0);
+});
+
+test('moderationService records purge cases against the channel instead of a user', async () => {
+  const { service, cases } = createService();
+  const result = await service.purge({
+    message: {
+      guild: {
+        id: 'guild-1',
+        members: {
+          me: {
+            permissionsIn: () => ({ has: () => true })
+          }
+        }
+      },
+      channel: {
+        id: 'channel-1',
+        bulkDelete: async () => ({ size: 3 })
+      },
+      author: { id: 'moderator-user' }
+    },
+    moderatorMember: createMember({ id: 'mod', permissions: [PermissionsBitField.Flags.ManageMessages] }),
+    amount: 3
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(cases[0].targetUserId, 'channel-1');
+  assert.equal(cases[0].metadata.targetType, 'channel');
 });
 
 test('moderationService blocks unsafe target hierarchy', async () => {

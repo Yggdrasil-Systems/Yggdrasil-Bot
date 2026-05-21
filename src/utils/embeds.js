@@ -45,7 +45,11 @@ export function buildNeutralEmbed(title, description) {
 }
 
 export function buildPingEmbed(summary) {
-  return buildSuccessEmbed('Tree Status', summary.description);
+  return buildSuccessEmbed('Tree Status', 'World Tree is responsive.')
+    .addFields(
+      { name: 'Gateway', value: `${summary.websocketLatency}ms`, inline: true },
+      { name: 'Response', value: `${summary.responseLatency}ms`, inline: true }
+    );
 }
 
 export function buildAvatarEmbed(summary) {
@@ -173,12 +177,16 @@ export function buildWarningsEmbed({ targetUser, warnings }) {
 }
 
 export function buildModerationLogEmbed({ moderationCase, targetUser, moderatorUser }) {
+  const targetValue = moderationCase.metadata?.targetType === 'channel'
+    ? `<#${moderationCase.metadata.channelId ?? moderationCase.targetUserId}>\n\`${moderationCase.targetUserId}\``
+    : `${targetUser.tag ?? targetUser.username}\n\`${moderationCase.targetUserId}\``;
+
   const embed = buildBaseEmbed({
     title: `Moderation Case #${moderationCase.caseId}`,
     description: `Action: \`${moderationCase.actionType}\``,
     color: COLORS.warning
   }).addFields(
-    { name: 'Target', value: `${targetUser.tag ?? targetUser.username}\n\`${moderationCase.targetUserId}\``, inline: true },
+    { name: 'Target', value: targetValue, inline: true },
     { name: 'Moderator', value: `${moderatorUser.tag ?? moderatorUser.username}\n\`${moderationCase.moderatorId}\``, inline: true },
     { name: 'Reason', value: moderationCase.reason, inline: false }
   );

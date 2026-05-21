@@ -1,5 +1,3 @@
-import { parseMessageCommand } from '../../utils/messageParser.js';
-import { BOT } from '../../utils/constants.js';
 import { logger } from '../../utils/logger.js';
 import { settingsService as defaultSettingsService } from '../settingsService.js';
 import { automodState } from './automodState.js';
@@ -39,20 +37,6 @@ function evaluateRules({ message, settings, state }) {
     evaluateLinkSpam({ content: context.content, rule: rules.linkSpam }),
     evaluateCapsSpam({ content: context.content, rule: rules.capsSpam })
   ].find((result) => result.matched) ?? { matched: false };
-}
-
-export function isWorldTreeCommand(content, commands = new Map()) {
-  const noPrefixCommandNames = new Set(
-    [...(commands.values?.() ?? [])]
-      .filter((command) => command.allowNoPrefix)
-      .map((command) => command.name.toLowerCase())
-  );
-
-  return Boolean(parseMessageCommand(content, {
-    prefix: BOT.prefix,
-    allowNoPrefix: noPrefixCommandNames.size > 0,
-    noPrefixCommandNames
-  }));
 }
 
 export function createAutomodService({

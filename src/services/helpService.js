@@ -8,7 +8,7 @@ const HELP_CATEGORIES = Object.freeze({
     title: 'World Tree Help',
     description: 'A clean utility, settings, automod, and moderation bot for daily server management.',
     fields: [
-      { name: 'Input modes', value: 'Use slash commands, `tree` prefix commands, or approved no-prefix admin shortcuts.' },
+      { name: 'Input modes', value: 'Use slash commands, `tree` prefix commands, or bot-owner managed no-prefix shortcuts.' },
       { name: 'Start here', value: '`tree ping`, `/help`, `/settings view`, `/serverinfo`, `/warn`, `/case list`' }
     ]
   },
@@ -51,10 +51,10 @@ const HELP_CATEGORIES = Object.freeze({
   admin: {
     label: 'Admin Shortcuts',
     title: 'Admin Shortcuts',
-    description: 'Trusted admins can use approved no-prefix shortcuts without exposing them to normal chat.',
+    description: 'Explicitly allowlisted users can use approved no-prefix shortcuts without exposing them to normal chat.',
     fields: [
       { name: 'Examples', value: '`ping`, `userinfo @user`, `purge 10`, `case list`' },
-      { name: 'Protection', value: 'Shortcuts require server owner, bot owner, Administrator, or trusted admin role access.' }
+      { name: 'Protection', value: 'Shortcuts require bot owner access or a persisted global no-prefix allowlist grant.' }
     ]
   }
 });

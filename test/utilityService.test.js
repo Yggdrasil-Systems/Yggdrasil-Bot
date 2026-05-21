@@ -4,10 +4,25 @@ import { test } from 'node:test';
 import {
   getAvatarSummary,
   getBotInfoSummary,
+  getPingSummary,
   getRoleInfoSummary,
   getServerInfoSummary,
   getUserInfoSummary
 } from '../src/services/utilityService.js';
+
+test('getPingSummary separates gateway and response latency with clamping', () => {
+  const summary = getPingSummary({
+    client: {
+      ws: { ping: -1 }
+    },
+    createdTimestamp: Date.now() + 1000
+  });
+
+  assert.equal(summary.websocketLatency, 0);
+  assert.equal(summary.responseLatency, 0);
+  assert.match(summary.description, /Gateway/);
+  assert.match(summary.description, /Response/);
+});
 
 test('getAvatarSummary returns display name and image URL', () => {
   const user = {

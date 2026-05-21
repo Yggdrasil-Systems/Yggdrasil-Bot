@@ -20,8 +20,7 @@ const guildSettingsSchema = new mongoose.Schema(
     guildId: {
       type: String,
       required: true,
-      unique: true,
-      index: true
+      unique: true
     },
     modLogChannelId: {
       type: String,

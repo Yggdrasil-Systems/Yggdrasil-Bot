@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { buildBaseEmbed, buildErrorEmbed, buildSuccessEmbed } from '../src/utils/embeds.js';
+import { buildBaseEmbed, buildErrorEmbed, buildModerationLogEmbed, buildPingEmbed, buildSuccessEmbed } from '../src/utils/embeds.js';
 import { COLORS } from '../src/utils/constants.js';
 
 test('buildBaseEmbed applies World Tree visual defaults', () => {
@@ -20,4 +20,32 @@ test('success and error embeds use distinct semantic colors', () => {
 
   assert.equal(success.color, COLORS.success);
   assert.equal(error.color, COLORS.error);
+});
+
+test('ping embed exposes gateway and response latency fields', () => {
+  const embed = buildPingEmbed({
+    websocketLatency: 20,
+    responseLatency: 15,
+    description: 'Gateway latency: 20ms\nResponse time: 15ms'
+  }).toJSON();
+
+  assert.equal(embed.fields[0].name, 'Gateway');
+  assert.equal(embed.fields[1].name, 'Response');
+});
+
+test('moderation log embed formats purge channel targets without user mentions', () => {
+  const embed = buildModerationLogEmbed({
+    moderationCase: {
+      caseId: 3,
+      actionType: 'purge',
+      targetUserId: '123456789012345678',
+      moderatorId: 'mod',
+      reason: 'Cleanup',
+      metadata: { targetType: 'channel', channelId: '123456789012345678' }
+    },
+    targetUser: { username: 'channel' },
+    moderatorUser: { username: 'Mod' }
+  }).toJSON();
+
+  assert.match(embed.fields[0].value, /<#123456789012345678>/);
 });

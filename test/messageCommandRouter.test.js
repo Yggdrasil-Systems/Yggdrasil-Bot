@@ -68,7 +68,7 @@ test('handleMessageCommand silently ignores normal no-prefix chat', async () => 
   assert.deepEqual(replies, []);
 });
 
-test('handleMessageCommand allows no-prefix shortcuts for privileged users', async () => {
+test('handleMessageCommand allows no-prefix shortcuts for allowlisted users', async () => {
   let context;
   const { message } = createMessage({
     content: 'ping',
@@ -80,15 +80,48 @@ test('handleMessageCommand allows no-prefix shortcuts for privileged users', asy
       }
     },
     member: {
+      permissions: new PermissionsBitField([]),
+      roles: { cache: new Map() }
+    }
+  });
+  message.client.runtimeConfig = { botOwnerId: 'owner' };
+  message.client.noPrefixService = {
+    canUseNoPrefix: async () => true
+  };
+
+  const executed = await handleMessageCommand(message);
+
+  assert.equal(executed, true);
+  assert.equal(context.mode, 'no-prefix');
+  assert.equal(context.commandName, 'ping');
+});
+
+test('handleMessageCommand does not treat denied no-prefix lookalikes as executed commands', async () => {
+  let executed = false;
+  const { message, replies } = createMessage({
+    content: 'ping',
+    command: {
+      name: 'ping',
+      allowNoPrefix: true,
+      executeMessage: async () => {
+        executed = true;
+      }
+    },
+    member: {
       permissions: new PermissionsBitField(PermissionsBitField.Flags.Administrator),
       roles: { cache: new Map() }
     }
   });
+  message.client.runtimeConfig = { botOwnerId: 'owner' };
+  message.client.noPrefixService = {
+    canUseNoPrefix: async () => false
+  };
 
-  await handleMessageCommand(message);
+  const handled = await handleMessageCommand(message);
 
-  assert.equal(context.mode, 'no-prefix');
-  assert.equal(context.commandName, 'ping');
+  assert.equal(handled, false);
+  assert.equal(executed, false);
+  assert.deepEqual(replies, []);
 });
 
 test('handleMessageCommand allows persisted trusted roles for admin commands', async () => {

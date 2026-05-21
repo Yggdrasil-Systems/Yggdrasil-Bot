@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 import { parseMessageCommand } from '../utils/messageParser.js';
 import { canUseAdminCommand, canUseNoPrefixShortcuts } from './permissionGuard.js';
 import { handleMessageCommandError } from './errorHandler.js';
+import { replyToMessage } from '../utils/responses.js';
 
 function getCommandAliases(command) {
   return [command.name, ...(command.aliases ?? [])].map((alias) => alias.toLowerCase());
@@ -48,7 +49,7 @@ async function getPrivilegeContext(message) {
 }
 
 async function replyWithPermissionError(message) {
-  await message.reply({
+  await replyToMessage(message, {
     embeds: [
       buildErrorEmbed(
         'Permission required',
@@ -58,27 +59,57 @@ async function replyWithPermissionError(message) {
   });
 }
 
+async function canUseNoPrefix(message) {
+  const runtimeConfig = message.client.runtimeConfig ?? {};
+  const noPrefixAllowed = message.client.noPrefixService
+    ? await message.client.noPrefixService.canUseNoPrefix(message.author.id).catch(() => false)
+    : false;
+
+  return canUseNoPrefixShortcuts({
+    userId: message.author.id,
+    botOwnerId: runtimeConfig.botOwnerId ?? null,
+    noPrefixAllowed
+  });
+}
+
+function isBotOwner(message) {
+  const botOwnerId = message.client.runtimeConfig?.botOwnerId;
+  return Boolean(botOwnerId && message.author.id === botOwnerId);
+}
+
 export async function handleMessageCommand(message, { log = logger } = {}) {
   if (!message.guild || message.author.bot) {
     return false;
   }
 
-  const noPrefixCommandNames = getNoPrefixCommandNames(message.client.commands);
-  const parsedCommand = parseMessageCommand(message.content, {
+  const prefixedCommand = parseMessageCommand(message.content, {
     prefix: BOT.prefix,
-    allowNoPrefix: noPrefixCommandNames.size > 0,
-    noPrefixCommandNames
+    allowNoPrefix: false
   });
+  const noPrefixCommandNames = getNoPrefixCommandNames(message.client.commands);
+  let parsedCommand = prefixedCommand;
 
   if (!parsedCommand) {
-    return false;
+    if (noPrefixCommandNames.size === 0 || !await canUseNoPrefix(message)) {
+      return false;
+    }
+
+    parsedCommand = parseMessageCommand(message.content, {
+      prefix: BOT.prefix,
+      allowNoPrefix: true,
+      noPrefixCommandNames
+    });
+
+    if (!parsedCommand) {
+      return false;
+    }
   }
 
   const command = findMessageCommand(message.client.commands, parsedCommand.commandName);
 
   if (!command) {
     if (parsedCommand.mode === 'prefix') {
-      await message.reply({
+      await replyToMessage(message, {
         embeds: [
           buildErrorEmbed(
             'Command unavailable',
@@ -88,16 +119,17 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
       });
     }
 
-    return true;
+    return false;
   }
 
   const privilegeContext = await getPrivilegeContext(message);
 
-  if (parsedCommand.mode === 'no-prefix' && !canUseNoPrefixShortcuts(privilegeContext)) {
+  if (command.botOwnerOnly && !isBotOwner(message)) {
+    await replyWithPermissionError(message);
     return true;
   }
 
-  if (command.adminOnly && !canUseAdminCommand(privilegeContext)) {
+  if (parsedCommand.mode !== 'no-prefix' && command.adminOnly && !canUseAdminCommand(privilegeContext)) {
     await replyWithPermissionError(message);
     return true;
   }
@@ -112,7 +144,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
       guild: message.guild,
       user: message.author,
       member: message.member,
-      respond: (payload) => message.reply(payload)
+      respond: (payload) => replyToMessage(message, payload)
     });
     return true;
   } catch (error) {

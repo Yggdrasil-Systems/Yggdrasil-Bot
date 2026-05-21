@@ -30,7 +30,11 @@ export function canUseAdminCommand({
 }
 
 export function canUseNoPrefixShortcuts(context) {
-  return canUseAdminCommand(context);
+  if (!context?.userId) {
+    return false;
+  }
+
+  return context.userId === context.botOwnerId || Boolean(context.noPrefixAllowed);
 }
 
 export function canRunModerationAction(member, permission) {

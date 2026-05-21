@@ -1,12 +1,21 @@
 import { formatHexColor } from '../utils/formatters.js';
 
+function clampLatency(value) {
+  const latency = Math.round(Number(value));
+  return Number.isFinite(latency) && latency > 0 ? latency : 0;
+}
+
 export function getPingSummary(clientOrInteraction) {
   const client = clientOrInteraction.client ?? clientOrInteraction;
-  const websocketLatency = Math.round(client.ws.ping);
+  const websocketLatency = clampLatency(client.ws.ping);
+  const responseLatency = clientOrInteraction.createdTimestamp
+    ? clampLatency(Date.now() - clientOrInteraction.createdTimestamp)
+    : 0;
 
   return {
     websocketLatency,
-    description: `Gateway latency: ${websocketLatency}ms`
+    responseLatency,
+    description: `Gateway latency: ${websocketLatency}ms\nResponse time: ${responseLatency}ms`
   };
 }
 

@@ -1,6 +1,6 @@
 import { buildErrorEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
-import { replyToInteraction } from '../utils/responses.js';
+import { replyToInteraction, replyToMessage } from '../utils/responses.js';
 
 export async function handleInteractionError(interaction, error) {
   logger.error(`Command failed: ${interaction.commandName}`, error);
@@ -24,7 +24,7 @@ export async function handleInteractionError(interaction, error) {
 export async function handleMessageCommandError(message, error) {
   logger.error('Message command failed.', error);
 
-  await message.reply({
+  await replyToMessage(message, {
     embeds: [
       buildErrorEmbed(
         'Something went wrong',

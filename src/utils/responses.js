@@ -22,3 +22,15 @@ export async function replyToInteraction(interaction, payload, options = {}) {
 
   return interaction.reply(responsePayload);
 }
+
+export async function replyToMessage(message, payload) {
+  try {
+    return await message.reply(payload);
+  } catch (error) {
+    if (message.channel?.send) {
+      return message.channel.send(payload);
+    }
+
+    throw error;
+  }
+}

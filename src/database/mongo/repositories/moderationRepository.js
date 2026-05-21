@@ -1,16 +1,75 @@
 import { ModerationCase } from '../models/ModerationCase.js';
+import { Counter } from '../models/Counter.js';
 
-export function createModerationRepository(model = ModerationCase) {
+const DUPLICATE_KEY_CODE = 11000;
+
+function counterIdForGuild(guildId) {
+  return `moderationCase:${guildId}`;
+}
+
+function updateOptions() {
+  return {
+    returnDocument: 'after',
+    upsert: true,
+    setDefaultsOnInsert: true,
+    runValidators: true
+  };
+}
+
+async function nextCaseId(model, counterModel, guildId) {
+  const counter = await counterModel.findOneAndUpdate(
+    { _id: counterIdForGuild(guildId) },
+    { $inc: { seq: 1 } },
+    updateOptions()
+  ).lean();
+
+  return counter.seq;
+}
+
+async function alignCounterToExistingCases(model, counterModel, guildId) {
+  if (typeof model.findOne !== 'function') {
+    return;
+  }
+
+  const latestCase = await model.findOne({ guildId })
+    .sort({ caseId: -1 })
+    .lean();
+
+  if (!latestCase?.caseId) {
+    return;
+  }
+
+  await counterModel.findOneAndUpdate(
+    { _id: counterIdForGuild(guildId) },
+    { $max: { seq: latestCase.caseId } },
+    updateOptions()
+  ).lean();
+}
+
+export function createModerationRepository(model = ModerationCase, counterModel = Counter) {
   return {
     async createCase(payload) {
-      const caseId = await model.countDocuments({ guildId: payload.guildId }) + 1;
-      const document = await model.create({
-        status: 'active',
-        ...payload,
-        caseId
-      });
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const caseId = await nextCaseId(model, counterModel, payload.guildId);
 
-      return typeof document.toObject === 'function' ? document.toObject() : document;
+        try {
+          const document = await model.create({
+            status: 'active',
+            ...payload,
+            caseId
+          });
+
+          return typeof document.toObject === 'function' ? document.toObject() : document;
+        } catch (error) {
+          if (error?.code !== DUPLICATE_KEY_CODE || attempt > 0) {
+            throw error;
+          }
+
+          await alignCounterToExistingCases(model, counterModel, payload.guildId);
+        }
+      }
+
+      throw new Error('Unable to allocate moderation case ID.');
     },
 
     async getCaseById(guildId, caseId) {
@@ -67,7 +126,7 @@ export function createModerationRepository(model = ModerationCase) {
             resolutionReason
           }
         },
-        { new: true, runValidators: true }
+        { returnDocument: 'after', runValidators: true }
       ).lean();
     },
 
@@ -82,11 +141,30 @@ export function createModerationRepository(model = ModerationCase) {
             resolutionReason
           }
         },
-        { new: true, runValidators: true }
+        { returnDocument: 'after', runValidators: true }
       ).lean();
     },
 
     async getCaseStats(guildId) {
+      if (typeof model.aggregate === 'function') {
+        const rows = await model.aggregate([
+          { $match: { guildId, status: { $ne: 'deleted' } } },
+          {
+            $group: {
+              _id: { actionType: '$actionType', status: '$status' },
+              count: { $sum: 1 }
+            }
+          }
+        ]);
+
+        return rows.reduce((stats, row) => {
+          stats.total += row.count;
+          stats.byAction[row._id.actionType] = (stats.byAction[row._id.actionType] ?? 0) + row.count;
+          stats.byStatus[row._id.status] = (stats.byStatus[row._id.status] ?? 0) + row.count;
+          return stats;
+        }, { total: 0, byAction: {}, byStatus: {} });
+      }
+
       const cases = await model.find({ guildId, status: { $ne: 'deleted' } }).lean();
 
       return cases.reduce((stats, moderationCase) => {

@@ -1,6 +1,6 @@
 # World Tree
 
-World Tree is a modular Discord utility, settings, automod, and moderation bot for a private friend/community server. It is built with Node.js, discord.js, MongoDB Atlas, Mongoose, and a hybrid command model that supports slash commands, `tree` prefix commands, and privileged no-prefix admin shortcuts.
+World Tree is a modular Discord utility, settings, automod, and moderation bot for a private friend/community server. It is built with Node.js, discord.js, MongoDB Atlas, Mongoose, and a hybrid command model that supports slash commands, `tree` prefix commands, and bot-managed no-prefix shortcuts.
 
 The project favors practical foundations: clean architecture, persistent moderation history, configurable server behavior, polished embeds, and reliable moderator workflows. Future dashboard, analytics, atmosphere, AI, or memory systems should build on these boundaries rather than replacing them.
 
@@ -8,9 +8,10 @@ The project favors practical foundations: clean architecture, persistent moderat
 
 - Slash commands and guild command registration
 - Prefix commands using exactly `tree`
-- Privileged no-prefix admin shortcuts
+- Bot-managed no-prefix shortcut allowlist
 - MongoDB-backed guild settings
 - MongoDB-backed moderation cases
+- MongoDB-backed no-prefix privileges
 - Configurable mod-log channel
 - Persisted trusted admin roles
 - Configurable automod for bad words, mention spam, repeated messages, link spam, and caps spam
@@ -60,9 +61,9 @@ TREE warn @user "Repeated spam"
 
 `treeping` does not trigger the bot.
 
-### No-Prefix Admin Shortcuts
+### No-Prefix Shortcuts
 
-Approved shortcuts can be used by trusted admins only:
+Approved shortcuts can be used only by explicitly allowlisted users or the bot owner:
 
 ```text
 ping
@@ -71,7 +72,17 @@ purge 10
 case list
 ```
 
-Normal users are ignored silently. Access is limited to server owner, configured bot owner, Administrators, env trusted roles, or persisted trusted admin roles.
+Normal users are ignored silently. Server owner status, Administrator permission, and trusted server roles do not automatically grant no-prefix access.
+
+No-prefix access is global and bot-managed, not inherited from server permissions. Manage it with:
+
+```text
+tree noprefix add @user
+tree noprefix remove @user
+tree noprefix list
+```
+
+Only the configured bot owner can manage this allowlist.
 
 ## Settings And Automod
 
@@ -172,6 +183,7 @@ NODE_ENV=development
 ```
 
 `GUILD_ID` is used for development slash-command registration. Runtime startup does not require it.
+`BOT_OWNER_ID` is required if you want to manage the global no-prefix allowlist.
 
 ## Discord Setup
 
@@ -182,11 +194,13 @@ In the Discord Developer Portal:
 - Copy the bot token into `.env`
 - Copy the application client ID into `.env`
 - Enable Message Content intent for prefix commands and automod
+- Enable Server Members intent for member fetches, moderation checks, and role-aware utilities
 - Invite the bot with permissions needed for moderation actions
 
 World Tree currently uses:
 
 - `Guilds`
+- `GuildMembers`
 - `GuildMessages`
 - `MessageContent`
 
@@ -198,6 +212,8 @@ Collections:
 
 - `guild_settings`
 - `moderation_cases`
+- `counters`
+- `no_prefix_privileges`
 
 Existing guild settings are normalized through service defaults, so adding nested Phase 4 settings does not require a migration script.
 

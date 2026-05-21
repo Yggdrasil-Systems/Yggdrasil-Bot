@@ -3,15 +3,20 @@ import { test } from 'node:test';
 
 import { createModerationRepository } from '../src/database/mongo/repositories/moderationRepository.js';
 
-test('moderationRepository creates sequential guild cases', async () => {
+test('moderationRepository creates guild cases with an atomic counter', async () => {
   const created = [];
+  const counterCalls = [];
   const repository = createModerationRepository({
-    countDocuments: async () => 4,
     create: async (payload) => {
       created.push(payload);
       return { toObject: () => payload };
     },
     find: () => ({ sort: () => ({ lean: async () => [] }) })
+  }, {
+    findOneAndUpdate: (filter, update, options) => {
+      counterCalls.push({ filter, update, options });
+      return { lean: async () => ({ seq: 5 }) };
+    }
   });
 
   const moderationCase = await repository.createCase({
@@ -24,12 +29,14 @@ test('moderationRepository creates sequential guild cases', async () => {
 
   assert.equal(moderationCase.caseId, 5);
   assert.equal(created[0].status, 'active');
+  assert.deepEqual(counterCalls[0].filter, { _id: 'moderationCase:guild-1' });
+  assert.deepEqual(counterCalls[0].update, { $inc: { seq: 1 } });
+  assert.equal(counterCalls[0].options.returnDocument, 'after');
 });
 
 test('moderationRepository lists active warnings newest first', async () => {
   const calls = [];
   const repository = createModerationRepository({
-    countDocuments: async () => 0,
     create: async () => ({}),
     find: (filter) => {
       calls.push(filter);
@@ -55,7 +62,6 @@ test('moderationRepository lists active warnings newest first', async () => {
 test('moderationRepository resolves cases without deleting records', async () => {
   const calls = [];
   const repository = createModerationRepository({
-    countDocuments: async () => 0,
     create: async () => ({}),
     find: () => ({ sort: () => ({ lean: async () => [] }) }),
     findOneAndUpdate: (filter, update, options) => {

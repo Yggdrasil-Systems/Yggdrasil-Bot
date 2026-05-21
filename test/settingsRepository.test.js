@@ -25,6 +25,7 @@ test('settingsRepository gets or creates default guild settings', async () => {
   assert.equal(settings.guildId, 'guild-1');
   assert.deepEqual(calls[0].filter, { guildId: 'guild-1' });
   assert.equal(calls[0].options.upsert, true);
+  assert.equal(calls[0].options.returnDocument, 'after');
 });
 
 test('settingsRepository updates the mod log channel', async () => {

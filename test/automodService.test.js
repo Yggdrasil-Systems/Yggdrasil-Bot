@@ -101,3 +101,42 @@ test('automod service skips commands and ignored channels before punishing', asy
   assert.equal(punished, false);
 });
 
+test('automod service can punish normal no-prefix lookalikes when routing did not execute a command', async () => {
+  let punished = false;
+  const service = createAutomodService({
+    settingsService: {
+      getEffectiveSettings: async () => ({
+        automod: {
+          enabled: true,
+          ignoredChannelIds: [],
+          ignoredRoleIds: [],
+          logActions: true,
+          rules: {
+            badWords: { enabled: true, words: ['ping'], punishment: { action: 'delete' } },
+            mentionSpam: { enabled: false },
+            repeatSpam: { enabled: false },
+            linkSpam: { enabled: false },
+            capsSpam: { enabled: false }
+          }
+        }
+      })
+    },
+    punishmentExecutor: {
+      execute: async () => {
+        punished = true;
+      }
+    }
+  });
+
+  await service.handleMessage({
+    content: 'ping',
+    guild: { id: 'guild' },
+    channel: { id: 'channel' },
+    author: { id: 'user', bot: false },
+    member: { roles: { cache: new Map() } },
+    mentions: { users: { size: 0 }, roles: { size: 0 } }
+  }, { isCommand: false });
+
+  assert.equal(punished, true);
+});
+

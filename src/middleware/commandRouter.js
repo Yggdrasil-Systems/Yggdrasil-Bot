@@ -71,6 +71,22 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
     ? await interaction.client.settingsService.getEffectiveSettings(interaction.guild.id).catch(() => null)
     : null;
 
+  if (command.botOwnerOnly && interaction.user.id !== interaction.client.runtimeConfig?.botOwnerId) {
+    await replyToInteraction(
+      interaction,
+      {
+        embeds: [
+          buildErrorEmbed(
+            'Permission required',
+            'Only the configured bot owner can use that command.'
+          )
+        ]
+      },
+      { ephemeral: true }
+    );
+    return;
+  }
+
   if (command.adminOnly && !canUseAdminCommand({
     userId: interaction.user.id,
     guildOwnerId: interaction.guild?.ownerId ?? null,
