@@ -8,7 +8,10 @@ test('bootstrap initializes database, commands, events, then logs in', async () 
   const calls = [];
   const client = {
     commands: new Collection(),
-    login: async (token) => calls.push(['login', token])
+    login: async (token) => calls.push(['login', token]),
+    incrementMaxListeners: () => {},
+    on: () => {},
+    options: {}
   };
 
   const result = await bootstrap({

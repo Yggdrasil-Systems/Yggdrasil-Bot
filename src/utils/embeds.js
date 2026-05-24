@@ -3,10 +3,12 @@ import { EmbedBuilder } from 'discord.js';
 import { BOT, COLORS } from './constants.js';
 import { formatBoolean, formatDiscordTimestamp, formatDuration } from './formatters.js';
 
+// ─── Base Embed ────────────────────────────────────────────────────────────────
+
 export function buildBaseEmbed({ title, description, color = COLORS.brand }) {
   const embed = new EmbedBuilder()
     .setColor(color)
-    .setFooter({ text: BOT.name })
+    .setFooter({ text: `${BOT.name} • Premium Discord Experience` })
     .setTimestamp();
 
   if (title) {
@@ -20,37 +22,150 @@ export function buildBaseEmbed({ title, description, color = COLORS.brand }) {
   return embed;
 }
 
+// ─── Semantic Embeds ───────────────────────────────────────────────────────────
+
 export function buildSuccessEmbed(title, description) {
-  return buildBaseEmbed({
-    title,
-    description,
-    color: COLORS.success
-  });
+  return buildBaseEmbed({ title: `✅ ${title}`, description, color: COLORS.success });
 }
 
 export function buildErrorEmbed(title, description) {
-  return buildBaseEmbed({
-    title,
-    description,
-    color: COLORS.error
-  });
+  return buildBaseEmbed({ title: `❌ ${title}`, description, color: COLORS.error });
 }
 
 export function buildNeutralEmbed(title, description) {
-  return buildBaseEmbed({
-    title,
-    description,
-    color: COLORS.neutral
-  });
+  return buildBaseEmbed({ title: `ℹ️ ${title}`, description, color: COLORS.neutral });
+}
+
+// ─── Ping Embed (Demon Bot Style) ──────────────────────────────────────────────
+
+function getLatencyStatus(ms) {
+  if (ms < 100) return { emoji: '🟢', label: 'Excellent' };
+  if (ms < 200) return { emoji: '🟡', label: 'Good' };
+  if (ms < 400) return { emoji: '🟠', label: 'Fair' };
+  return { emoji: '🔴', label: 'Poor' };
 }
 
 export function buildPingEmbed(summary) {
-  return buildSuccessEmbed('Tree Status', 'World Tree is responsive.')
+  const wsStatus = getLatencyStatus(summary.websocketLatency);
+  const botStatus = getLatencyStatus(summary.responseLatency);
+
+  return buildBaseEmbed({
+    title: '🔴 Pong!',
+    color: COLORS.brand
+  })
     .addFields(
-      { name: 'Gateway', value: `${summary.websocketLatency}ms`, inline: true },
-      { name: 'Response', value: `${summary.responseLatency}ms`, inline: true }
-    );
+      {
+        name: 'ℹ️ Latency Information',
+        value: [
+          `🔌 **Bot Latency** \`\`\`${summary.responseLatency}ms\`\`\``,
+          `🌐 **WebSocket Ping** \`\`\`${summary.websocketLatency}ms\`\`\``,
+          `${wsStatus.emoji} **Status:** ${wsStatus.label}`
+        ].join('\n'),
+        inline: false
+      },
+      {
+        name: '📊 Performance',
+        value: [
+          `⏱️ **Uptime:** ${summary.uptime || 'N/A'}`,
+          `💾 **Memory:** ${summary.memoryUsed || 'N/A'}`,
+          `🏠 **Servers:** ${summary.guildCount || 'N/A'}`
+        ].join('\n'),
+        inline: false
+      }
+    )
+    .setThumbnail(summary.clientAvatarUrl || null)
+    .setFooter({ text: `Requested by ${summary.requestedBy || 'User'} • ${BOT.name}` });
 }
+
+// ─── Now Playing Embed (Astra Bot Style) ───────────────────────────────────────
+
+export function buildNowPlayingEmbed(track, queue) {
+  if (!track) {
+    return buildErrorEmbed('Nothing Playing', 'There is no track currently playing.');
+  }
+
+  const progress = queue.node.createProgressBar?.({
+    timecodes: true,
+    length: 12,
+    indicator: '🔵',
+    leftChar: '▬',
+    rightChar: '▬'
+  }) || '';
+
+  const embed = buildBaseEmbed({
+    color: COLORS.brand
+  })
+    .setAuthor({ name: '🎵 Now Playing' })
+    .setDescription([
+      `**[${track.title}](${track.url})**`,
+      `by **${track.author}**`,
+      '',
+      progress,
+      ''
+    ].join('\n'))
+    .addFields(
+      { name: '👤 Chosen by', value: `<@${track.requestedBy?.id || '0'}>`, inline: true },
+      { name: '⏱️ Duration', value: `\`${track.duration}\``, inline: true },
+      { name: '\u200b', value: `🔊 Volume - ${queue.node.volume ?? 100}% · 📜 Queue - ${queue.tracks.data.length}`, inline: false }
+    );
+
+  if (track.thumbnail) {
+    embed.setThumbnail(track.thumbnail);
+  }
+
+  return embed;
+}
+
+// Legacy alias - kept for backward compat
+export function buildMusicPlayerEmbed(track, queue) {
+  return buildNowPlayingEmbed(track, queue);
+}
+
+// ─── Music Search Fallback ────────────────────────────────────────────────────
+
+export function buildMusicSearchFallbackEmbed(query) {
+  return buildErrorEmbed(
+    'No results found',
+    `Could not find any results for \`${query}\`.\nTry searching on other platforms:`
+  );
+}
+
+// ─── Queue Embed ──────────────────────────────────────────────────────────────
+
+export function buildQueueEmbed(queue) {
+  const currentTrack = queue.currentTrack;
+  const tracks = queue.tracks.data.slice(0, 10);
+
+  let description = '';
+  if (currentTrack) {
+    description += `**🎶 Now Playing:**\n[${currentTrack.title}](${currentTrack.url}) — \`${currentTrack.duration}\`\n\n`;
+  }
+
+  if (tracks.length > 0) {
+    description += '**📜 Up Next:**\n';
+    description += tracks.map((t, i) =>
+      `\`${i + 1}.\` [${t.title}](${t.url}) — \`${t.duration}\``
+    ).join('\n');
+
+    if (queue.tracks.data.length > 10) {
+      description += `\n\n... and **${queue.tracks.data.length - 10}** more tracks`;
+    }
+  } else {
+    description += '*No more tracks in the queue.*';
+  }
+
+  return buildBaseEmbed({
+    title: '📜 Music Queue',
+    description,
+    color: COLORS.brand
+  }).addFields(
+    { name: '🔊 Volume', value: `${queue.node.volume ?? 100}%`, inline: true },
+    { name: '📀 Total Tracks', value: `${queue.tracks.data.length + (currentTrack ? 1 : 0)}`, inline: true },
+    { name: '🔁 Loop', value: queue.repeatMode === 1 ? 'Track' : queue.repeatMode === 2 ? 'Queue' : 'Off', inline: true }
+  );
+}
+
+// ─── Avatar ───────────────────────────────────────────────────────────────────
 
 export function buildAvatarEmbed(summary) {
   return buildBaseEmbed({
@@ -58,6 +173,8 @@ export function buildAvatarEmbed(summary) {
     description: `[Open image](${summary.imageUrl})`
   }).setImage(summary.imageUrl);
 }
+
+// ─── Banner ───────────────────────────────────────────────────────────────────
 
 export function buildBannerEmbed(summary) {
   if (!summary.imageUrl) {
@@ -73,6 +190,8 @@ export function buildBannerEmbed(summary) {
   }).setImage(summary.imageUrl);
 }
 
+// ─── User Info ────────────────────────────────────────────────────────────────
+
 export function buildUserInfoEmbed(summary) {
   const roles = summary.roles.length > 0 ? summary.roles.join(', ') : 'None';
 
@@ -82,22 +201,24 @@ export function buildUserInfoEmbed(summary) {
   })
     .setThumbnail(summary.avatarUrl)
     .addFields(
-      { name: 'Account Created', value: formatDiscordTimestamp(summary.createdAt, 'D'), inline: true },
-      { name: 'Joined Server', value: formatDiscordTimestamp(summary.joinedAt, 'D'), inline: true },
-      { name: 'Bot Account', value: formatBoolean(summary.isBot), inline: true },
-      { name: 'Roles', value: roles.slice(0, 1024), inline: false }
+      { name: '📅 Account Created', value: formatDiscordTimestamp(summary.createdAt, 'D'), inline: true },
+      { name: '📥 Joined Server', value: formatDiscordTimestamp(summary.joinedAt, 'D'), inline: true },
+      { name: '🤖 Bot Account', value: formatBoolean(summary.isBot), inline: true },
+      { name: '🎭 Roles', value: roles.slice(0, 1024), inline: false }
     );
 }
 
+// ─── Server Info ──────────────────────────────────────────────────────────────
+
 export function buildServerInfoEmbed(summary) {
   const embed = buildBaseEmbed({
-    title: summary.name,
+    title: `🏠 ${summary.name}`,
     description: `Server ID: \`${summary.guildId}\``
   }).addFields(
-    { name: 'Members', value: `${summary.memberCount}`, inline: true },
-    { name: 'Channels', value: `${summary.channelCount}`, inline: true },
-    { name: 'Roles', value: `${summary.roleCount}`, inline: true },
-    { name: 'Created', value: formatDiscordTimestamp(summary.createdAt, 'D'), inline: true }
+    { name: '👥 Members', value: `\`${summary.memberCount}\``, inline: true },
+    { name: '💬 Channels', value: `\`${summary.channelCount}\``, inline: true },
+    { name: '🎭 Roles', value: `\`${summary.roleCount}\``, inline: true },
+    { name: '📅 Created', value: formatDiscordTimestamp(summary.createdAt, 'D'), inline: true }
   );
 
   if (summary.iconUrl) {
@@ -107,53 +228,104 @@ export function buildServerInfoEmbed(summary) {
   return embed;
 }
 
+// ─── Bot Info (Demon Bot Style) ───────────────────────────────────────────────
+
 export function buildBotInfoEmbed(summary) {
   return buildBaseEmbed({
-    title: summary.tag,
-    description: `Bot ID: \`${summary.botId}\``
+    title: `🤖 ${BOT.name}`,
+    description: `A premium utility, music, and moderation bot.\nBuilt for seamless server management.`,
+    color: COLORS.brand
   })
     .setThumbnail(summary.avatarUrl)
     .addFields(
-      { name: 'Servers', value: `${summary.guildCount}`, inline: true },
-      { name: 'Gateway', value: `${summary.websocketLatency}ms`, inline: true },
-      { name: 'Uptime', value: formatDuration(summary.uptimeMs), inline: true }
+      {
+        name: '💻 System',
+        value: [
+          `**CPU:** ${summary.cpuModel}`,
+          `**Usage:** ${summary.cpuUsage}%`,
+          `**RAM:** ${summary.memoryUsed} MB / ${summary.memoryTotal} MB`,
+          `**Platform:** ${summary.platform}`
+        ].join('\n'),
+        inline: true
+      },
+      {
+        name: '📊 Statistics',
+        value: [
+          `**Servers:** ${summary.guildCount}`,
+          `**Users:** ${summary.userCount}`,
+          `**Channels:** ${summary.channelCount}`,
+          `**API Latency:** ${summary.websocketLatency}ms`
+        ].join('\n'),
+        inline: true
+      },
+      {
+        name: '⚙️ Runtime',
+        value: [
+          `**Uptime:** ${formatDuration(summary.uptimeMs)}`,
+          `**Discord.js:** v${summary.discordJsVersion}`,
+          `**Node.js:** ${summary.nodeVersion}`
+        ].join('\n'),
+        inline: false
+      }
     );
 }
 
+// ─── Owner Info ───────────────────────────────────────────────────────────────
+
+export function buildOwnerInfoEmbed(summary) {
+  return buildBaseEmbed({
+    title: '👑 Owner Information',
+    description: `Information about the creator of ${BOT.name}.`
+  })
+    .setThumbnail(summary.ownerAvatarUrl)
+    .addFields(
+      { name: '👨‍💻 Developer', value: `<@${summary.ownerId}>`, inline: true },
+      { name: '🌟 Vision', value: 'Crafting premium Discord experiences with fast, robust logic and dynamic UI.', inline: false }
+    );
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
 export function buildStatsEmbed(summary) {
   return buildBaseEmbed({
-    title: 'World Tree Stats',
+    title: `📊 ${BOT.name} Stats`,
     description: 'Current runtime and coverage snapshot.'
   }).addFields(
-    { name: 'Servers', value: `${summary.guildCount}`, inline: true },
-    { name: 'Members', value: `${summary.memberCount}`, inline: true },
-    { name: 'Commands', value: `${summary.commandCount}`, inline: true },
-    { name: 'Gateway', value: `${summary.websocketLatency}ms`, inline: true },
-    { name: 'Uptime', value: formatDuration(summary.uptimeMs), inline: true }
+    { name: '🏠 Servers', value: `\`${summary.guildCount}\``, inline: true },
+    { name: '👥 Members', value: `\`${summary.memberCount}\``, inline: true },
+    { name: '⚡ Commands', value: `\`${summary.commandCount}\``, inline: true },
+    { name: '🌐 Gateway', value: `\`${summary.websocketLatency}ms\``, inline: true },
+    { name: '⏱️ Uptime', value: formatDuration(summary.uptimeMs), inline: true }
   );
 }
+
+// ─── Member Count ─────────────────────────────────────────────────────────────
 
 export function buildMemberCountEmbed(summary) {
   return buildBaseEmbed({
-    title: 'Member Count',
-    description: `${summary.name} has ${summary.memberCount} member(s).`
+    title: '👥 Member Count',
+    description: `**${summary.name}** has **${summary.memberCount}** member(s).`
   });
 }
 
+// ─── Role Info ────────────────────────────────────────────────────────────────
+
 export function buildRoleInfoEmbed(summary) {
   return buildBaseEmbed({
-    title: summary.name,
+    title: `🎭 ${summary.name}`,
     description: `Role ID: \`${summary.roleId}\``,
     color: summary.color || COLORS.brand
   }).addFields(
-    { name: 'Members', value: `${summary.memberCount}`, inline: true },
-    { name: 'Color', value: summary.hexColor, inline: true },
-    { name: 'Created', value: formatDiscordTimestamp(summary.createdAt, 'D'), inline: true },
-    { name: 'Hoisted', value: formatBoolean(summary.hoist), inline: true },
-    { name: 'Mentionable', value: formatBoolean(summary.mentionable), inline: true },
-    { name: 'Managed', value: formatBoolean(summary.managed), inline: true }
+    { name: '👥 Members', value: `\`${summary.memberCount}\``, inline: true },
+    { name: '🎨 Color', value: summary.hexColor, inline: true },
+    { name: '📅 Created', value: formatDiscordTimestamp(summary.createdAt, 'D'), inline: true },
+    { name: '📌 Hoisted', value: formatBoolean(summary.hoist), inline: true },
+    { name: '💬 Mentionable', value: formatBoolean(summary.mentionable), inline: true },
+    { name: '⚙️ Managed', value: formatBoolean(summary.managed), inline: true }
   );
 }
+
+// ─── Moderation Embeds ────────────────────────────────────────────────────────
 
 export function buildModerationResultEmbed(title, moderationCase) {
   return buildSuccessEmbed(
@@ -167,11 +339,11 @@ export function buildWarningsEmbed({ targetUser, warnings }) {
     ? 'No warnings are recorded for this user.'
     : warnings
       .slice(0, 8)
-      .map((warning) => `#${warning.caseId} — ${warning.reason}`)
+      .map((warning) => `**#${warning.caseId}** — ${warning.reason}`)
       .join('\n');
 
   return buildBaseEmbed({
-    title: `Warnings for ${targetUser.tag ?? targetUser.username}`,
+    title: `⚠️ Warnings for ${targetUser.tag ?? targetUser.username}`,
     description
   });
 }
@@ -182,25 +354,27 @@ export function buildModerationLogEmbed({ moderationCase, targetUser, moderatorU
     : `${targetUser.tag ?? targetUser.username}\n\`${moderationCase.targetUserId}\``;
 
   const embed = buildBaseEmbed({
-    title: `Moderation Case #${moderationCase.caseId}`,
+    title: `⚖️ Moderation Case #${moderationCase.caseId}`,
     description: `Action: \`${moderationCase.actionType}\``,
     color: COLORS.warning
   }).addFields(
-    { name: 'Target', value: targetValue, inline: true },
-    { name: 'Moderator', value: `${moderatorUser.tag ?? moderatorUser.username}\n\`${moderationCase.moderatorId}\``, inline: true },
-    { name: 'Reason', value: moderationCase.reason, inline: false }
+    { name: '🎯 Target', value: targetValue, inline: true },
+    { name: '🛡️ Moderator', value: `${moderatorUser.tag ?? moderatorUser.username}\n\`${moderationCase.moderatorId}\``, inline: true },
+    { name: '📝 Reason', value: moderationCase.reason, inline: false }
   );
 
   if (moderationCase.duration) {
-    embed.addFields({ name: 'Duration', value: moderationCase.duration, inline: true });
+    embed.addFields({ name: '⏳ Duration', value: moderationCase.duration, inline: true });
   }
 
   if (Number.isInteger(moderationCase.deletedMessageCount)) {
-    embed.addFields({ name: 'Messages Deleted', value: `${moderationCase.deletedMessageCount}`, inline: true });
+    embed.addFields({ name: '🗑️ Messages Deleted', value: `${moderationCase.deletedMessageCount}`, inline: true });
   }
 
   return embed;
 }
+
+// ─── Settings Embeds ──────────────────────────────────────────────────────────
 
 export function buildSettingsEmbed(settings) {
   const trustedRoles = settings.trustedAdminRoleIds?.length
@@ -208,12 +382,12 @@ export function buildSettingsEmbed(settings) {
     : 'None configured';
 
   return buildBaseEmbed({
-    title: 'World Tree Settings',
+    title: `⚙️ ${BOT.name} Settings`,
     description: `Server ID: \`${settings.guildId}\``
   }).addFields(
-    { name: 'Mod Log', value: settings.modLogChannelId ? `<#${settings.modLogChannelId}>` : 'Not configured', inline: true },
-    { name: 'Automod', value: formatBoolean(settings.automod.enabled), inline: true },
-    { name: 'Trusted Admin Roles', value: trustedRoles.slice(0, 1024), inline: false }
+    { name: '📝 Mod Log', value: settings.modLogChannelId ? `<#${settings.modLogChannelId}>` : 'Not configured', inline: true },
+    { name: '🛡️ Automod', value: formatBoolean(settings.automod.enabled), inline: true },
+    { name: '🎭 Trusted Admin Roles', value: trustedRoles.slice(0, 1024), inline: false }
   );
 }
 
@@ -221,18 +395,21 @@ export function buildAutomodSettingsEmbed(settings) {
   const rules = Object.entries(settings.automod.rules)
     .map(([name, rule]) => {
       const threshold = rule.threshold ? `, threshold ${rule.threshold}` : '';
-      return `\`${name}\`: ${rule.enabled ? 'on' : 'off'} (${rule.punishment?.action ?? 'delete'}${threshold})`;
+      const icon = rule.enabled ? '✅' : '❌';
+      return `${icon} \`${name}\`: ${rule.enabled ? 'on' : 'off'} (${rule.punishment?.action ?? 'delete'}${threshold})`;
     })
     .join('\n');
 
   return buildBaseEmbed({
-    title: 'Automod Settings',
-    description: settings.automod.enabled ? 'Automod is enabled.' : 'Automod is disabled.'
+    title: '🛡️ Automod Settings',
+    description: settings.automod.enabled ? '✅ Automod is **enabled**.' : '❌ Automod is **disabled**.'
   }).addFields(
-    { name: 'Rules', value: rules || 'No rules configured.', inline: false },
-    { name: 'Logging', value: formatBoolean(settings.automod.logActions), inline: true }
+    { name: '📋 Rules', value: rules || 'No rules configured.', inline: false },
+    { name: '📝 Logging', value: formatBoolean(settings.automod.logActions), inline: true }
   );
 }
+
+// ─── Case Embeds ──────────────────────────────────────────────────────────────
 
 export function buildCaseEmbed(moderationCase) {
   if (!moderationCase) {
@@ -240,23 +417,23 @@ export function buildCaseEmbed(moderationCase) {
   }
 
   return buildBaseEmbed({
-    title: `Moderation Case #${moderationCase.caseId}`,
+    title: `⚖️ Moderation Case #${moderationCase.caseId}`,
     description: `Action: \`${moderationCase.actionType}\``
   }).addFields(
-    { name: 'Target', value: `<@${moderationCase.targetUserId}>`, inline: true },
-    { name: 'Moderator', value: `<@${moderationCase.moderatorId}>`, inline: true },
-    { name: 'Status', value: moderationCase.status, inline: true },
-    { name: 'Reason', value: moderationCase.reason, inline: false }
+    { name: '🎯 Target', value: `<@${moderationCase.targetUserId}>`, inline: true },
+    { name: '🛡️ Moderator', value: `<@${moderationCase.moderatorId}>`, inline: true },
+    { name: '📌 Status', value: moderationCase.status, inline: true },
+    { name: '📝 Reason', value: moderationCase.reason, inline: false }
   );
 }
 
 export function buildCaseListEmbed(cases) {
   const description = cases.length
-    ? cases.map((moderationCase) => `#${moderationCase.caseId} \`${moderationCase.actionType}\` <@${moderationCase.targetUserId}> — ${moderationCase.reason}`).join('\n').slice(0, 4096)
+    ? cases.map((moderationCase) => `**#${moderationCase.caseId}** \`${moderationCase.actionType}\` <@${moderationCase.targetUserId}> — ${moderationCase.reason}`).join('\n').slice(0, 4096)
     : 'No moderation cases found.';
 
   return buildBaseEmbed({
-    title: 'Moderation Cases',
+    title: '📋 Moderation Cases',
     description
   });
 }
@@ -271,21 +448,23 @@ export function buildCaseStatsEmbed(stats) {
     .join('\n') || 'None';
 
   return buildBaseEmbed({
-    title: 'Moderation Case Stats',
+    title: '📊 Moderation Case Stats',
     description: `${stats.total} total active or resolved case(s).`
   }).addFields(
-    { name: 'By Action', value: byAction, inline: true },
-    { name: 'By Status', value: byStatus, inline: true }
+    { name: '⚡ By Action', value: byAction, inline: true },
+    { name: '📌 By Status', value: byStatus, inline: true }
   );
 }
 
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
 export function buildDashboardEmbed({ dashboardUrl }) {
   return buildBaseEmbed({
-    title: 'World Tree Dashboard',
+    title: `🌐 ${BOT.name} Dashboard`,
     description: dashboardUrl
       ? `Dashboard foundation is available at ${dashboardUrl}.`
       : 'Dashboard contracts and planning are scaffolded. A production web dashboard is not enabled yet.'
   }).addFields(
-    { name: 'Current Scope', value: 'Settings, automod, moderation cases, and API contracts are prepared for a future web surface.' }
+    { name: '📋 Current Scope', value: 'Settings, automod, moderation cases, and API contracts are prepared for a future web surface.' }
   );
 }

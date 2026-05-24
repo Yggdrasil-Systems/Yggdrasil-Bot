@@ -4,17 +4,17 @@ import { buildBaseEmbed } from '../utils/embeds.js';
 
 const HELP_CATEGORIES = Object.freeze({
   overview: {
-    label: 'Overview',
-    title: 'World Tree Help',
-    description: 'A clean utility, settings, automod, and moderation bot for daily server management.',
+    label: '📋 Overview',
+    title: '🌳 World Tree Help',
+    description: 'A premium utility, music, settings, automod, and moderation bot.',
     fields: [
       { name: 'Input modes', value: 'Use slash commands, `tree` prefix commands, or bot-owner managed no-prefix shortcuts.' },
-      { name: 'Start here', value: '`tree ping`, `/help`, `/settings view`, `/serverinfo`, `/warn`, `/case list`' }
+      { name: 'Start here', value: '`tree play`, `tree ping`, `/help`, `/settings view`, `/warn`' }
     ]
   },
   utility: {
-    label: 'Utility',
-    title: 'Utility Commands',
+    label: '🔧 Utility',
+    title: '🔧 Utility Commands',
     description: 'Quick server and user context without clutter.',
     fields: [
       { name: 'Commands', value: '`ping`, `avatar`, `banner`, `userinfo`, `serverinfo`, `roleinfo`, `botinfo`, `uptime`, `membercount`, `stats`' },
@@ -22,8 +22,8 @@ const HELP_CATEGORIES = Object.freeze({
     ]
   },
   moderation: {
-    label: 'Moderation',
-    title: 'Moderation Commands',
+    label: '⚔️ Moderation',
+    title: '⚔️ Moderation Commands',
     description: 'Persistent cases, clear logs, and guarded staff workflows.',
     fields: [
       { name: 'Actions', value: '`warn`, `warnings`, `timeout`, `untimeout`, `kick`, `ban`, `purge`' },
@@ -31,8 +31,8 @@ const HELP_CATEGORIES = Object.freeze({
     ]
   },
   settings: {
-    label: 'Settings',
-    title: 'Settings Commands',
+    label: '⚙️ Settings',
+    title: '⚙️ Settings Commands',
     description: 'Configure World Tree per server through persistent guild settings.',
     fields: [
       { name: 'Core', value: '`/settings view`, `/settings modlog set`, `/settings trusted-role add/remove/list`' },
@@ -40,8 +40,8 @@ const HELP_CATEGORIES = Object.freeze({
     ]
   },
   automod: {
-    label: 'Automod',
-    title: 'Automod Commands',
+    label: '🛡️ Automod',
+    title: '🛡️ Automod Commands',
     description: 'Settings-driven moderation for repeat spam, mentions, links, caps, and configured blocked words.',
     fields: [
       { name: 'Configure', value: '`/settings automod toggle`, `/settings automod threshold`, `/settings automod punishment`' },
@@ -49,12 +49,23 @@ const HELP_CATEGORIES = Object.freeze({
     ]
   },
   admin: {
-    label: 'Admin Shortcuts',
-    title: 'Admin Shortcuts',
+    label: '👑 Admin Shortcuts',
+    title: '👑 Admin Shortcuts',
     description: 'Explicitly allowlisted users can use approved no-prefix shortcuts without exposing them to normal chat.',
     fields: [
       { name: 'Examples', value: '`ping`, `userinfo @user`, `purge 10`, `case list`' },
       { name: 'Protection', value: 'Shortcuts require bot owner access or a persisted global no-prefix allowlist grant.' }
+    ]
+  },
+  music: {
+    label: '🎵 Music',
+    title: '🎵 Music Commands',
+    description: 'High-quality music streaming with Spotify, YouTube, Apple Music, and SoundCloud support.',
+    fields: [
+      { name: '🎶 Playback', value: '`play`, `nowplaying`, `skip`, `stop`, `resume`, `volume`, `queue`' },
+      { name: '🔗 Voice', value: '`join`, `247`' },
+      { name: '🔍 Source Flags', value: '`tree play <song> -spotify` · `-yt` · `-apple` · `-sc`' },
+      { name: '💡 Examples', value: '`tree play ishq wala love`\n`tree np` · `tree skip` · `tree queue`\n`tree 247` · `tree volume 80`' }
     ]
   }
 });

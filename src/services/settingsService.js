@@ -87,6 +87,12 @@ export function createSettingsService(repository = settingsRepository, { cacheTt
       return settings;
     },
 
+    async setMusicPanel(guildId, channelId, messageId) {
+      const settings = normalizeGuildSettings(await repository.setMusicPanel(guildId, channelId, messageId));
+      clearCache(guildId);
+      return settings;
+    },
+
     async addTrustedAdminRole(guildId, roleId) {
       const settings = normalizeGuildSettings(await repository.addTrustedAdminRole(guildId, roleId));
       clearCache(guildId);

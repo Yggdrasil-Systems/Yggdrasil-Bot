@@ -94,7 +94,8 @@ test('getBotInfoSummary returns runtime details without process coupling', () =>
         id: 'bot-id',
         displayAvatarURL: () => 'avatar'
       },
-      guilds: { cache: new Map([['guild', {}]]) },
+      guilds: { cache: { size: 1, values: () => [{ memberCount: 5 }] } },
+      channels: { cache: { size: 2 } },
       ws: { ping: 21 }
     },
     uptimeMs: 60_000

@@ -1,6 +1,7 @@
 export const COLORS = Object.freeze({
-  brand: 0x2f7d5c,
-  success: 0x3f9f6b,
+  brand: 0x00ffff,
+  tree: 0x2bce5c,
+  success: 0x2bce5c,
   warning: 0xd6a84f,
   error: 0xc75c5c,
   neutral: 0x58636f

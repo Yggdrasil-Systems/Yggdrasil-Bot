@@ -45,6 +45,14 @@ export function createSettingsRepository(model = GuildSettings) {
       ).lean();
     },
 
+    async setMusicPanel(guildId, channelId, messageId) {
+      return model.findOneAndUpdate(
+        { guildId },
+        { $set: { musicChannelId: channelId, musicMessageId: messageId } },
+        updateOptions()
+      ).lean();
+    },
+
     async setTrustedAdminRoles(guildId, roleIds) {
       return model.findOneAndUpdate(
         { guildId },

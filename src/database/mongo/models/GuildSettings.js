@@ -26,6 +26,14 @@ const guildSettingsSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    musicChannelId: {
+      type: String,
+      default: null
+    },
+    musicMessageId: {
+      type: String,
+      default: null
+    },
     automodEnabled: {
       type: Boolean,
       default: false

@@ -10,7 +10,7 @@ test('buildBaseEmbed applies World Tree visual defaults', () => {
   assert.equal(embed.title, 'Tree Status');
   assert.equal(embed.description, 'Online');
   assert.equal(embed.color, COLORS.brand);
-  assert.equal(embed.footer.text, 'World Tree');
+  assert.equal(embed.footer.text, 'World Tree \u2022 Premium Discord Experience');
   assert.ok(embed.timestamp);
 });
 
@@ -20,6 +20,8 @@ test('success and error embeds use distinct semantic colors', () => {
 
   assert.equal(success.color, COLORS.success);
   assert.equal(error.color, COLORS.error);
+  assert.match(success.title, /✅ Ready/);
+  assert.match(error.title, /❌ Command failed/);
 });
 
 test('ping embed exposes gateway and response latency fields', () => {
@@ -29,8 +31,8 @@ test('ping embed exposes gateway and response latency fields', () => {
     description: 'Gateway latency: 20ms\nResponse time: 15ms'
   }).toJSON();
 
-  assert.equal(embed.fields[0].name, 'Gateway');
-  assert.equal(embed.fields[1].name, 'Response');
+  assert.equal(embed.fields[0].name, 'ℹ️ Latency Information');
+  assert.ok(embed.fields[1]);
 });
 
 test('moderation log embed formats purge channel targets without user mentions', () => {

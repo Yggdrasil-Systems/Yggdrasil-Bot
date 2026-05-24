@@ -6,7 +6,8 @@ export const CLIENT_INTENTS = Object.freeze([
   GatewayIntentBits.Guilds,
   GatewayIntentBits.GuildMembers,
   GatewayIntentBits.GuildMessages,
-  GatewayIntentBits.MessageContent
+  GatewayIntentBits.MessageContent,
+  GatewayIntentBits.GuildVoiceStates
 ]);
 
 export const CLIENT_PARTIALS = Object.freeze([]);

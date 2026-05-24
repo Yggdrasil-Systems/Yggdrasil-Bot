@@ -1,3 +1,4 @@
+import os from 'os';
 import { formatHexColor } from '../utils/formatters.js';
 
 function clampLatency(value) {
@@ -15,6 +16,7 @@ export function getPingSummary(clientOrInteraction) {
   return {
     websocketLatency,
     responseLatency,
+    clientAvatarUrl: client.user?.displayAvatarURL({ size: 1024, extension: 'png' }),
     description: `Gateway latency: ${websocketLatency}ms\nResponse time: ${responseLatency}ms`
   };
 }
@@ -75,13 +77,29 @@ export function getServerInfoSummary({ guild }) {
 }
 
 export function getBotInfoSummary({ client, uptimeMs = process.uptime() * 1000 }) {
+  const memoryUsage = process.memoryUsage();
+  const totalMemMb = (os.totalmem() / 1024 / 1024).toFixed(2);
+  const freeMemMb = (os.freemem() / 1024 / 1024).toFixed(2);
+  const usedMemMb = (memoryUsage.heapUsed / 1024 / 1024).toFixed(2);
+  const cpuLoad = os.loadavg()[0].toFixed(2);
+  const cpuModel = os.cpus()[0]?.model || 'Unknown CPU';
+
   return {
     botId: client.user.id,
     tag: client.user.tag,
     guildCount: client.guilds.cache.size,
+    channelCount: client.channels.cache.size,
+    userCount: [...client.guilds.cache.values()].reduce((acc, guild) => acc + (guild.memberCount || 0), 0),
     websocketLatency: Math.round(client.ws.ping),
     uptimeMs,
-    avatarUrl: client.user.displayAvatarURL({ size: 256, extension: 'png' })
+    avatarUrl: client.user.displayAvatarURL({ size: 256, extension: 'png' }),
+    cpuModel,
+    cpuUsage: cpuLoad,
+    memoryUsed: usedMemMb,
+    memoryTotal: totalMemMb,
+    platform: os.platform(),
+    discordJsVersion: '14.26.4', // Could also require package.json but hardcoding based on the codebase is simpler
+    nodeVersion: process.version
   };
 }
 

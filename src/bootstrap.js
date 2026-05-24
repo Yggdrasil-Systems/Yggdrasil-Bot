@@ -8,6 +8,7 @@ import { loadCommands } from './loaders/commandLoader.js';
 import { loadEvents } from './loaders/eventLoader.js';
 import { createNoPrefixService } from './services/noPrefixService.js';
 import { settingsService } from './services/settingsService.js';
+import { initializePlayer } from './services/musicService.js';
 import { BOT } from './utils/constants.js';
 import { logger } from './utils/logger.js';
 
@@ -38,6 +39,8 @@ export async function bootstrap({
   const eventCount = await loadEventHandlers(client, eventsPath);
 
   log.info(`Loaded ${client.commands.size} command(s) and ${eventCount} event handler(s).`);
+
+  await initializePlayer(client);
 
   await client.login(env.discordToken);
 

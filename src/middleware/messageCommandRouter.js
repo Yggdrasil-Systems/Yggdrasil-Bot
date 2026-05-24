@@ -82,6 +82,33 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
     return false;
   }
 
+  const settings = message.client.settingsService
+    ? await message.client.settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
+    : null;
+
+  if (settings?.musicChannelId && message.channel.id === settings.musicChannelId) {
+    const playCommand = findMessageCommand(message.client.commands, 'play');
+    if (playCommand && message.content.trim().length > 0) {
+      setTimeout(() => message.delete().catch(() => null), 1000);
+      try {
+        await playCommand.executeMessage({
+          mode: 'no-prefix',
+          commandName: 'play',
+          args: message.content.trim().split(/\s+/),
+          message,
+          client: message.client,
+          guild: message.guild,
+          user: message.author,
+          member: message.member,
+          respond: (payload) => replyToMessage(message, payload)
+        });
+        return true;
+      } catch (error) {
+        log.error?.('Music channel play failed', error);
+      }
+    }
+  }
+
   const prefixedCommand = parseMessageCommand(message.content, {
     prefix: BOT.prefix,
     allowNoPrefix: false
