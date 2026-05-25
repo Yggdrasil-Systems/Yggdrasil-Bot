@@ -1,6 +1,7 @@
-import { Player } from 'discord-player';
+import { Player, StreamType } from 'discord-player';
 import { DefaultExtractors } from '@discord-player/extractor';
 import { YoutubeiExtractor } from 'discord-player-youtubei';
+import playdl from 'play-dl';
 import { buildNowPlayingEmbed, buildSuccessEmbed, buildErrorEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildMusicPlayerComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
@@ -22,7 +23,7 @@ function safeSend(queue, payload) {
   }
 }
 
-// ─── Source detection helper ────────────────────────────────────────────────
+// ─── Source detection helpers ────────────────────────────────────────────────
 
 function getSourceEmoji(track) {
   const src = (track.source || track.raw?.source || '').toLowerCase();
@@ -44,32 +45,64 @@ function getSourceLabel(track) {
 
 export { getSourceEmoji, getSourceLabel };
 
+// ─── Determine if a URL is a YouTube URL ────────────────────────────────────
+
+function isYouTubeUrl(url) {
+  return url && /youtube\.com|youtu\.be/i.test(url);
+}
+
 // ─── Player initialization ──────────────────────────────────────────────────
 
 export async function initializePlayer(client) {
   player = new Player(client, {
-    // Ensure FFmpeg transcodes all streams — prevents the skipFFmpeg=true / raw stream
-    // starvation issue. Discord voice needs properly encoded Opus frames.
-    skipFFmpeg: false
-  });
+    // play-dl handles stream delivery, so FFmpeg can process whatever comes back.
+    // Leave skipFFmpeg: false so discord-player applies the DSP pipeline correctly.
+    skipFFmpeg: false,
 
-  // 1. Load default extractors (SoundCloud, Spotify metadata, Apple metadata, etc.)
-  await player.extractors.loadMulti(DefaultExtractors);
+    // ── onBeforeCreateStream ───────────────────────────────────────────────
+    // This hook runs before the extractor tries to build a stream.
+    // We intercept YouTube-sourced tracks and use play-dl directly, which:
+    //   - does not rely on youtubei.js's client-type-specific URL generation
+    //   - returns a proper Readable stream (not a pre-signed URL that expires)
+    //   - works with ffmpeg-static for correct Opus encoding
+    onBeforeCreateStream: async (track, method, queue) => {
+      const url = track.url;
 
-  // 2. Register the YouTubei extractor — streaming bridge for Spotify/Apple/YouTube
-  //
-  //    CLIENT SELECTION IS CRITICAL:
-  //    - ANDROID_MUSIC: requires JS signature decipher → breaks on YouTube player updates
-  //    - IOS: Apple's iOS client gets streams with no JS cipher needed → stable
-  //    - TV_EMBEDDED: also cipher-free, but lower quality ceiling
-  //    IOS is the most reliable choice for 2025/2026 YouTube player versions.
-  await player.extractors.register(YoutubeiExtractor, {
-    streamOptions: {
-      useClient: 'IOS'
+      if (!isYouTubeUrl(url)) {
+        // Let extractor handle non-YouTube streams (SoundCloud, etc.)
+        return null;
+      }
+
+      try {
+        logger.info(`[play-dl] Fetching stream for: ${track.title}`);
+        const stream = await playdl.stream(url, {
+          quality: 2,         // 0=low, 1=medium, 2=high
+          discordPlayerCompatibility: true
+        });
+        logger.info(`[play-dl] Stream type: ${stream.type} — starting playback`);
+        return stream.stream;
+      } catch (err) {
+        logger.error(`[play-dl] Failed to get stream for "${track.title}": ${err.message}`);
+        // Return null to fall back to extractor
+        return null;
+      }
     }
   });
 
-  logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor');
+  // 1. Load default extractors — handles search for Spotify, Apple Music, SoundCloud, etc.
+  await player.extractors.loadMulti(DefaultExtractors);
+
+  // 2. Register YoutubeiExtractor for YouTube search + as streaming fallback.
+  //    The search functionality is what we need from youtubei — actual streaming
+  //    is handled by play-dl via onBeforeCreateStream above.
+  await player.extractors.register(YoutubeiExtractor, {
+    streamOptions: {
+      // TV_EMBEDDED as fallback if play-dl fails — no cipher needed, stable client
+      useClient: 'TV_EMBEDDED'
+    }
+  });
+
+  logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor | Stream backend: play-dl');
 
   // ─── Player Events ──────────────────────────────────────────────────────
 
@@ -83,7 +116,6 @@ export async function initializePlayer(client) {
   });
 
   player.events.on('audioTrackAdd', (queue, track) => {
-    // Only notify if something is already playing (playerStart handles the first track)
     if (queue.isPlaying()) {
       const emoji = getSourceEmoji(track);
       safeSend(queue, {
@@ -157,7 +189,6 @@ export async function initializePlayer(client) {
     });
   });
 
-  // Debug logging (only in development)
   if (process.env.NODE_ENV === 'development') {
     player.events.on('debug', (queue, message) => {
       logger.info(`[Player Debug] ${message}`);
