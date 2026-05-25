@@ -47,17 +47,25 @@ export { getSourceEmoji, getSourceLabel };
 // ─── Player initialization ──────────────────────────────────────────────────
 
 export async function initializePlayer(client) {
-  player = new Player(client);
+  player = new Player(client, {
+    // Ensure FFmpeg transcodes all streams — prevents the skipFFmpeg=true / raw stream
+    // starvation issue. Discord voice needs properly encoded Opus frames.
+    skipFFmpeg: false
+  });
 
   // 1. Load default extractors (SoundCloud, Spotify metadata, Apple metadata, etc.)
   await player.extractors.loadMulti(DefaultExtractors);
 
-  // 2. Register the YouTubei extractor — this is the critical streaming bridge
-  //    Spotify/Apple tracks resolve metadata then bridge through YouTube for audio
+  // 2. Register the YouTubei extractor — streaming bridge for Spotify/Apple/YouTube
+  //
+  //    CLIENT SELECTION IS CRITICAL:
+  //    - ANDROID_MUSIC: requires JS signature decipher → breaks on YouTube player updates
+  //    - IOS: Apple's iOS client gets streams with no JS cipher needed → stable
+  //    - TV_EMBEDDED: also cipher-free, but lower quality ceiling
+  //    IOS is the most reliable choice for 2025/2026 YouTube player versions.
   await player.extractors.register(YoutubeiExtractor, {
-    // Use YouTube Music for better music-specific results
     streamOptions: {
-      useClient: 'ANDROID_MUSIC'
+      useClient: 'IOS'
     }
   });
 
