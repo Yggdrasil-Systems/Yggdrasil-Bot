@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { player } from '../../services/musicService.js';
-import { buildErrorEmbed, buildNowPlayingEmbed } from '../../utils/embeds.js';
+import { buildNowPlayingEmbed, buildErrorEmbed } from '../../utils/embeds.js';
 import { buildMusicPlayerComponents } from '../../utils/components.js';
 
 export const name = 'nowplaying';
@@ -9,29 +9,25 @@ export const allowNoPrefix = true;
 
 export const data = new SlashCommandBuilder()
   .setName('nowplaying')
-  .setDescription('Shows the currently playing track.');
+  .setDescription('Show the currently playing track.');
 
 async function executeNowPlaying(guildId, respond) {
   const queue = player.nodes.get(guildId);
 
-  if (!queue || !queue.isPlaying()) {
+  if (!queue || !queue.currentTrack) {
     return respond({
-      embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now.')]
+      embeds: [buildErrorEmbed('Nothing Playing', 'There is no track playing right now. Use `tree play` to start!')]
     });
   }
 
-  const track = queue.currentTrack;
-
   return respond({
-    embeds: [buildNowPlayingEmbed(track, queue)],
+    embeds: [buildNowPlayingEmbed(queue.currentTrack, queue)],
     components: buildMusicPlayerComponents()
   });
 }
 
 export async function execute(interaction) {
-  const guildId = interaction.guild.id;
-
-  await executeNowPlaying(guildId, async (payload) => {
+  await executeNowPlaying(interaction.guild.id, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -41,11 +37,7 @@ export async function execute(interaction) {
 }
 
 export async function executeMessage(context) {
-  const guildId = context.guild.id;
-
-  const respondFn = async (payload) => {
+  await executeNowPlaying(context.guild.id, async (payload) => {
     await context.respond(payload);
-  };
-
-  await executeNowPlaying(guildId, respondFn);
+  });
 }

@@ -8,42 +8,46 @@ export const allowNoPrefix = true;
 
 export const data = new SlashCommandBuilder()
   .setName('volume')
-  .setDescription('Sets the playback volume.')
+  .setDescription('Set the playback volume.')
   .addIntegerOption(option =>
     option.setName('level')
       .setDescription('Volume level (0-100)')
-      .setRequired(true)
       .setMinValue(0)
-      .setMaxValue(100)
-  );
+      .setMaxValue(100));
 
-async function executeVolume(guildId, vol, respond) {
+async function executeVolume(level, guildId, respond) {
   const queue = player.nodes.get(guildId);
 
-  if (!queue || !queue.isPlaying()) {
+  if (!queue || !queue.currentTrack) {
     return respond({
       embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now.')]
     });
   }
 
-  if (vol < 0 || vol > 100) {
+  // Show current volume if no level specified
+  if (level === null || level === undefined) {
     return respond({
-      embeds: [buildErrorEmbed('Invalid Volume', 'Volume must be between 0 and 100.')]
+      embeds: [buildSuccessEmbed('🔊 Volume', `Current volume: **${queue.node.volume ?? 80}%**`)]
     });
   }
 
-  queue.node.setVolume(vol);
+  if (level < 0 || level > 100) {
+    return respond({
+      embeds: [buildErrorEmbed('Invalid Volume', 'Volume must be between **0** and **100**.')]
+    });
+  }
 
+  queue.node.setVolume(level);
+
+  const emoji = level === 0 ? '🔇' : level < 30 ? '🔉' : level < 70 ? '🔊' : '📢';
   return respond({
-    embeds: [buildSuccessEmbed('Volume Set', `Volume has been set to **${vol}%**.`)]
+    embeds: [buildSuccessEmbed(`${emoji} Volume Set`, `Volume set to **${level}%**`)]
   });
 }
 
 export async function execute(interaction) {
-  const guildId = interaction.guild.id;
-  const vol = interaction.options.getInteger('level');
-
-  await executeVolume(guildId, vol, async (payload) => {
+  const level = interaction.options.getInteger('level');
+  await executeVolume(level, interaction.guild.id, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -53,18 +57,8 @@ export async function execute(interaction) {
 }
 
 export async function executeMessage(context) {
-  const guildId = context.guild.id;
-  const vol = parseInt(context.args[0], 10);
-
-  if (isNaN(vol)) {
-    return context.respond({
-      embeds: [buildErrorEmbed('Invalid Volume', 'Please provide a number between 0 and 100. Usage: `volume <0-100>`')]
-    });
-  }
-
-  const respondFn = async (payload) => {
+  const level = context.args[0] ? parseInt(context.args[0], 10) : null;
+  await executeVolume(Number.isFinite(level) ? level : null, context.guild.id, async (payload) => {
     await context.respond(payload);
-  };
-
-  await executeVolume(guildId, vol, respondFn);
+  });
 }

@@ -60,12 +60,13 @@ const HELP_CATEGORIES = Object.freeze({
   music: {
     label: '🎵 Music',
     title: '🎵 Music Commands',
-    description: 'High-quality music streaming with Spotify, YouTube, Apple Music, and SoundCloud support.',
+    description: 'High-quality music streaming with Spotify, YouTube, Apple Music, and SoundCloud.',
     fields: [
-      { name: '🎶 Playback', value: '`play`, `nowplaying`, `skip`, `stop`, `resume`, `volume`, `queue`' },
+      { name: '🎶 Playback', value: '`play`, `nowplaying`, `skip`, `stop`, `resume`, `volume`, `queue`, `shuffle`' },
+      { name: '🔍 Discovery', value: '`search` — pick from top results\n`autoplay` — auto-queue related tracks' },
+      { name: '🎛️ Customization', value: '`filter` — audio effects (bass boost, nightcore, etc.)\n`loop` — loop track/queue/autoplay' },
       { name: '🔗 Voice', value: '`join`, `247`' },
-      { name: '🔍 Source Flags', value: '`tree play <song> -spotify` · `-yt` · `-apple` · `-sc`' },
-      { name: '💡 Examples', value: '`tree play ishq wala love`\n`tree np` · `tree skip` · `tree queue`\n`tree 247` · `tree volume 80`' }
+      { name: '💡 Examples', value: '`tree play ishq wala love`\n`tree search Night Changes`\n`tree np` · `tree skip` · `tree queue`\n`tree filter bassboost` · `tree loop track`\n`tree 247` · `tree volume 80`' }
     ]
   }
 });

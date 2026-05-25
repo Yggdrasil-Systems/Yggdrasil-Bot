@@ -1,8 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
-import { player } from '../../services/musicService.js';
-import { buildErrorEmbed, buildSuccessEmbed, buildMusicSearchFallbackEmbed } from '../../utils/embeds.js';
-import { buildMusicFallbackComponents } from '../../utils/components.js';
+import { player, getSourceEmoji, getSourceLabel } from '../../services/musicService.js';
+import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 
 export const name = 'play';
@@ -11,173 +10,139 @@ export const allowNoPrefix = true;
 
 export const data = new SlashCommandBuilder()
   .setName('play')
-  .setDescription('Play a song from Spotify, Apple Music, or YouTube.')
+  .setDescription('Play a song from Spotify, Apple Music, YouTube, or SoundCloud.')
   .addStringOption(option => 
     option.setName('query')
-      .setDescription('The song title or link')
-      .setRequired(true))
-  .addStringOption(option =>
-    option.setName('source')
-      .setDescription('Search source (defaults to auto-detect)')
-      .addChoices(
-        { name: 'Spotify', value: 'spotify' },
-        { name: 'Apple Music', value: 'apple' },
-        { name: 'YouTube', value: 'youtube' },
-        { name: 'SoundCloud', value: 'soundcloud' }
-      ));
+      .setDescription('Song name, artist, or a direct link')
+      .setRequired(true));
 
 // ─── URL Detection ──────────────────────────────────────────────────────────
-
-const URL_PATTERNS = {
-  spotify: /^https?:\/\/(open\.)?spotify\.com\//i,
-  apple: /^https?:\/\/music\.apple\.com\//i,
-  youtube: /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i,
-  soundcloud: /^https?:\/\/(www\.)?soundcloud\.com\//i,
-};
-
-function detectUrlSource(query) {
-  for (const [source, pattern] of Object.entries(URL_PATTERNS)) {
-    if (pattern.test(query)) return source;
-  }
-  return null;
-}
 
 function isUrl(query) {
   return /^https?:\/\//i.test(query);
 }
 
-// ─── Search Engine Mapping ──────────────────────────────────────────────────
-
-function getSearchEngine(source) {
-  switch (source) {
-    case 'spotify': return QueryType.SPOTIFY_SEARCH;
-    case 'apple': return QueryType.APPLE_MUSIC_SEARCH;
-    case 'youtube': return QueryType.YOUTUBE_SEARCH;
-    case 'soundcloud': return QueryType.SOUNDCLOUD_SEARCH;
-    default: return QueryType.AUTO;
-  }
-}
-
-// The cascade order when one source fails
-const SEARCH_CASCADE = ['spotify', 'youtube', 'soundcloud', 'apple'];
-
 /**
- * Core play logic. `textChannel` is the actual Discord TextChannel object
- * used for sending now-playing updates via queue metadata.
+ * Core play logic shared by slash and prefix commands.
+ *
+ * Strategy:
+ *   - URLs  → QueryType.AUTO (extractors auto-detect the platform)
+ *   - Text  → QueryType.AUTO_SEARCH (iterates all extractors until one returns results)
+ *
+ * No manual cascade needed — discord-player handles extractor iteration internally.
  */
-export async function executePlay(query, source, voiceChannel, user, textChannel, respond) {
+export async function executePlay(query, voiceChannel, user, textChannel, respond) {
   if (!voiceChannel) {
     return respond({
       embeds: [buildErrorEmbed('Voice Channel Required', 'You need to be in a voice channel to play music.')]
     });
   }
 
-  // ─── URL handling: auto-detect source from URL ──────────────────────────
-  const urlSource = detectUrlSource(query);
-  if (urlSource || isUrl(query)) {
-    // For known URLs, use AUTO which will auto-detect the extractor
-    const result = await player.search(query, {
-      requestedBy: user,
-      searchEngine: QueryType.AUTO
-    }).catch(err => {
-      logger.error('URL search failed:', err.message);
-      return null;
-    });
+  const searchEngine = isUrl(query) ? QueryType.AUTO : QueryType.AUTO_SEARCH;
 
-    if (result?.tracks?.length) {
-      return await enqueueResult(result, voiceChannel, textChannel, respond);
-    }
-
-    // URL didn't resolve — show a helpful error
-    return respond({
-      embeds: [buildErrorEmbed('Could Not Load', `Failed to load the provided link.\nMake sure the URL is valid and the track/playlist is public.`)]
-    });
-  }
-
-  // ─── Text search: try the requested source first, then cascade ──────────
-  const searchOrder = [source, ...SEARCH_CASCADE.filter(s => s !== source)];
-
-  for (const currentSource of searchOrder) {
-    const searchEngine = getSearchEngine(currentSource);
-    
-    const result = await player.search(query, {
+  let result;
+  try {
+    result = await player.search(query, {
       requestedBy: user,
       searchEngine
-    }).catch(err => {
-      logger.warn(`Search on ${currentSource} failed: ${err.message}`);
-      return null;
     });
-
-    if (result?.tracks?.length) {
-      return await enqueueResult(result, voiceChannel, textChannel, respond);
-    }
+  } catch (err) {
+    logger.error(`Search failed for "${query}":`, err.message);
+    return respond({
+      embeds: [buildErrorEmbed('Search Failed', `Could not search for that query.\n\`\`\`${err.message.slice(0, 150)}\`\`\`\nTry a different search term or paste a direct link.`)]
+    });
   }
 
-  // All sources exhausted — show fallback with manual buttons
-  return respond({
-    embeds: [buildMusicSearchFallbackEmbed(query)],
-    components: buildMusicFallbackComponents(query) // raw query, not encoded URL
-  });
-}
+  if (!result || !result.hasTracks()) {
+    // Provide helpful suggestions based on what the user tried
+    const suggestion = isUrl(query)
+      ? 'Make sure the link is valid, public, and not age-restricted.'
+      : 'Try being more specific (include the artist name), or paste a direct link.';
 
-/**
- * Enqueue the search result into the player queue.
- */
-async function enqueueResult(result, voiceChannel, textChannel, respond) {
-  // Preserve existing queue's metadata if it already exists
+    return respond({
+      embeds: [buildErrorEmbed(
+        'No Results Found',
+        `Could not find anything for **${query.length > 80 ? query.slice(0, 80) + '...' : query}**\n\n💡 ${suggestion}`
+      )]
+    });
+  }
+
+  // ─── Enqueue ────────────────────────────────────────────────────────────
   const existingQueue = player.nodes.get(voiceChannel.guild.id);
-  
+
   const queue = player.nodes.create(voiceChannel.guild, {
     metadata: existingQueue?.metadata ?? {
       channel: textChannel,
       is247: false
     },
-    leaveOnEmpty: existingQueue?.options?.leaveOnEmpty ?? true,
+    leaveOnEmpty: existingQueue?.metadata?.is247 ? false : true,
     leaveOnEmptyCooldown: 300000,
-    leaveOnEnd: existingQueue?.options?.leaveOnEnd ?? true,
+    leaveOnEnd: existingQueue?.metadata?.is247 ? false : true,
     leaveOnEndCooldown: 300000,
+    selfDeaf: true,
+    volume: existingQueue?.node?.volume ?? 80,
   });
 
-  // Make sure metadata.channel is always set
+  // Ensure metadata.channel is always valid
   if (!queue.metadata.channel) {
     queue.metadata.channel = textChannel;
   }
 
   try {
     if (!queue.connection) await queue.connect(voiceChannel);
-  } catch {
+  } catch (err) {
+    logger.error('Failed to connect to voice channel:', err.message);
     queue.delete();
     return respond({
-      embeds: [buildErrorEmbed('Connection Failed', 'Could not join your voice channel. Check my permissions.')]
+      embeds: [buildErrorEmbed('Connection Failed', 'Could not join your voice channel.\nCheck that I have **Connect** and **Speak** permissions.')]
     });
   }
 
   const track = result.tracks[0];
+
   if (result.playlist) {
     queue.addTrack(result.tracks);
+    const emoji = getSourceEmoji(track);
     await respond({
-      embeds: [buildSuccessEmbed('Playlist Added', `Added **${result.playlist.title}** (${result.tracks.length} tracks) to the queue.`)]
+      embeds: [buildSuccessEmbed(
+        `${emoji} Playlist Queued`,
+        `**${result.playlist.title}**\n${result.tracks.length} tracks added to the queue.`
+      )]
     });
   } else {
     queue.addTrack(track);
-    // Only send "Track Added" if already playing (playerStart handles the first track)
+    // Only show "queued" if something is already playing (playerStart handles the first track)
     if (queue.isPlaying()) {
+      const emoji = getSourceEmoji(track);
       await respond({
-        embeds: [buildSuccessEmbed('Track Added', `Added **${track.title}** by **${track.author}** to the queue.`)]
+        embeds: [buildSuccessEmbed(
+          `${emoji} Track Queued`,
+          `**[${track.title}](${track.url})**\nby **${track.author}** · \`${track.duration}\`\n\n📍 Position: **#${queue.tracks.data.length}**`
+        )]
       });
     }
   }
 
-  if (!queue.isPlaying()) await queue.node.play();
+  if (!queue.isPlaying()) {
+    try {
+      await queue.node.play();
+    } catch (err) {
+      logger.error('Failed to start playback:', err.message);
+      return respond({
+        embeds: [buildErrorEmbed('Playback Failed', `Could not start playing.\n\`\`\`${err.message.slice(0, 150)}\`\`\`\nTry a different track or source.`)]
+      });
+    }
+  }
 }
+
+// ─── Slash Command Handler ──────────────────────────────────────────────────
 
 export async function execute(interaction) {
   const query = interaction.options.getString('query');
-  const source = interaction.options.getString('source') || 'spotify';
   const voiceChannel = interaction.member.voice.channel;
   const textChannel = interaction.channel;
 
-  await executePlay(query, source, voiceChannel, interaction.user, textChannel, async (payload) => {
+  await executePlay(query, voiceChannel, interaction.user, textChannel, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -186,30 +151,24 @@ export async function execute(interaction) {
   });
 }
 
-export async function executeMessage(context) {
-  let query = context.args.join(' ');
-  let source = 'spotify';
+// ─── Prefix Command Handler ────────────────────────────────────────────────
 
-  // Parse source flags
-  const flagMap = { '-apple': 'apple', '-yt': 'youtube', '-sc': 'soundcloud', '-spotify': 'spotify' };
-  for (const [flag, src] of Object.entries(flagMap)) {
-    if (query.includes(flag)) {
-      source = src;
-      query = query.replace(flag, '').trim();
-      break;
-    }
-  }
+export async function executeMessage(context) {
+  const query = context.args.join(' ');
 
   if (!query) {
     return context.respond({
-      embeds: [buildErrorEmbed('Missing Query', 'Please provide a song to play.\n\n**Usage:**\n`tree play <song name>`\n`tree play <song> -yt`\n`tree play <spotify/youtube/apple link>`')]
+      embeds: [buildErrorEmbed(
+        'Missing Query',
+        'Please provide a song name or link.\n\n**Usage:**\n`tree play <song name>`\n`tree play <spotify/youtube/apple/soundcloud link>`\n\n**Examples:**\n`tree play Night Changes One Direction`\n`tree play https://open.spotify.com/track/...`'
+      )]
     });
   }
 
   const voiceChannel = context.member.voice.channel;
   const textChannel = context.message.channel;
 
-  await executePlay(query, source, voiceChannel, context.user, textChannel, async (payload) => {
+  await executePlay(query, voiceChannel, context.user, textChannel, async (payload) => {
     await context.respond(payload);
   });
 }

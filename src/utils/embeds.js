@@ -77,7 +77,23 @@ export function buildPingEmbed(summary) {
     .setFooter({ text: `Requested by ${summary.requestedBy || 'User'} • ${BOT.name}` });
 }
 
-// ─── Now Playing Embed (Astra Bot Style) ───────────────────────────────────────
+// ─── Now Playing Embed ─────────────────────────────────────────────────────────
+
+function getSourceBadge(track) {
+  const src = (track.source || track.raw?.source || '').toLowerCase();
+  if (src.includes('spotify')) return '🟢 Spotify';
+  if (src.includes('apple')) return '🍎 Apple Music';
+  if (src.includes('youtube')) return '🔴 YouTube';
+  if (src.includes('soundcloud')) return '🟠 SoundCloud';
+  return '🎵 Music';
+}
+
+function getLoopLabel(mode) {
+  if (mode === 1) return '🔂 Track';
+  if (mode === 2) return '🔁 Queue';
+  if (mode === 3) return '📻 Autoplay';
+  return '➡️ Off';
+}
 
 export function buildNowPlayingEmbed(track, queue) {
   if (!track) {
@@ -86,28 +102,37 @@ export function buildNowPlayingEmbed(track, queue) {
 
   const progress = queue.node.createProgressBar?.({
     timecodes: true,
-    length: 12,
-    indicator: '🔵',
+    length: 14,
+    indicator: '🔘',
     leftChar: '▬',
     rightChar: '▬'
   }) || '';
 
-  const embed = buildBaseEmbed({
-    color: COLORS.brand
-  })
-    .setAuthor({ name: '🎵 Now Playing' })
-    .setDescription([
-      `**[${track.title}](${track.url})**`,
-      `by **${track.author}**`,
-      '',
-      progress,
-      ''
-    ].join('\n'))
+  const source = getSourceBadge(track);
+  const loopLabel = getLoopLabel(queue.repeatMode);
+  const nextTrack = queue.tracks.data[0];
+
+  const description = [
+    `### [${track.title}](${track.url})`,
+    `by **${track.author}**`,
+    '',
+    progress,
+    '',
+    `${source} · 🔊 ${queue.node.volume ?? 80}% · 🔄 ${loopLabel}`
+  ].join('\n');
+
+  const embed = buildBaseEmbed({ color: COLORS.brand })
+    .setAuthor({ name: '♫ Now Playing', iconURL: track.requestedBy?.displayAvatarURL?.() || undefined })
+    .setDescription(description)
     .addFields(
-      { name: '👤 Chosen by', value: `<@${track.requestedBy?.id || '0'}>`, inline: true },
+      { name: '👤 Requested by', value: `<@${track.requestedBy?.id || '0'}>`, inline: true },
       { name: '⏱️ Duration', value: `\`${track.duration}\``, inline: true },
-      { name: '\u200b', value: `🔊 Volume - ${queue.node.volume ?? 100}% · 📜 Queue - ${queue.tracks.data.length}`, inline: false }
+      { name: '📜 Queue', value: `\`${queue.tracks.data.length} track(s)\``, inline: true }
     );
+
+  if (nextTrack) {
+    embed.addFields({ name: '⏭️ Up Next', value: `[${nextTrack.title}](${nextTrack.url}) — \`${nextTrack.duration}\``, inline: false });
+  }
 
   if (track.thumbnail) {
     embed.setThumbnail(track.thumbnail);
@@ -116,18 +141,9 @@ export function buildNowPlayingEmbed(track, queue) {
   return embed;
 }
 
-// Legacy alias - kept for backward compat
+// Legacy alias
 export function buildMusicPlayerEmbed(track, queue) {
   return buildNowPlayingEmbed(track, queue);
-}
-
-// ─── Music Search Fallback ────────────────────────────────────────────────────
-
-export function buildMusicSearchFallbackEmbed(query) {
-  return buildErrorEmbed(
-    'No results found',
-    `Could not find any results for \`${query}\`.\nTry searching on other platforms:`
-  );
 }
 
 // ─── Queue Embed ──────────────────────────────────────────────────────────────
@@ -135,33 +151,36 @@ export function buildMusicSearchFallbackEmbed(query) {
 export function buildQueueEmbed(queue) {
   const currentTrack = queue.currentTrack;
   const tracks = queue.tracks.data.slice(0, 10);
+  const loopLabel = getLoopLabel(queue.repeatMode);
 
   let description = '';
   if (currentTrack) {
-    description += `**🎶 Now Playing:**\n[${currentTrack.title}](${currentTrack.url}) — \`${currentTrack.duration}\`\n\n`;
+    description += `**🎶 Now Playing:**\n[${currentTrack.title}](${currentTrack.url})\nby **${currentTrack.author}** — \`${currentTrack.duration}\` · <@${currentTrack.requestedBy?.id || '0'}>\n\n`;
   }
 
   if (tracks.length > 0) {
     description += '**📜 Up Next:**\n';
     description += tracks.map((t, i) =>
-      `\`${i + 1}.\` [${t.title}](${t.url}) — \`${t.duration}\``
+      `\`${i + 1}.\` **${t.title}** — \`${t.duration}\` · <@${t.requestedBy?.id || '0'}>`
     ).join('\n');
 
     if (queue.tracks.data.length > 10) {
-      description += `\n\n... and **${queue.tracks.data.length - 10}** more tracks`;
+      description += `\n\n*... and **${queue.tracks.data.length - 10}** more track(s)*`;
     }
   } else {
-    description += '*No more tracks in the queue.*';
+    description += '*No upcoming tracks. Add more with* `tree play`';
   }
+
+  const totalTracks = queue.tracks.data.length + (currentTrack ? 1 : 0);
 
   return buildBaseEmbed({
     title: '📜 Music Queue',
     description,
     color: COLORS.brand
   }).addFields(
-    { name: '🔊 Volume', value: `${queue.node.volume ?? 100}%`, inline: true },
-    { name: '📀 Total Tracks', value: `${queue.tracks.data.length + (currentTrack ? 1 : 0)}`, inline: true },
-    { name: '🔁 Loop', value: queue.repeatMode === 1 ? 'Track' : queue.repeatMode === 2 ? 'Queue' : 'Off', inline: true }
+    { name: '📀 Total', value: `\`${totalTracks} track(s)\``, inline: true },
+    { name: '🔊 Volume', value: `\`${queue.node.volume ?? 80}%\``, inline: true },
+    { name: '🔄 Loop', value: loopLabel, inline: true }
   );
 }
 

@@ -1,5 +1,5 @@
-import { buildErrorEmbed, buildSuccessEmbed, buildNowPlayingEmbed, buildQueueEmbed } from '../utils/embeds.js';
-import { buildMusicPlayerComponents, resolveQuery } from '../utils/components.js';
+import { buildErrorEmbed, buildSuccessEmbed, buildNowPlayingEmbed, buildQueueEmbed, buildNeutralEmbed, buildPingEmbed } from '../utils/embeds.js';
+import { buildMusicPlayerComponents, buildSettingsComponents, buildFilterComponents, buildQueueComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
 import { replyToInteraction } from '../utils/responses.js';
 import { buildHelpCategoryEmbed, buildHelpComponents, parseHelpComponentId } from '../services/helpService.js';
@@ -7,26 +7,35 @@ import { handleInteractionError } from './errorHandler.js';
 import { canUseAdminCommand } from './permissionGuard.js';
 import { player } from '../services/musicService.js';
 import { executePlay } from '../commands/music/play.js';
-
-// Map 2-letter source codes back to full engine names
-const SOURCE_MAP = { sp: 'spotify', ap: 'apple', yt: 'youtube', sc: 'soundcloud' };
+import { handleSearchSelect } from '../commands/music/search.js';
+import { getBotInfoSummary } from '../services/utilityService.js';
+import { formatDuration } from '../utils/formatters.js';
 
 async function handleUnknownCommand(interaction, log) {
   log.warn(`No command handler found for /${interaction.commandName}.`);
-
   await replyToInteraction(
     interaction,
-    {
-      embeds: [
-        buildErrorEmbed(
-          'Command unavailable',
-          'That command is not available right now. Try registering slash commands again.'
-        )
-      ]
-    },
+    { embeds: [buildErrorEmbed('Command unavailable', 'That command is not available right now.')] },
     { ephemeral: true }
   );
 }
+
+// ─── Helper: get queue or reply with error ──────────────────────────────────
+
+function getQueue(interaction) {
+  return player?.nodes?.get(interaction.guildId) ?? null;
+}
+
+function requireQueue(interaction) {
+  const queue = getQueue(interaction);
+  if (!queue || !queue.currentTrack) {
+    interaction.reply({ embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now. Use `tree play` to start.')], flags: 64 });
+    return null;
+  }
+  return queue;
+}
+
+// ─── Component Interaction Handler ──────────────────────────────────────────
 
 export async function handleComponentInteraction(interaction) {
   if (!interaction.isButton() && !interaction.isStringSelectMenu()) {
@@ -35,160 +44,300 @@ export async function handleComponentInteraction(interaction) {
 
   const id = interaction.customId;
 
-  // ─── Music Fallback Search Buttons (msf_ prefix) ─────────────────────────
-  if (interaction.isButton() && id.startsWith('msf_')) {
-    const parts = id.split('_');           // ['msf', 'sp', '<queryKey>']
-    const sourceCode = parts[1];
-    const queryKey = parts.slice(2).join('_');
-    const engine = SOURCE_MAP[sourceCode] || 'spotify';
-    const query = resolveQuery(queryKey);
+  try {
+    // ─── Music Playback Control Buttons ────────────────────────────────────
+    if (interaction.isButton() && id.startsWith('music_')) {
 
-    if (!query) {
-      return interaction.reply({
-        embeds: [buildErrorEmbed('Expired', 'This search button has expired. Please run the play command again.')],
-        flags: 64
-      });
+      // Pause — only pauses, does NOT toggle
+      if (id === 'music_pause') {
+        const queue = requireQueue(interaction);
+        if (!queue) return;
+
+        if (queue.node.isPaused()) {
+          return interaction.reply({
+            embeds: [buildNeutralEmbed('Already Paused', 'The music is already paused. Click **Resume** ▶️ to continue.')],
+            flags: 64
+          });
+        }
+        queue.node.setPaused(true);
+        return interaction.reply({
+          embeds: [buildSuccessEmbed('⏸️ Paused', 'Music has been paused.')],
+          flags: 64
+        });
+      }
+
+      // Resume — only resumes
+      if (id === 'music_resume') {
+        const queue = requireQueue(interaction);
+        if (!queue) return;
+
+        if (!queue.node.isPaused()) {
+          return interaction.reply({
+            embeds: [buildNeutralEmbed('Already Playing', 'The music is already playing!')],
+            flags: 64
+          });
+        }
+        queue.node.setPaused(false);
+        return interaction.reply({
+          embeds: [buildSuccessEmbed('▶️ Resumed', 'Music has been resumed.')],
+          flags: 64
+        });
+      }
+
+      if (id === 'music_skip') {
+        const queue = requireQueue(interaction);
+        if (!queue) return;
+        const skippedTitle = queue.currentTrack?.title || 'current track';
+        queue.node.skip();
+        return interaction.reply({
+          embeds: [buildSuccessEmbed('⏭️ Skipped', `Skipped **${skippedTitle}**.`)]
+        });
+      }
+
+      if (id === 'music_previous') {
+        const queue = requireQueue(interaction);
+        if (!queue) return;
+        try {
+          await queue.history.previous();
+          return interaction.reply({ embeds: [buildSuccessEmbed('⏮️ Previous', 'Playing the previous track.')], flags: 64 });
+        } catch {
+          return interaction.reply({ embeds: [buildErrorEmbed('No Previous Track', 'There is no previous track in history.')], flags: 64 });
+        }
+      }
+
+      if (id === 'music_stop') {
+        const queue = getQueue(interaction);
+        if (!queue) {
+          return interaction.reply({ embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now.')], flags: 64 });
+        }
+        queue.delete();
+        return interaction.reply({
+          embeds: [buildSuccessEmbed('⏹️ Stopped', 'Stopped the music and cleared the queue.')]
+        });
+      }
+
+      // Settings button — shows ephemeral settings panel
+      if (id === 'music_settings') {
+        const queue = requireQueue(interaction);
+        if (!queue) return;
+        const loopLabels = { 0: '➡️ Off', 1: '🔂 Track', 2: '🔁 Queue', 3: '📻 Autoplay' };
+        return interaction.reply({
+          embeds: [buildNeutralEmbed(
+            '⚙️ Playback Settings',
+            `**Loop Mode:** ${loopLabels[queue.repeatMode] || '➡️ Off'}\n**Volume:** ${queue.node.volume ?? 80}%\n\nUse the buttons below to adjust settings.`
+          )],
+          components: buildSettingsComponents(queue),
+          flags: 64
+        });
+      }
+
+      // Shuffle
+      if (id === 'music_shuffle') {
+        const queue = requireQueue(interaction);
+        if (!queue) return;
+        if (queue.tracks.data.length === 0) {
+          return interaction.reply({ embeds: [buildErrorEmbed('Nothing to Shuffle', 'The queue is empty.')], flags: 64 });
+        }
+        queue.tracks.shuffle();
+        return interaction.reply({ embeds: [buildSuccessEmbed('🔀 Shuffled', `Shuffled **${queue.tracks.data.length}** tracks!`)], flags: 64 });
+      }
+
+      // Queue display
+      if (id === 'music_queue') {
+        const queue = requireQueue(interaction);
+        if (!queue) return;
+        return interaction.reply({
+          embeds: [buildQueueEmbed(queue)],
+          components: queue.tracks.data.length > 0 ? buildQueueComponents() : [],
+          flags: 64
+        });
+      }
+
+      // Volume up
+      if (id === 'music_volup') {
+        const queue = requireQueue(interaction);
+        if (!queue) return;
+        const newVol = Math.min(100, (queue.node.volume ?? 80) + 10);
+        queue.node.setVolume(newVol);
+        return interaction.reply({ embeds: [buildSuccessEmbed('🔊 Volume Up', `Volume set to **${newVol}%**`)], flags: 64 });
+      }
+
+      // Volume down
+      if (id === 'music_voldown') {
+        const queue = requireQueue(interaction);
+        if (!queue) return;
+        const newVol = Math.max(0, (queue.node.volume ?? 80) - 10);
+        queue.node.setVolume(newVol);
+        return interaction.reply({ embeds: [buildSuccessEmbed('🔉 Volume Down', `Volume set to **${newVol}%**`)], flags: 64 });
+      }
+
+      return;
     }
 
-    await interaction.deferUpdate();
+    // ─── Settings Panel Buttons ─────────────────────────────────────────────
+    if (interaction.isButton() && id.startsWith('settings_')) {
+      const queue = requireQueue(interaction);
+      if (!queue) return;
 
-    const voiceChannel = interaction.member?.voice?.channel;
-    const textChannel = interaction.channel;
-
-    await executePlay(query, engine, voiceChannel, interaction.user, textChannel, async (payload) => {
-      await interaction.followUp(payload);
-    });
-    return;
-  }
-
-  // ─── Music Playback Control Buttons ───────────────────────────────────────
-  if (interaction.isButton() && id.startsWith('music_')) {
-    const queue = player?.nodes?.get(interaction.guildId);
-
-    // Shuffle and clear don't need isPlaying check — just need a queue
-    if (id === 'music_shuffle') {
-      if (!queue || queue.tracks.data.length === 0) {
-        return interaction.reply({ embeds: [buildErrorEmbed('Nothing to Shuffle', 'The queue is empty.')], flags: 64 });
+      if (id === 'settings_loop_off') {
+        queue.setRepeatMode(0);
+        return interaction.update({
+          embeds: [buildNeutralEmbed('⚙️ Playback Settings', `**Loop Mode:** ➡️ Off\n**Volume:** ${queue.node.volume ?? 80}%`)],
+          components: buildSettingsComponents(queue)
+        });
       }
-      queue.tracks.shuffle();
-      return interaction.reply({ embeds: [buildSuccessEmbed('🔀 Shuffled', 'The queue has been shuffled!')], flags: 64 });
+
+      if (id === 'settings_loop_track') {
+        queue.setRepeatMode(1);
+        return interaction.update({
+          embeds: [buildNeutralEmbed('⚙️ Playback Settings', `**Loop Mode:** 🔂 Track\n**Volume:** ${queue.node.volume ?? 80}%`)],
+          components: buildSettingsComponents(queue)
+        });
+      }
+
+      if (id === 'settings_loop_queue') {
+        queue.setRepeatMode(2);
+        return interaction.update({
+          embeds: [buildNeutralEmbed('⚙️ Playback Settings', `**Loop Mode:** 🔁 Queue\n**Volume:** ${queue.node.volume ?? 80}%`)],
+          components: buildSettingsComponents(queue)
+        });
+      }
+
+      if (id === 'settings_autoplay') {
+        const current = queue.repeatMode;
+        const newMode = current === 3 ? 0 : 3;
+        queue.setRepeatMode(newMode);
+        const label = newMode === 3 ? '📻 Autoplay' : '➡️ Off';
+        return interaction.update({
+          embeds: [buildNeutralEmbed('⚙️ Playback Settings', `**Loop Mode:** ${label}\n**Volume:** ${queue.node.volume ?? 80}%`)],
+          components: buildSettingsComponents(queue)
+        });
+      }
+
+      if (id === 'settings_filters') {
+        return interaction.update({
+          embeds: [buildNeutralEmbed('🎛️ Audio Filters', 'Toggle audio effects. Active filters are highlighted.')],
+          components: buildFilterComponents()
+        });
+      }
+
+      return;
     }
 
-    if (id === 'music_clear') {
-      if (!queue) {
-        return interaction.reply({ embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now.')], flags: 64 });
+    // ─── Filter Buttons ───────────────────────────────────────────────────
+    if (interaction.isButton() && id.startsWith('filter_')) {
+      const queue = requireQueue(interaction);
+      if (!queue) return;
+
+      const filterName = id.replace('filter_', '');
+
+      if (filterName === 'clear') {
+        await queue.filters.ffmpeg.setInputArgs([]);
+        return interaction.update({
+          embeds: [buildSuccessEmbed('🗑️ Filters Cleared', 'All audio filters have been removed.')],
+          components: buildFilterComponents()
+        });
       }
+
+      // Toggle the filter
+      const filterMap = {
+        bassboost: 'bassboost',
+        nightcore: 'nightcore',
+        vaporwave: 'vaporwave',
+        '8d': '8D',
+      };
+
+      const dpFilterName = filterMap[filterName];
+      if (dpFilterName && queue.filters.ffmpeg.filters.includes(dpFilterName)) {
+        await queue.filters.ffmpeg.toggle([dpFilterName]);
+        return interaction.update({
+          embeds: [buildSuccessEmbed(`🎛️ ${dpFilterName}`, `**${dpFilterName}** filter has been toggled.`)],
+          components: buildFilterComponents()
+        });
+      } else if (dpFilterName) {
+        await queue.filters.ffmpeg.toggle([dpFilterName]);
+        return interaction.update({
+          embeds: [buildSuccessEmbed(`🎛️ ${dpFilterName}`, `**${dpFilterName}** filter has been toggled.`)],
+          components: buildFilterComponents()
+        });
+      }
+
+      return;
+    }
+
+    // ─── Queue Clear Button ──────────────────────────────────────────────
+    if (interaction.isButton() && id === 'queue_clear') {
+      const queue = requireQueue(interaction);
+      if (!queue) return;
       queue.tracks.clear();
-      return interaction.reply({ embeds: [buildSuccessEmbed('🗑️ Cleared', 'The queue has been cleared. Current track will finish playing.')], flags: 64 });
-    }
-
-    if (!queue || !queue.isPlaying()) {
       return interaction.reply({
-        embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now.')],
+        embeds: [buildSuccessEmbed('🗑️ Queue Cleared', 'The queue has been cleared. The current track will finish playing.')],
         flags: 64
       });
     }
 
-    if (id === 'music_pause') {
-      queue.node.setPaused(!queue.node.isPaused());
-      const isPaused = queue.node.isPaused();
-      return interaction.reply({
-        embeds: [buildSuccessEmbed(
-          isPaused ? '⏸️ Paused' : '▶️ Resumed',
-          isPaused ? 'Music has been paused.' : 'Music has been resumed.'
-        )],
-        flags: 64
-      });
+    // ─── Ping Refresh Button ──────────────────────────────────────────────
+    if (interaction.isButton() && id === 'ping_refresh') {
+      const startTime = Date.now();
+      const client = interaction.client;
+      const botInfo = getBotInfoSummary({ client });
+
+      const summary = {
+        websocketLatency: Math.max(0, Math.round(client.ws.ping)),
+        responseLatency: Math.max(1, Date.now() - startTime),
+        clientAvatarUrl: client.user?.displayAvatarURL({ size: 1024, extension: 'png' }),
+        uptime: formatDuration(botInfo.uptimeMs),
+        memoryUsed: `${botInfo.memoryUsed} MB`,
+        guildCount: botInfo.guildCount,
+        requestedBy: interaction.user.displayName ?? interaction.user.username
+      };
+
+      return interaction.update({ embeds: [buildPingEmbed(summary)] });
     }
 
-    if (id === 'music_skip') {
-      const skippedTitle = queue.currentTrack?.title || 'current track';
-      queue.node.skip();
-      return interaction.reply({
-        embeds: [buildSuccessEmbed('⏭️ Skipped', `Skipped **${skippedTitle}**.`)]
-      });
-    }
-
-    if (id === 'music_previous') {
-      try {
-        await queue.history.previous();
-        return interaction.reply({
-          embeds: [buildSuccessEmbed('⏮️ Previous', 'Playing the previous track.')],
-          flags: 64
-        });
-      } catch {
-        return interaction.reply({
-          embeds: [buildErrorEmbed('No Previous Track', 'There is no previous track in history.')],
-          flags: 64
-        });
+    // ─── Search Result Select Menu ──────────────────────────────────────
+    if (interaction.isStringSelectMenu() && id.startsWith('search_select_')) {
+      const ownerId = id.replace('search_select_', '');
+      if (interaction.user.id !== ownerId) {
+        return interaction.reply({ embeds: [buildErrorEmbed('Not Your Search', 'Only the person who searched can pick a result.')], flags: 64 });
       }
+
+      await interaction.deferUpdate();
+      await handleSearchSelect(interaction);
+      return;
     }
 
-    if (id === 'music_stop') {
-      queue.delete();
-      return interaction.reply({
-        embeds: [buildSuccessEmbed('⏹️ Stopped', 'Stopped the music and cleared the queue.')]
+    // ─── Help Select Menu ───────────────────────────────────────────────
+    if (interaction.isStringSelectMenu()) {
+      const helpComponent = parseHelpComponentId(interaction.customId);
+      if (!helpComponent) return;
+
+      if (interaction.user.id !== helpComponent.requesterId) {
+        await replyToInteraction(
+          interaction,
+          { embeds: [buildErrorEmbed('Help session locked', 'This help menu belongs to the user who opened it.')] },
+          { ephemeral: true }
+        );
+        return;
+      }
+
+      const category = interaction.values[0] ?? 'overview';
+      await interaction.update({
+        embeds: [buildHelpCategoryEmbed(category)],
+        components: buildHelpComponents({ requesterId: interaction.user.id, selectedCategory: category })
       });
     }
-
-    if (id === 'music_loop') {
-      const currentMode = queue.repeatMode;
-      const nextMode = (currentMode + 1) % 3;
-      queue.setRepeatMode(nextMode);
-      const labels = ['🔁 Loop Off', '🔂 Looping Track', '🔁 Looping Queue'];
-      return interaction.reply({
-        embeds: [buildSuccessEmbed('Loop Updated', labels[nextMode])],
-        flags: 64
-      });
-    }
-
-    return;
+  } catch (error) {
+    logger.error('Component interaction error:', error.message);
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ embeds: [buildErrorEmbed('Error', 'Something went wrong. Please try again.')], flags: 64 });
+      }
+    } catch { /* interaction expired */ }
   }
-
-  // ─── Ping Refresh Button ──────────────────────────────────────────────────
-  if (interaction.isButton() && interaction.customId === 'ping_refresh') {
-    const { getPingSummary } = await import('../services/utilityService.js');
-    const { buildPingEmbed } = await import('../utils/embeds.js');
-    const ping = getPingSummary(interaction.message);
-    return interaction.update({ embeds: [buildPingEmbed(ping)] });
-  }
-
-  // ─── Help Select Menu ────────────────────────────────────────────────────
-  if (!interaction.isStringSelectMenu()) {
-    return;
-  }
-
-  const helpComponent = parseHelpComponentId(interaction.customId);
-
-  if (!helpComponent) {
-    return;
-  }
-
-  if (interaction.user.id !== helpComponent.requesterId) {
-    await replyToInteraction(
-      interaction,
-      {
-        embeds: [
-          buildErrorEmbed(
-            'Help session locked',
-            'This help menu belongs to the user who opened it.'
-          )
-        ]
-      },
-      { ephemeral: true }
-    );
-    return;
-  }
-
-  const category = interaction.values[0] ?? 'overview';
-  await interaction.update({
-    embeds: [buildHelpCategoryEmbed(category)],
-    components: buildHelpComponents({
-      requesterId: interaction.user.id,
-      selectedCategory: category
-    })
-  });
 }
+
+// ─── Slash Command Handler ──────────────────────────────────────────────────
 
 export async function handleChatInputCommand(interaction, { log = logger } = {}) {
   const command = interaction.client.commands.get(interaction.commandName);
@@ -205,14 +354,7 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
   if (command.botOwnerOnly && interaction.user.id !== interaction.client.runtimeConfig?.botOwnerId) {
     await replyToInteraction(
       interaction,
-      {
-        embeds: [
-          buildErrorEmbed(
-            'Permission required',
-            'Only the configured bot owner can use that command.'
-          )
-        ]
-      },
+      { embeds: [buildErrorEmbed('Permission required', 'Only the configured bot owner can use that command.')] },
       { ephemeral: true }
     );
     return;
@@ -230,14 +372,7 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
   })) {
     await replyToInteraction(
       interaction,
-      {
-        embeds: [
-          buildErrorEmbed(
-            'Permission required',
-            'You do not have permission to use that command.'
-          )
-        ]
-      },
+      { embeds: [buildErrorEmbed('Permission required', 'You do not have permission to use that command.')] },
       { ephemeral: true }
     );
     return;

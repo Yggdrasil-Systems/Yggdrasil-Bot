@@ -1,6 +1,6 @@
 # World Tree
 
-World Tree is a modular Discord utility, settings, automod, and moderation bot for a private friend/community server. It is built with Node.js, discord.js, MongoDB Atlas, Mongoose, and a hybrid command model that supports slash commands, `tree` prefix commands, and bot-managed no-prefix shortcuts.
+World Tree is a modular Discord utility, music, settings, automod, and moderation bot for a private friend/community server. It is built with Node.js, discord.js, MongoDB Atlas, Mongoose, and a hybrid command model that supports slash commands, `tree` prefix commands, and bot-managed no-prefix shortcuts.
 
 The project favors practical foundations: clean architecture, persistent moderation history, configurable server behavior, polished embeds, and reliable moderator workflows. Future dashboard, analytics, atmosphere, AI, or memory systems should build on these boundaries rather than replacing them.
 
@@ -18,8 +18,56 @@ The project favors practical foundations: clean architecture, persistent moderat
 - Moderation lifecycle commands for viewing, listing, resolving, deleting, and summarizing cases
 - Utility commands for user, server, role, banner, avatar, runtime, stats, and dashboard status
 - Interactive category-based help menu
+- Full music system with multi-platform support
 - Dependency-free dashboard contracts and planning docs
 - Automated tests with Node's built-in test runner
+
+## Music System
+
+World Tree includes a complete music streaming system powered by [discord-player](https://github.com/androz2091/discord-player) with support for Spotify, Apple Music, YouTube, and SoundCloud.
+
+### How It Works
+
+- **Spotify & Apple Music** resolve track metadata, then bridge through YouTube for audio streaming
+- **YouTube** uses the [discord-player-youtubei](https://github.com/retrouser955/discord-player-youtubei) extractor (YouTube Music internal API) for stable, accurate playback
+- **SoundCloud** streams natively without bridging
+- Direct links from any platform are auto-detected and resolved
+
+### Playback Commands
+
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `play` | `p` | Play a song by name or link |
+| `search` | `find` | Search and pick from top 5 results |
+| `nowplaying` | `np` | Show the current track with controls |
+| `skip` | `s`, `next` | Skip the current track |
+| `stop` | `dc`, `disconnect`, `leave` | Stop playback and clear queue |
+| `resume` | `pause`, `togglepause` | Pause or resume playback |
+| `volume` | `vol` | Set volume (0-100) |
+| `queue` | `q` | View the current queue |
+| `shuffle` | `mix` | Shuffle the queue |
+| `loop` | `repeat` | Cycle loop modes (off/track/queue) |
+| `autoplay` | `ap` | Auto-queue related songs |
+| `filter` | `fx`, `filters` | Toggle audio effects |
+| `join` | `connect`, `summon` | Join voice channel |
+| `247` | `stay`, `24/7` | Toggle 24/7 mode |
+
+### Player Controls
+
+Now Playing embeds include two rows of interactive buttons:
+
+**Row 1:** ⏮️ Previous · ⏸️ Pause · ▶️ Resume · ⏭️ Skip · ⚙️ Settings
+**Row 2:** 🔀 Shuffle · 📜 Queue · 🔊 Vol+ · 🔉 Vol- · ⏹️ Stop
+
+The ⚙️ Settings button opens a private panel with loop mode selection, autoplay toggle, and audio filter controls.
+
+### Audio Filters
+
+Available filters: `bassboost`, `nightcore`, `vaporwave`, `8D`, `karaoke`, `tremolo`, `vibrato`. Toggle with `tree filter <name>` or via the Settings panel.
+
+### Dedicated Music Channel
+
+Use `setup-music` to create a `#music-requests` channel. Any message in that channel is automatically treated as a play command, with the message auto-deleted after processing.
 
 ## Command Model
 
@@ -32,6 +80,8 @@ Examples:
 ```text
 /ping
 /help
+/play query:Night Changes
+/search query:One Direction
 /settings view
 /settings modlog set
 /settings automod toggle
@@ -55,8 +105,9 @@ It is case-insensitive and requires whitespace after the prefix:
 
 ```text
 tree ping
-Tree avatar @user
+Tree play ishq wala love
 TREE warn @user "Repeated spam"
+tree search Night Changes
 ```
 
 `treeping` does not trigger the bot.
@@ -68,6 +119,7 @@ Approved shortcuts can be used only by explicitly allowlisted users or the bot o
 ```text
 ping
 userinfo @user
+play some song
 purge 10
 case list
 ```
@@ -180,10 +232,15 @@ BOT_OWNER_ID=optional_owner_discord_user_id
 TRUSTED_ADMIN_ROLE_IDS=optional_role_id,optional_second_role_id
 DASHBOARD_URL=
 NODE_ENV=development
+
+# Spotify (optional - improves Spotify search accuracy)
+DP_SPOTIFY_CLIENT_ID=your_spotify_client_id
+DP_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 ```
 
 `GUILD_ID` is used for development slash-command registration. Runtime startup does not require it.
 `BOT_OWNER_ID` is required if you want to manage the global no-prefix allowlist.
+`DP_SPOTIFY_CLIENT_ID` and `DP_SPOTIFY_CLIENT_SECRET` are optional. The Spotify extractor can work without them via web scraping, but API credentials improve search accuracy and reduce rate limiting. Get them free from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
 
 ## Discord Setup
 
@@ -195,7 +252,7 @@ In the Discord Developer Portal:
 - Copy the application client ID into `.env`
 - Enable Message Content intent for prefix commands and automod
 - Enable Server Members intent for member fetches, moderation checks, and role-aware utilities
-- Invite the bot with permissions needed for moderation actions
+- Invite the bot with permissions needed for moderation actions and voice (Connect, Speak)
 
 World Tree currently uses:
 
@@ -203,6 +260,7 @@ World Tree currently uses:
 - `GuildMembers`
 - `GuildMessages`
 - `MessageContent`
+- `GuildVoiceStates`
 
 ## MongoDB
 
@@ -215,7 +273,7 @@ Collections:
 - `counters`
 - `no_prefix_privileges`
 
-Existing guild settings are normalized through service defaults, so adding nested Phase 4 settings does not require a migration script.
+Existing guild settings are normalized through service defaults, so adding nested settings does not require a migration script.
 
 ## Local Development
 
@@ -257,6 +315,21 @@ src/
 ├── client.js
 ├── commands/
 │   ├── moderation/
+│   ├── music/
+│   │   ├── play.js
+│   │   ├── search.js
+│   │   ├── nowplaying.js
+│   │   ├── skip.js
+│   │   ├── stop.js
+│   │   ├── resume.js
+│   │   ├── volume.js
+│   │   ├── queue.js
+│   │   ├── shuffle.js
+│   │   ├── loop.js
+│   │   ├── autoplay.js
+│   │   ├── filter.js
+│   │   ├── join.js
+│   │   └── 247.js
 │   ├── setup/
 │   └── utility/
 ├── config/
@@ -308,6 +381,7 @@ Near-term:
 - Better pagination for case history
 - More granular automod allowlists
 - Dashboard OAuth and API implementation
+- Lyrics command integration
 
 Later:
 

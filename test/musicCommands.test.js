@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { executeMessage } from '../src/commands/music/play.js';
 import { executeMessage as execute247 } from '../src/commands/music/247.js';
 
-test('executeMessage requires a query for play command', async () => {
+test('play executeMessage requires a query', async () => {
   const context = {
     args: [],
     member: { voice: { channel: { id: '123' } } },
@@ -17,9 +17,9 @@ test('executeMessage requires a query for play command', async () => {
   await executeMessage(context);
 });
 
-test('executeMessage extracts sources from text query', async () => {
+test('play executeMessage requires voice channel', async () => {
   const context = {
-    args: ['my', 'song', '-apple'],
+    args: ['my', 'song'],
     member: { voice: { channel: null } },
     message: { channel: {} },
     user: { id: '1', username: 'test' },

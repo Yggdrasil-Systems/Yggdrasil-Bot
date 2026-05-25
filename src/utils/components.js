@@ -1,115 +1,175 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { createHash } from 'crypto';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 
-// ─── Query Cache for Fallback Buttons ────────────────────────────────────────
-// Discord custom IDs are limited to 100 characters.
-// For long queries (especially URLs), we store the full query in a cache
-// and use a short hash as the custom ID reference.
-const queryCache = new Map();
-
-function storeQuery(query) {
-  // If the query is short enough to fit in a custom ID directly, use it
-  const encoded = encodeURIComponent(query);
-  if (encoded.length <= 60) {
-    return encoded;
-  }
-  // Otherwise, hash it and store in cache
-  const hash = createHash('md5').update(query).digest('hex').slice(0, 16);
-  queryCache.set(hash, query);
-  return `h_${hash}`;
-}
-
-export function resolveQuery(idPart) {
-  if (idPart.startsWith('h_')) {
-    const hash = idPart.slice(2);
-    return queryCache.get(hash) || null;
-  }
-  return decodeURIComponent(idPart);
-}
-
-// ─── Music Player Controls ──────────────────────────────────────────────────
+// ─── Music Player Controls (attached to Now Playing embeds) ─────────────────
+//
+// Row 1: ⏮️ Previous | ⏸️ Pause | ▶️ Resume | ⏭️ Skip | ⚙️ Settings
+// Row 2: 🔀 Shuffle  | 📜 Queue | 🔊 Vol+   | 🔉 Vol- | (empty or reserved)
+//
+// Discord limit: max 5 buttons per row, max 5 rows total.
 
 export function buildMusicPlayerComponents() {
-  const row1 = new ActionRowBuilder()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('music_previous')
-        .setLabel('Previous')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('⏮️'),
-      new ButtonBuilder()
-        .setCustomId('music_pause')
-        .setLabel('Pause')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('⏸️'),
-      new ButtonBuilder()
-        .setCustomId('music_stop')
-        .setLabel('Stop')
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji('⏹️'),
-      new ButtonBuilder()
-        .setCustomId('music_skip')
-        .setLabel('Skip')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('⏭️'),
-      new ButtonBuilder()
-        .setCustomId('music_loop')
-        .setLabel('Loop')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🔁')
-    );
+  const row1 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('music_previous')
+      .setLabel('Prev')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('⏮️'),
+    new ButtonBuilder()
+      .setCustomId('music_pause')
+      .setLabel('Pause')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('⏸️'),
+    new ButtonBuilder()
+      .setCustomId('music_resume')
+      .setLabel('Resume')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('▶️'),
+    new ButtonBuilder()
+      .setCustomId('music_skip')
+      .setLabel('Skip')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('⏭️'),
+    new ButtonBuilder()
+      .setCustomId('music_settings')
+      .setLabel('Settings')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('⚙️')
+  );
+
+  const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('music_shuffle')
+      .setLabel('Shuffle')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🔀'),
+    new ButtonBuilder()
+      .setCustomId('music_queue')
+      .setLabel('Queue')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('📜'),
+    new ButtonBuilder()
+      .setCustomId('music_volup')
+      .setLabel('Vol+')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🔊'),
+    new ButtonBuilder()
+      .setCustomId('music_voldown')
+      .setLabel('Vol-')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🔉'),
+    new ButtonBuilder()
+      .setCustomId('music_stop')
+      .setLabel('Stop')
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji('⏹️')
+  );
+
+  return [row1, row2];
+}
+
+// ─── Settings Panel (ephemeral, shown when ⚙️ is clicked) ──────────────────
+
+export function buildSettingsComponents(queue) {
+  const loopMode = queue?.repeatMode ?? 0;
+  const isAutoplay = loopMode === 3;
+
+  const row1 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('settings_loop_off')
+      .setLabel('Loop Off')
+      .setStyle(loopMode === 0 ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setEmoji('➡️'),
+    new ButtonBuilder()
+      .setCustomId('settings_loop_track')
+      .setLabel('Loop Track')
+      .setStyle(loopMode === 1 ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setEmoji('🔂'),
+    new ButtonBuilder()
+      .setCustomId('settings_loop_queue')
+      .setLabel('Loop Queue')
+      .setStyle(loopMode === 2 ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setEmoji('🔁'),
+    new ButtonBuilder()
+      .setCustomId('settings_autoplay')
+      .setLabel('Autoplay')
+      .setStyle(isAutoplay ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setEmoji('📻'),
+    new ButtonBuilder()
+      .setCustomId('settings_filters')
+      .setLabel('Filters')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🎛️')
+  );
 
   return [row1];
 }
 
-// ─── Fallback Search Buttons ────────────────────────────────────────────────
+// ─── Filter Selection Panel ─────────────────────────────────────────────────
 
-export function buildMusicFallbackComponents(query) {
-  const storedKey = storeQuery(query);
-  
-  const row = new ActionRowBuilder()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId(`msf_sp_${storedKey}`)
-        .setLabel('Spotify')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('🎵'),
-      new ButtonBuilder()
-        .setCustomId(`msf_ap_${storedKey}`)
-        .setLabel('Apple Music')
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji('🍎'),
-      new ButtonBuilder()
-        .setCustomId(`msf_yt_${storedKey}`)
-        .setLabel('YouTube')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('▶️'),
-      new ButtonBuilder()
-        .setCustomId(`msf_sc_${storedKey}`)
-        .setLabel('SoundCloud')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('☁️')
-    );
+export function buildFilterComponents() {
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('filter_bassboost')
+      .setLabel('Bass Boost')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🔈'),
+    new ButtonBuilder()
+      .setCustomId('filter_nightcore')
+      .setLabel('Nightcore')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🌙'),
+    new ButtonBuilder()
+      .setCustomId('filter_vaporwave')
+      .setLabel('Vaporwave')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🌊'),
+    new ButtonBuilder()
+      .setCustomId('filter_8d')
+      .setLabel('8D Audio')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🎧'),
+    new ButtonBuilder()
+      .setCustomId('filter_clear')
+      .setLabel('Clear All')
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji('🗑️')
+  );
 
   return [row];
 }
 
-// ─── Shuffle Button ─────────────────────────────────────────────────────────
+// ─── Queue Components ───────────────────────────────────────────────────────
 
 export function buildQueueComponents() {
-  const row = new ActionRowBuilder()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('music_shuffle')
-        .setLabel('Shuffle')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🔀'),
-      new ButtonBuilder()
-        .setCustomId('music_clear')
-        .setLabel('Clear Queue')
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji('🗑️')
-    );
-
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('music_shuffle')
+      .setLabel('Shuffle')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🔀'),
+    new ButtonBuilder()
+      .setCustomId('queue_clear')
+      .setLabel('Clear Queue')
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji('🗑️')
+  );
   return [row];
+}
+
+// ─── Search Result Select Menu ──────────────────────────────────────────────
+
+export function buildSearchSelectMenu(tracks, userId) {
+  const options = tracks.slice(0, 5).map((track, i) => ({
+    label: `${track.title}`.slice(0, 100),
+    description: `${track.author} · ${track.duration}`.slice(0, 100),
+    value: `${i}`,
+    emoji: i === 0 ? '1️⃣' : i === 1 ? '2️⃣' : i === 2 ? '3️⃣' : i === 3 ? '4️⃣' : '5️⃣'
+  }));
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`search_select_${userId}`)
+    .setPlaceholder('Pick a track to play...')
+    .addOptions(options);
+
+  return [new ActionRowBuilder().addComponents(menu)];
 }

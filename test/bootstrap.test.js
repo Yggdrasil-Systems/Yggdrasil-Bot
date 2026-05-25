@@ -11,7 +11,8 @@ test('bootstrap initializes database, commands, events, then logs in', async () 
     login: async (token) => calls.push(['login', token]),
     incrementMaxListeners: () => {},
     on: () => {},
-    options: {}
+    options: {},
+    guilds: { resolveId: (id) => id }
   };
 
   const result = await bootstrap({
