@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
-import { player, getSourceEmoji, getSourceLabel } from '../../services/musicService.js';
+import { player, getSourceEmoji, getSourceLabel, ytDlpStreamHook } from '../../services/musicService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 
@@ -81,6 +81,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, respon
     leaveOnEndCooldown: 300000,
     selfDeaf: true,
     volume: existingQueue?.node?.volume ?? 80,
+    onBeforeCreateStream: ytDlpStreamHook,
   });
 
   // Ensure metadata.channel is always valid

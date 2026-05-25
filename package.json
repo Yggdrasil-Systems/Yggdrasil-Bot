@@ -36,7 +36,8 @@
     "opusscript": "^0.0.8",
     "systeminformation": "^5.31.6",
     "tweetnacl": "^1.0.3",
-    "youtube-dl-exec": "^3.1.7"
+    "youtube-dl-exec": "^3.1.7",
+    "yt-dlp-exec": "^1.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

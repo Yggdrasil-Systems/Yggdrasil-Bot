@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { player } from '../../services/musicService.js';
+import { player, ytDlpStreamHook } from '../../services/musicService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = '247';
@@ -24,7 +24,8 @@ async function execute247(voiceChannel, textChannel, respond) {
       metadata: {
         channel: textChannel,
         is247: true
-      }
+      },
+      onBeforeCreateStream: ytDlpStreamHook
     });
 
     try {

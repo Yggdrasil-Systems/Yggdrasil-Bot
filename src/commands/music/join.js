@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { player } from '../../services/musicService.js';
+import { player, ytDlpStreamHook } from '../../services/musicService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'join';
@@ -23,7 +23,8 @@ async function executeJoin(voiceChannel, textChannel, respond) {
     queue = player.nodes.create(voiceChannel.guild, {
       metadata: {
         channel: textChannel
-      }
+      },
+      onBeforeCreateStream: ytDlpStreamHook
     });
   }
 

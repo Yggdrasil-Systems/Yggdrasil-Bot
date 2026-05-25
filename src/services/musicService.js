@@ -4,6 +4,7 @@ import { YoutubeiExtractor } from 'discord-player-youtubei';
 import { buildNowPlayingEmbed, buildSuccessEmbed, buildErrorEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildMusicPlayerComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
+import ytDlp from 'yt-dlp-exec';
 
 export let player = null;
 
@@ -44,10 +45,54 @@ function getSourceLabel(track) {
 
 export { getSourceEmoji, getSourceLabel };
 
+// ─── Stream Interceptor ─────────────────────────────────────────────────────
+
+function isYouTubeUrl(url) {
+  return url && /youtube\.com|youtu\.be/i.test(url);
+}
+
+export const ytDlpStreamHook = async (track, method, queue) => {
+  let url = track.url;
+  const source = (track.source || track.raw?.source || '').toLowerCase();
+  const needsBridge = ['spotify', 'apple_music', 'apple'].includes(source);
+
+  if (needsBridge) {
+    url = `ytsearch1:${track.title} ${track.author} audio`;
+    logger.info(`[yt-dlp] Bridging ${source} track: ${track.title}`);
+  } else if (!isYouTubeUrl(url)) {
+    return null;
+  }
+
+  try {
+    logger.info(`[yt-dlp] Starting direct stream download for: ${track.title}`);
+    const subprocess = ytDlp.exec(url, {
+      output: '-',
+      format: 'bestaudio/best',
+      quiet: true,
+      noWarnings: true,
+      callHome: false,
+      preferFreeFormats: true,
+      youtubeSkipDashManifest: true
+    });
+    
+    subprocess.on('error', err => {
+        logger.error(`[yt-dlp] Process error: ${err.message}`);
+    });
+
+    logger.info(`[yt-dlp] Stream pipeline created successfully`);
+    return subprocess.stdout;
+  } catch (err) {
+    logger.error(`[yt-dlp] Failed to extract stream for "${track.title}": ${err.message}`);
+    return null;
+  }
+};
+
 // ─── Player initialization ──────────────────────────────────────────────────
 
 export async function initializePlayer(client) {
-  player = new Player(client);
+  player = new Player(client, {
+    skipFFmpeg: false
+  });
 
   // 1. Load default extractors (SoundCloud, Spotify metadata, Apple metadata, etc.)
   await player.extractors.loadMulti(DefaultExtractors);
