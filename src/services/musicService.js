@@ -80,35 +80,23 @@ export async function initializePlayer(client) {
       }
 
       try {
-        logger.info(`[yt-dlp] Fetching stream URL for: ${track.title}`);
-        const output = await ytDlp.exec(url, {
-          dumpSingleJson: true,
+        logger.info(`[yt-dlp] Starting direct stream download for: ${track.title}`);
+        const subprocess = ytDlp.exec(url, {
+          output: '-',      // Stream raw audio to stdout
           format: 'bestaudio/best',
+          quiet: true,      // Hide yt-dlp output
           noWarnings: true,
           callHome: false,
           preferFreeFormats: true,
           youtubeSkipDashManifest: true
         });
         
-        let info;
-        try {
-            info = JSON.parse(output.stdout);
-        } catch (e) {
-            throw new Error('Failed to parse yt-dlp output');
-        }
+        subprocess.on('error', err => {
+            logger.error(`[yt-dlp] Process error: ${err.message}`);
+        });
 
-        // If it was a search, the actual video info is in entries[0]
-        if (info.entries && info.entries.length > 0) {
-            info = info.entries[0];
-        }
-
-        const streamUrl = info.url || info.formats?.find(f => f.url)?.url;
-        if (!streamUrl) {
-            throw new Error('Could not extract direct stream URL');
-        }
-
-        logger.info(`[yt-dlp] Stream URL extracted successfully`);
-        return streamUrl;
+        logger.info(`[yt-dlp] Stream pipeline created successfully`);
+        return subprocess.stdout;
       } catch (err) {
         logger.error(`[yt-dlp] Failed to extract stream for "${track.title}": ${err.message}`);
         // Return null to fall back to standard extractors
