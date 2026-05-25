@@ -1,7 +1,7 @@
-import { Player, StreamType } from 'discord-player';
+import { Player } from 'discord-player';
 import { DefaultExtractors } from '@discord-player/extractor';
 import { YoutubeiExtractor } from 'discord-player-youtubei';
-import playdl from 'play-dl';
+import ytDlp from 'yt-dlp-exec';
 import { buildNowPlayingEmbed, buildSuccessEmbed, buildErrorEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildMusicPlayerComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
@@ -62,46 +62,56 @@ export async function initializePlayer(client) {
     // ── onBeforeCreateStream ───────────────────────────────────────────────
     // This hook runs before the extractor tries to build a stream.
     // We intercept YouTube-sourced tracks and bridge Spotify/Apple tracks
-    // to use play-dl directly, which:
-    //   - does not rely on youtubei.js's client-type-specific URL generation
-    //   - works with ffmpeg-static for correct Opus encoding
+    // to use yt-dlp directly, which:
+    //   - bypasses youtube cipher/signature issues natively
+    //   - handles VEVO and age-restricted tracks easily
     onBeforeCreateStream: async (track, method, queue) => {
       let url = track.url;
       const source = (track.source || track.raw?.source || '').toLowerCase();
       const needsBridge = ['spotify', 'apple_music', 'apple'].includes(source);
 
+      // If it's a Spotify/Apple track, we tell yt-dlp to search for the audio
       if (needsBridge) {
-        try {
-          logger.info(`[play-dl] Bridging ${source} track: ${track.title}`);
-          const query = `${track.title} ${track.author} audio`;
-          const searchResults = await playdl.search(query, { limit: 1 });
-          if (searchResults && searchResults.length > 0) {
-            url = searchResults[0].url;
-            logger.info(`[play-dl] Bridged to YouTube: ${url}`);
-          } else {
-            logger.warn(`[play-dl] Could not find a bridge for ${track.title}`);
-            return null; // Fallback to normal extractors
-          }
-        } catch (err) {
-          logger.error(`[play-dl] Bridge search failed for ${track.title}: ${err.message}`);
-          return null; // Fallback
-        }
+        url = `ytsearch1:${track.title} ${track.author} audio`;
+        logger.info(`[yt-dlp] Bridging ${source} track: ${track.title}`);
       } else if (!isYouTubeUrl(url)) {
         // Let extractor handle non-YouTube streams (SoundCloud, etc.)
         return null;
       }
 
       try {
-        logger.info(`[play-dl] Fetching stream for: ${track.title}`);
-        const stream = await playdl.stream(url, {
-          quality: 2,         // 0=low, 1=medium, 2=high
-          discordPlayerCompatibility: true
+        logger.info(`[yt-dlp] Fetching stream URL for: ${track.title}`);
+        const output = await ytDlp.exec(url, {
+          dumpSingleJson: true,
+          format: 'bestaudio/best',
+          noWarnings: true,
+          callHome: false,
+          preferFreeFormats: true,
+          youtubeSkipDashManifest: true
         });
-        logger.info(`[play-dl] Stream type: ${stream.type} — starting playback`);
-        return stream.stream;
+        
+        let info;
+        try {
+            info = JSON.parse(output.stdout);
+        } catch (e) {
+            throw new Error('Failed to parse yt-dlp output');
+        }
+
+        // If it was a search, the actual video info is in entries[0]
+        if (info.entries && info.entries.length > 0) {
+            info = info.entries[0];
+        }
+
+        const streamUrl = info.url || info.formats?.find(f => f.url)?.url;
+        if (!streamUrl) {
+            throw new Error('Could not extract direct stream URL');
+        }
+
+        logger.info(`[yt-dlp] Stream URL extracted successfully`);
+        return streamUrl;
       } catch (err) {
-        logger.error(`[play-dl] Failed to get stream for "${track.title}": ${err.message}`);
-        // Return null to fall back to extractor
+        logger.error(`[yt-dlp] Failed to extract stream for "${track.title}": ${err.message}`);
+        // Return null to fall back to standard extractors
         return null;
       }
     }
@@ -120,7 +130,7 @@ export async function initializePlayer(client) {
     }
   });
 
-  logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor | Stream backend: play-dl');
+  logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor | Stream backend: yt-dlp');
 
   // ─── Player Events ──────────────────────────────────────────────────────
 
