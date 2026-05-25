@@ -61,14 +61,32 @@ export async function initializePlayer(client) {
 
     // ── onBeforeCreateStream ───────────────────────────────────────────────
     // This hook runs before the extractor tries to build a stream.
-    // We intercept YouTube-sourced tracks and use play-dl directly, which:
+    // We intercept YouTube-sourced tracks and bridge Spotify/Apple tracks
+    // to use play-dl directly, which:
     //   - does not rely on youtubei.js's client-type-specific URL generation
-    //   - returns a proper Readable stream (not a pre-signed URL that expires)
     //   - works with ffmpeg-static for correct Opus encoding
     onBeforeCreateStream: async (track, method, queue) => {
-      const url = track.url;
+      let url = track.url;
+      const source = (track.source || track.raw?.source || '').toLowerCase();
+      const needsBridge = ['spotify', 'apple_music', 'apple'].includes(source);
 
-      if (!isYouTubeUrl(url)) {
+      if (needsBridge) {
+        try {
+          logger.info(`[play-dl] Bridging ${source} track: ${track.title}`);
+          const query = `${track.title} ${track.author} audio`;
+          const searchResults = await playdl.search(query, { limit: 1 });
+          if (searchResults && searchResults.length > 0) {
+            url = searchResults[0].url;
+            logger.info(`[play-dl] Bridged to YouTube: ${url}`);
+          } else {
+            logger.warn(`[play-dl] Could not find a bridge for ${track.title}`);
+            return null; // Fallback to normal extractors
+          }
+        } catch (err) {
+          logger.error(`[play-dl] Bridge search failed for ${track.title}: ${err.message}`);
+          return null; // Fallback
+        }
+      } else if (!isYouTubeUrl(url)) {
         // Let extractor handle non-YouTube streams (SoundCloud, etc.)
         return null;
       }
