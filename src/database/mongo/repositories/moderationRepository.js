@@ -87,6 +87,10 @@ export function createModerationRepository(model = ModerationCase, counterModel 
         queryFilter.status = filters.status;
       }
 
+      if (filters.cursor !== undefined && filters.cursor !== null) {
+        queryFilter.caseId = { $lt: filters.cursor };
+      }
+
       const query = model.find(queryFilter)
         .sort({ createdAt: -1, caseId: -1 });
 

@@ -5,6 +5,9 @@ import { logger } from '../utils/logger.js';
 import { errorHandler } from './plugins/errorHandler.js';
 import { servicesPlugin } from './plugins/servicesPlugin.js';
 import { healthRoutes } from './routes/v1/health/health.route.js';
+import { settingsRoutes } from './routes/v1/guilds/settings.route.js';
+import { casesRoutes } from './routes/v1/guilds/cases.route.js';
+import { statsRoutes } from './routes/v1/guilds/stats.route.js';
 
 /**
  * Creates and configures the Fastify server instance.
@@ -53,6 +56,9 @@ export async function createServer(discordClient) {
 
   // Register Routes
   app.register(healthRoutes, { prefix: '/v1/health' });
+  app.register(settingsRoutes, { prefix: '/v1/guilds/:guildId/settings' });
+  app.register(casesRoutes, { prefix: '/v1/guilds/:guildId/cases' });
+  app.register(statsRoutes, { prefix: '/v1/guilds/:guildId/stats' });
 
   return app;
 }
