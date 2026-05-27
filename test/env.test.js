@@ -21,6 +21,8 @@ test('readRuntimeEnv returns trimmed runtime configuration values', () => {
     botOwnerId: null,
     dashboardUrl: null,
     trustedAdminRoleIds: [],
+    enableApi: false,
+    apiPort: 3000,
     nodeEnv: 'test',
     isProduction: false,
     mongoServerSelectionTimeoutMs: 10000

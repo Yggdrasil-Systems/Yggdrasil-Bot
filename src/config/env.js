@@ -60,6 +60,8 @@ export function readEnv(source = process.env, profile = 'runtime') {
     botOwnerId: cleanValue(source.BOT_OWNER_ID) || null,
     dashboardUrl: cleanValue(source.DASHBOARD_URL) || null,
     trustedAdminRoleIds: readCsv(source, 'TRUSTED_ADMIN_ROLE_IDS'),
+    enableApi: cleanValue(source.ENABLE_API) === 'true',
+    apiPort: readPositiveInteger(source, 'API_PORT', 3000),
     nodeEnv,
     isProduction: nodeEnv === 'production',
     mongoServerSelectionTimeoutMs: readPositiveInteger(

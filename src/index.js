@@ -9,6 +9,7 @@ import { logger } from './utils/logger.js';
 // cleanly so connections are released and PM2 can restart from a sane state.
 
 let client = null;
+let apiServer = null;
 
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled promise rejection — shutting down.', reason instanceof Error ? reason : new Error(String(reason)));
@@ -36,6 +37,13 @@ async function shutdown(code) {
   } catch { /* best effort */ }
 
   try {
+    if (apiServer) {
+      await apiServer.close();
+      logger.info('API Server closed.');
+    }
+  } catch { /* best effort */ }
+
+  try {
     if (mongoose.connection.readyState === 1) {
       await mongoose.connection.close();
       logger.info('MongoDB connection closed.');
@@ -50,6 +58,7 @@ async function shutdown(code) {
 bootstrap()
   .then((result) => {
     client = result.client;
+    apiServer = result.apiServer;
   })
   .catch((error) => {
     logger.error('World Tree failed to start.', error);

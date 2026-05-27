@@ -11,6 +11,7 @@ import { settingsService } from './services/settingsService.js';
 import { initializePlayer } from './services/musicService.js';
 import { BOT } from './utils/constants.js';
 import { logger } from './utils/logger.js';
+import { createServer } from './api/server.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultCommandsPath = path.join(__dirname, 'commands');
@@ -44,8 +45,16 @@ export async function bootstrap({
 
   await client.login(env.discordToken);
 
+  let apiServer = null;
+  if (env.enableApi) {
+    apiServer = await createServer(client);
+    await apiServer.listen({ port: env.apiPort, host: '0.0.0.0' });
+    log.info(`API Server listening on port ${env.apiPort}`);
+  }
+
   return {
     client,
+    apiServer,
     commandCount: client.commands.size,
     eventCount
   };
