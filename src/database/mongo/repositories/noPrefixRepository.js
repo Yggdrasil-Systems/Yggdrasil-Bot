@@ -1,13 +1,6 @@
 import { NoPrefixPrivilege } from '../models/NoPrefixPrivilege.js';
+import { upsertOptions } from '../queryOptions.js';
 
-function updateOptions() {
-  return {
-    returnDocument: 'after',
-    upsert: true,
-    setDefaultsOnInsert: true,
-    runValidators: true
-  };
-}
 
 export function createNoPrefixRepository(model = NoPrefixPrivilege) {
   return {
@@ -35,7 +28,7 @@ export function createNoPrefixRepository(model = NoPrefixPrivilege) {
             removedAt: null
           }
         },
-        updateOptions()
+        upsertOptions()
       ).lean();
     },
 

@@ -1,4 +1,5 @@
 import { GuildSettings } from '../models/GuildSettings.js';
+import { upsertOptions } from '../queryOptions.js';
 
 function buildNestedSet(prefix, values) {
   return Object.fromEntries(
@@ -8,14 +9,6 @@ function buildNestedSet(prefix, values) {
   );
 }
 
-function updateOptions() {
-  return {
-    returnDocument: 'after',
-    upsert: true,
-    setDefaultsOnInsert: true,
-    runValidators: true
-  };
-}
 
 export function createSettingsRepository(model = GuildSettings) {
   return {
@@ -23,12 +16,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $setOnInsert: { guildId } },
-        {
-          returnDocument: 'after',
-          upsert: true,
-          setDefaultsOnInsert: true,
-          runValidators: true
-        }
+        upsertOptions()
       ).lean();
     },
 
@@ -36,12 +24,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $set: { modLogChannelId: channelId } },
-        {
-          returnDocument: 'after',
-          upsert: true,
-          setDefaultsOnInsert: true,
-          runValidators: true
-        }
+        upsertOptions()
       ).lean();
     },
 
@@ -49,7 +32,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $set: { musicChannelId: channelId, musicMessageId: messageId } },
-        updateOptions()
+        upsertOptions()
       ).lean();
     },
 
@@ -57,7 +40,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $set: { trustedAdminRoleIds: roleIds } },
-        updateOptions()
+        upsertOptions()
       ).lean();
     },
 
@@ -65,7 +48,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $addToSet: { trustedAdminRoleIds: roleId } },
-        updateOptions()
+        upsertOptions()
       ).lean();
     },
 
@@ -73,7 +56,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $pull: { trustedAdminRoleIds: roleId } },
-        updateOptions()
+        upsertOptions()
       ).lean();
     },
 
@@ -81,7 +64,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $set: { automodEnabled: enabled, 'automod.enabled': enabled, 'featureToggles.automod': enabled } },
-        updateOptions()
+        upsertOptions()
       ).lean();
     },
 
@@ -89,7 +72,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $set: buildNestedSet(`automod.rules.${ruleName}`, values) },
-        updateOptions()
+        upsertOptions()
       ).lean();
     },
 
@@ -97,7 +80,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $set: buildNestedSet(`automod.rules.${ruleName}.punishment`, punishment) },
-        updateOptions()
+        upsertOptions()
       ).lean();
     },
 
@@ -105,7 +88,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $addToSet: { 'automod.rules.badWords.words': word.toLowerCase() } },
-        updateOptions()
+        upsertOptions()
       ).lean();
     },
 
@@ -113,7 +96,7 @@ export function createSettingsRepository(model = GuildSettings) {
       return model.findOneAndUpdate(
         { guildId },
         { $pull: { 'automod.rules.badWords.words': word.toLowerCase() } },
-        updateOptions()
+        upsertOptions()
       ).lean();
     }
   };

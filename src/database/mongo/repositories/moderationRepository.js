@@ -1,5 +1,6 @@
 import { ModerationCase } from '../models/ModerationCase.js';
 import { Counter } from '../models/Counter.js';
+import { upsertOptions } from '../queryOptions.js';
 
 const DUPLICATE_KEY_CODE = 11000;
 
@@ -7,20 +8,12 @@ function counterIdForGuild(guildId) {
   return `moderationCase:${guildId}`;
 }
 
-function updateOptions() {
-  return {
-    returnDocument: 'after',
-    upsert: true,
-    setDefaultsOnInsert: true,
-    runValidators: true
-  };
-}
 
 async function nextCaseId(model, counterModel, guildId) {
   const counter = await counterModel.findOneAndUpdate(
     { _id: counterIdForGuild(guildId) },
     { $inc: { seq: 1 } },
-    updateOptions()
+    upsertOptions()
   ).lean();
 
   return counter.seq;
@@ -42,7 +35,7 @@ async function alignCounterToExistingCases(model, counterModel, guildId) {
   await counterModel.findOneAndUpdate(
     { _id: counterIdForGuild(guildId) },
     { $max: { seq: latestCase.caseId } },
-    updateOptions()
+    upsertOptions()
   ).lean();
 }
 

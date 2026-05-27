@@ -5,6 +5,8 @@ function format(level, message) {
   return `[${timestamp}] [${SCOPE}] [${level}] ${message}`;
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const logger = Object.freeze({
   info(message) {
     console.log(format('info', message));
@@ -19,6 +21,12 @@ export const logger = Object.freeze({
 
     if (error) {
       console.error(error);
+    }
+  },
+
+  debug(message) {
+    if (!isProduction) {
+      console.log(format('debug', message));
     }
   }
 });

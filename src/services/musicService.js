@@ -50,6 +50,8 @@ export { getSourceEmoji, getSourceLabel };
 function isYouTubeUrl(url) {
   return url && /youtube\.com|youtu\.be/i.test(url);
 }
+// Maximum duration (ms) before force-killing an orphaned yt-dlp process
+const YT_DLP_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 export const ytDlpStreamHook = async (track, method, queue) => {
   let url = track.url;
@@ -64,7 +66,7 @@ export const ytDlpStreamHook = async (track, method, queue) => {
   }
 
   try {
-    logger.info(`[yt-dlp] Starting direct stream download for: ${track.title}`);
+    logger.debug(`[yt-dlp] Starting stream for: ${track.title}`);
     const subprocess = ytDlp.exec(url, {
       output: '-',
       format: 'bestaudio/best',
@@ -74,18 +76,39 @@ export const ytDlpStreamHook = async (track, method, queue) => {
       preferFreeFormats: true,
       youtubeSkipDashManifest: true
     });
-    
-    subprocess.on('error', err => {
-        logger.error(`[yt-dlp] Process error: ${err.message}`);
+
+    // ── Subprocess lifecycle cleanup ──────────────────────────────────
+    // Kill the yt-dlp process when the consumer (discord-player/FFmpeg)
+    // closes or errors on the stream. This prevents orphaned processes
+    // on skip, stop, or queue clear.
+    function killSubprocess() {
+      try { subprocess.kill('SIGTERM'); } catch { /* already exited */ }
+      clearTimeout(safetyTimer);
+    }
+
+    subprocess.stdout.on('close', killSubprocess);
+    subprocess.stdout.on('error', killSubprocess);
+    subprocess.on('error', (err) => {
+      logger.error(`[yt-dlp] Process error: ${err.message}`);
     });
 
-    logger.info(`[yt-dlp] Stream pipeline created successfully`);
+    // Safety net: kill if the process somehow outlives any reasonable track
+    const safetyTimer = setTimeout(() => {
+      logger.warn(`[yt-dlp] Safety timeout reached for: ${track.title}`);
+      killSubprocess();
+    }, YT_DLP_TIMEOUT_MS);
+
+    // Don't keep Node alive just for this timer
+    safetyTimer.unref?.();
+
+    logger.debug(`[yt-dlp] Stream pipeline created for: ${track.title}`);
     return subprocess.stdout;
   } catch (err) {
     logger.error(`[yt-dlp] Failed to extract stream for "${track.title}": ${err.message}`);
     return null;
   }
 };
+
 
 // ─── Player initialization ──────────────────────────────────────────────────
 
@@ -194,12 +217,10 @@ export async function initializePlayer(client) {
     });
   });
 
-  // Debug logging (only in development)
-  if (process.env.NODE_ENV === 'development') {
-    player.events.on('debug', (queue, message) => {
-      logger.info(`[Player Debug] ${message}`);
-    });
-  }
+  // Debug logging — logger.debug is silenced in production automatically
+  player.events.on('debug', (queue, message) => {
+    logger.debug(`[Player] ${message}`);
+  });
 
   logger.info('Music player initialized successfully.');
 }
