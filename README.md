@@ -98,19 +98,63 @@ world-tree/
 │   │   │   ├── servicesPlugin.js         # Dependency injection — shared services into Fastify context
 │   │   │   └── errorHandler.js           # Centralized Zod validation + 5xx error formatting
 │   │   └── routes/v1/
-│   │       ├── health/health.route.js    # GET /v1/health — runtime + Discord + DB status
+│   │       ├── health/
+│   │       │   └── health.route.js       # GET /v1/health — runtime + Discord + DB status
 │   │       └── guilds/
 │   │           ├── settings.route.js     # GET /v1/guilds/:guildId/settings
 │   │           ├── cases.route.js        # GET /v1/guilds/:guildId/cases (cursor pagination)
 │   │           └── stats.route.js        # GET /v1/guilds/:guildId/stats
 │   │
 │   ├── commands/                         # ── Discord Commands ──────────────────────────────
-│   │   ├── moderation/                   # warn, ban, kick, timeout, untimeout, purge, case, warnings
-│   │   ├── music/                        # play, search, skip, stop, resume, queue, nowplaying,
-│   │   │                                 # volume, shuffle, loop, autoplay, filter, join, 247
-│   │   ├── setup/                        # settings, automod, modlog, noprefix, trustedrole, setup-music
-│   │   └── utility/                      # ping, help, avatar, banner, userinfo, serverinfo,
-│   │                                     # roleinfo, botinfo, uptime, membercount, stats, dashboard
+│   │   ├── moderation/
+│   │   │   ├── warn.js                   # Issue a warning with case logging
+│   │   │   ├── warnings.js              # List warnings for a user
+│   │   │   ├── timeout.js               # Timeout a member with duration parsing
+│   │   │   ├── untimeout.js             # Remove a timeout from a member
+│   │   │   ├── kick.js                  # Kick a member with reason + case logging
+│   │   │   ├── ban.js                   # Ban a user (supports non-members) with case logging
+│   │   │   ├── purge.js                 # Bulk delete messages with channel-targeted case
+│   │   │   └── case.js                  # Case lifecycle — view, list, resolve, delete, stats
+│   │   │
+│   │   ├── music/
+│   │   │   ├── play.js                  # Play by name or URL — multi-platform resolution
+│   │   │   ├── search.js               # Search and pick from top 5 results
+│   │   │   ├── nowplaying.js            # Current track embed with interactive controls
+│   │   │   ├── skip.js                  # Skip the current track
+│   │   │   ├── stop.js                  # Stop playback, clear queue, disconnect
+│   │   │   ├── resume.js               # Toggle pause/resume
+│   │   │   ├── volume.js               # Set volume (0–100)
+│   │   │   ├── queue.js                # Display the current queue
+│   │   │   ├── shuffle.js              # Shuffle the queue
+│   │   │   ├── loop.js                 # Cycle loop modes: off → track → queue
+│   │   │   ├── autoplay.js             # Toggle auto-queue of related songs
+│   │   │   ├── filter.js               # Toggle audio effects (bassboost, nightcore, 8D, etc.)
+│   │   │   ├── join.js                 # Join voice channel without playing
+│   │   │   └── 247.js                  # Toggle 24/7 mode — stay in voice after queue ends
+│   │   │
+│   │   ├── setup/
+│   │   │   ├── settings.js             # Guild settings viewer + nested subcommand router
+│   │   │   ├── automod.js              # Automod configuration entry point
+│   │   │   ├── modlog.js               # Mod-log channel shortcut
+│   │   │   ├── setmodlog.js            # Set mod-log channel (prefix variant)
+│   │   │   ├── noprefix.js             # No-prefix allowlist management (add/remove/list)
+│   │   │   ├── trustedrole.js          # Trusted admin role management entry point
+│   │   │   └── setup-music.js          # Create #music-requests channel with auto-play behavior
+│   │   │
+│   │   └── utility/
+│   │       ├── ping.js                  # Gateway + response latency with refresh button
+│   │       ├── help.js                  # Interactive category-based help menu
+│   │       ├── avatar.js               # Display user avatar at full resolution
+│   │       ├── banner.js               # Display user banner at full resolution
+│   │       ├── userinfo.js             # Account creation date, join date, roles, permissions
+│   │       ├── serverinfo.js           # Guild metadata: members, channels, boosts, creation
+│   │       ├── roleinfo.js             # Role metadata: color, position, permissions, members
+│   │       ├── botinfo.js              # Runtime info: uptime, memory, Node version, guild count
+│   │       ├── ownerinfo.js            # Server owner information summary
+│   │       ├── uptime.js               # Bot uptime display
+│   │       ├── membercount.js          # Quick member count
+│   │       ├── stats.js                # Moderation case statistics summary
+│   │       └── dashboard.js            # Dashboard status and URL display
 │   │
 │   ├── services/                         # ── Business Logic ────────────────────────────────
 │   │   ├── moderationService.js          # Permission checks, hierarchy validation, case lifecycle
@@ -159,6 +203,11 @@ world-tree/
 │   │   ├── env.js                        # Environment profiles: runtime, registration, core
 │   │   └── discord.js                    # Gateway intents + partial configuration
 │   │
+│   ├── events/
+│   │   ├── ready.js                      # Client ready — log confirmation + activity status
+│   │   ├── interactionCreate.js          # Route interactions to commandRouter
+│   │   └── messageCreate.js              # Route messages to messageCommandRouter + automod
+│   │
 │   └── utils/
 │       ├── embeds.js                     # Visual embed system — moderation, music, utility, help
 │       ├── components.js                 # Button rows — music player, queue, settings, filters
@@ -172,23 +221,48 @@ world-tree/
 │       └── fileDiscovery.js              # Recursive .js file finder for loaders
 │
 ├── test/                                 # ── 27 Test Files ──────────────────────────────────
-│   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
 │   ├── apiServer.test.js                 # Fastify lifecycle, Zod validation, session integration
-│   ├── apiRoutes.test.js                 # Route-level serialization, pagination, field stripping
+│   ├── apiRoutes.test.js                 # Route serialization, pagination, field stripping
+│   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
+│   ├── bootstrap.test.js                 # Startup sequencer integration
+│   ├── env.test.js                       # Environment config profiles, validation, API secrets
+│   ├── commandLoader.test.js             # Command discovery, contract validation, duplicates
+│   ├── commandRouter.test.js             # Slash command dispatch + unknown command handling
+│   ├── messageCommandRouter.test.js      # Prefix routing, no-prefix, admin guards
+│   ├── messageParser.test.js             # Prefix detection, quoted args, edge cases
+│   ├── permissionGuard.test.js           # Admin, moderation, no-prefix permission checks
 │   ├── moderationService.test.js         # Permission enforcement, hierarchy, case lifecycle
-│   ├── automodService.test.js            # Rule matching, punishment execution, channel ignoring
-│   ├── messageCommandRouter.test.js      # Prefix/no-prefix routing, admin guards
-│   └── ...                               # 21 more test files covering every service + utility
+│   ├── moderationRepository.test.js      # Atomic counters, case creation, warning listing
+│   ├── settingsService.test.js           # Settings normalization, cache invalidation
+│   ├── settingsRepository.test.js        # CRUD, mod-log, automod rule updates
+│   ├── noPrefixService.test.js           # Owner override, add/remove, cache behavior
+│   ├── noPrefixRepository.test.js        # Privilege upsert operations
+│   ├── automodService.test.js            # Rule matching, punishment, channel ignoring
+│   ├── musicCommands.test.js             # Play/247 voice channel validation
+│   ├── musicComponentRouter.test.js      # Button interaction handling without active session
+│   ├── utilityService.test.js            # Ping, avatar, user/server/bot/role info
+│   ├── helpCommand.test.js               # Help embed and category menu construction
+│   ├── embeds.test.js                    # Embed defaults, colors, field structure
+│   ├── components.test.js                # Button row construction, settings state
+│   ├── responses.test.js                 # Reply/followUp/edit interaction abstraction
+│   ├── logger.test.js                    # Log formatting, levels, environment behavior
+│   ├── queryOptions.test.js              # Upsert option configuration
+│   └── dashboardContracts.test.js        # JSON Schema document validation
 │
 ├── scripts/
 │   └── registerCommands.js               # Guild-scoped slash command deployment
 │
 ├── dashboard/                            # ── Future Dashboard Contracts ────────────────────
-│   ├── contracts/                        # JSON Schema definitions for API response shapes
+│   ├── contracts/
+│   │   ├── guild-settings.schema.json    # Guild settings response shape
+│   │   ├── automod-settings.schema.json  # Automod configuration response shape
+│   │   └── moderation-case.schema.json   # Moderation case response shape
 │   ├── API.md                            # Planned endpoint documentation
+│   ├── README.md                         # Dashboard planning notes
 │   └── WIREFRAMES.md                     # UI wireframe notes
 │
-├── ecosystem.config.cjs                  # PM2 process configuration
+├── ecosystem.config.cjs                  # PM2 process config — fork mode, 500M memory limit
+├── .env.example                          # Environment variable template
 └── package.json                          # Node.js ≥ 20.0.0, ESM modules
 ```
 
