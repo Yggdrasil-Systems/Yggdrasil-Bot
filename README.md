@@ -1,61 +1,287 @@
-# World Tree
+<div align="center">
 
-World Tree is a self-hosted platform evolving from a modular Discord utility bot into a full-stack community management system. It provides music, settings, automod, and moderation capabilities for a private friend/community server.
+# 🌳 World Tree
 
-Historically a standalone Discord bot (Node.js, discord.js, MongoDB), World Tree is currently undergoing a phased architecture freeze and platform evolution. We are establishing a lightweight, low-overhead backend API foundation designed to support a future dashboard and authenticated web layer without compromising the stability of the existing Discord runtime.
+**A self-hosted Discord platform with modular services, encrypted API infrastructure, and low-overhead architecture.**
 
-## Platform Evolution (Current Phase)
+Built for a private community. Designed like production infrastructure.
 
-World Tree is currently in **Phase 2** of its platform evolution. The core focus is establishing safe boundaries between the Discord runtime and the web API.
+`Node.js` · `discord.js` · `Fastify` · `MongoDB` · `Zod` · `PM2` · `antiX Linux`
 
-- **Fastify API Foundation:** A lightweight Fastify server now runs alongside the Discord client within the same Node.js process. It remains operationally negligible and is gated behind the `ENABLE_API` flag.
-- **Zod Serialization Contracts:** All read-only endpoints strictly define their responses using `fastify-type-provider-zod`. This prevents internal MongoDB properties (`_id`, `__v`) or Discord runtime objects from leaking to API consumers.
-- **Lifecycle Hardening:** The backend is hardened with graceful shutdown hooks orchestrating the API server, Discord client, and MongoDB connections cleanly.
-- **Self-Hosted Infrastructure:** We strictly adhere to a low-overhead philosophy. The architecture relies on the existing Node.js + MongoDB stack and avoids premature abstractions like Redis, external caching layers, or microservices.
+</div>
 
-## Current Features
+---
 
-- Slash commands and guild command registration
-- Prefix commands using exactly `tree`
-- Bot-managed no-prefix shortcut allowlist
-- MongoDB-backed guild settings, moderation cases, and privileges
-- Configurable mod-log channel and trusted admin roles
-- Configurable automod for bad words, mention spam, repeated messages, link spam, and caps spam
-- Moderation lifecycle commands for viewing, listing, resolving, deleting, and summarizing cases
-- Utility commands for user, server, role, banner, avatar, runtime, stats, and dashboard status
-- Interactive category-based help menu
-- Full music system with multi-platform support
-- Automated tests with Node's built-in test runner
+## Architecture Philosophy
 
-## Music System
+World Tree is not a typical Discord bot. It is a **modular backend platform** that happens to communicate through Discord as its primary interface — with a Fastify REST API growing alongside it for future dashboard integration.
 
-World Tree includes a complete music streaming system powered by [discord-player](https://github.com/androz2091/discord-player) with support for Spotify, Apple Music, YouTube, and SoundCloud.
+Every design decision optimizes for:
 
-### How It Works
+- **Self-hosted simplicity** — Runs on a low-power antiX Linux machine. No Docker, no Kubernetes, no cloud orchestration.
+- **Single-process architecture** — The Discord client and API server coexist in one Node.js process, managed by PM2.
+- **Strict service boundaries** — Commands are thin. Services own behavior. Repositories isolate storage. Nothing leaks across layers.
+- **Operational clarity** — Graceful shutdown, structured logging, lifecycle hooks. The system should never die silently.
 
-- **Spotify & Apple Music** resolve track metadata, then bridge through YouTube for audio streaming
-- **YouTube** uses the [discord-player-youtubei](https://github.com/retrouser955/discord-player-youtubei) extractor (YouTube Music internal API) for stable, accurate playback
+---
+
+## System Architecture
+
+```mermaid
+graph TB
+    subgraph Runtime["Node.js Process (PM2-managed)"]
+        direction TB
+
+        subgraph Discord["Discord Runtime"]
+            Client[Discord.js Client]
+            Events[Event Handlers]
+            Router[Command Router]
+            Commands[Command Modules]
+        end
+
+        subgraph API["Fastify API Server"]
+            Fastify[Fastify Instance]
+            Zod[Zod Schemas]
+            Session[Session Infrastructure]
+            Routes[REST Endpoints]
+        end
+
+        subgraph Core["Shared Service Layer"]
+            ModSvc[Moderation Service]
+            SetSvc[Settings Service]
+            MusicSvc[Music Service]
+            AutoSvc[Automod Service]
+            HelpSvc[Help Service]
+            UtilSvc[Utility Service]
+            LogSvc[Logging Service]
+            NpSvc[No-Prefix Service]
+        end
+
+        subgraph Data["Repository Layer"]
+            ModRepo[Moderation Repository]
+            SetRepo[Settings Repository]
+            NpRepo[No-Prefix Repository]
+        end
+    end
+
+    subgraph External["External"]
+        MongoDB[(MongoDB Atlas)]
+        DiscordAPI[Discord API]
+        YT[YouTube / Spotify / SoundCloud]
+    end
+
+    Client --> Events --> Router --> Commands
+    Commands --> Core
+    Fastify --> Zod --> Routes --> Core
+    Core --> Data --> MongoDB
+    Client <--> DiscordAPI
+    MusicSvc <--> YT
+```
+
+---
+
+## Codebase Structure
+
+```text
+world-tree/
+│
+├── src/
+│   ├── index.js                          # Process entry — lifecycle hooks, shutdown orchestration
+│   ├── bootstrap.js                      # Startup sequencer — DB → commands → events → login → API
+│   ├── client.js                         # Discord.js client factory with gateway intents
+│   │
+│   ├── api/                              # ── Fastify REST API ──────────────────────────────
+│   │   ├── server.js                     # Server factory — Zod compiler, CORS, plugin registration
+│   │   ├── plugins/
+│   │   │   ├── cookiePlugin.js           # @fastify/cookie with HMAC-SHA256 signing
+│   │   │   ├── sessionPlugin.js          # AES-256-GCM encrypted sessions, HKDF key derivation
+│   │   │   ├── servicesPlugin.js         # Dependency injection — shared services into Fastify context
+│   │   │   └── errorHandler.js           # Centralized Zod validation + 5xx error formatting
+│   │   └── routes/v1/
+│   │       ├── health/health.route.js    # GET /v1/health — runtime + Discord + DB status
+│   │       └── guilds/
+│   │           ├── settings.route.js     # GET /v1/guilds/:guildId/settings
+│   │           ├── cases.route.js        # GET /v1/guilds/:guildId/cases (cursor pagination)
+│   │           └── stats.route.js        # GET /v1/guilds/:guildId/stats
+│   │
+│   ├── commands/                         # ── Discord Commands ──────────────────────────────
+│   │   ├── moderation/                   # warn, ban, kick, timeout, untimeout, purge, case, warnings
+│   │   ├── music/                        # play, search, skip, stop, resume, queue, nowplaying,
+│   │   │                                 # volume, shuffle, loop, autoplay, filter, join, 247
+│   │   ├── setup/                        # settings, automod, modlog, noprefix, trustedrole, setup-music
+│   │   └── utility/                      # ping, help, avatar, banner, userinfo, serverinfo,
+│   │                                     # roleinfo, botinfo, uptime, membercount, stats, dashboard
+│   │
+│   ├── services/                         # ── Business Logic ────────────────────────────────
+│   │   ├── moderationService.js          # Permission checks, hierarchy validation, case lifecycle
+│   │   ├── settingsService.js            # Guild settings with in-memory TTL cache + normalization
+│   │   ├── musicService.js               # discord-player init, extractor pipeline, event wiring
+│   │   ├── helpService.js                # Category-based help menu builder
+│   │   ├── utilityService.js             # User/server/role/bot info aggregation
+│   │   ├── loggingService.js             # Mod-log channel delivery
+│   │   ├── noPrefixService.js            # Global no-prefix privilege management + caching
+│   │   └── automod/
+│   │       ├── automodService.js         # Rule engine coordinator — evaluate → punish → log
+│   │       ├── automodState.js           # In-memory rolling window state for spam detection
+│   │       ├── punishmentExecutor.js     # delete / warn / timeout action dispatcher
+│   │       └── rules/
+│   │           ├── badWordsRule.js        # Case-insensitive word match
+│   │           ├── mentionSpamRule.js     # Mention count threshold within time window
+│   │           ├── repeatSpamRule.js      # Duplicate message detection within time window
+│   │           ├── linkSpamRule.js        # URL detection with domain allowlist
+│   │           ├── capsSpamRule.js        # Uppercase ratio + minimum length threshold
+│   │           └── ruleResult.js          # Standardized rule match output
+│   │
+│   ├── database/mongo/                   # ── Data Layer ────────────────────────────────────
+│   │   ├── connection.js                 # Mongoose connection with configurable timeout
+│   │   ├── queryOptions.js               # Shared upsert/lean options
+│   │   ├── models/
+│   │   │   ├── GuildSettings.js          # Per-guild config: automod, moderation, trusted roles
+│   │   │   ├── ModerationCase.js         # Case records: warn, timeout, kick, ban, purge
+│   │   │   ├── Counter.js               # Atomic auto-increment for case IDs
+│   │   │   └── NoPrefixPrivilege.js      # Global no-prefix user grants
+│   │   └── repositories/
+│   │       ├── settingsRepository.js     # CRUD + nested automod rule updates
+│   │       ├── moderationRepository.js   # Case creation (retry on collision), cursor pagination
+│   │       └── noPrefixRepository.js     # Privilege upsert and listing
+│   │
+│   ├── middleware/                        # ── Runtime Guards ───────────────────────────────
+│   │   ├── commandRouter.js              # Slash command dispatch + button/select interaction routing
+│   │   ├── messageCommandRouter.js       # Prefix parsing + no-prefix shortcut resolution
+│   │   ├── permissionGuard.js            # Permission checks: admin, moderation, no-prefix, hierarchy
+│   │   └── errorHandler.js               # Interaction-level error recovery
+│   │
+│   ├── loaders/
+│   │   ├── commandLoader.js              # Recursive command discovery + contract validation
+│   │   └── eventLoader.js                # Dynamic event handler registration
+│   │
+│   ├── config/
+│   │   ├── env.js                        # Environment profiles: runtime, registration, core
+│   │   └── discord.js                    # Gateway intents + partial configuration
+│   │
+│   └── utils/
+│       ├── embeds.js                     # Visual embed system — moderation, music, utility, help
+│       ├── components.js                 # Button rows — music player, queue, settings, filters
+│       ├── constants.js                  # Colors, limits, automod defaults, bot identity
+│       ├── responses.js                  # Interaction/message reply abstraction
+│       ├── logger.js                     # Timestamped structured logger
+│       ├── formatters.js                 # Duration, number, date formatting
+│       ├── messageParser.js              # Prefix detection + argument extraction
+│       ├── discordResolvers.js           # User/member/channel resolution from arguments
+│       ├── moderationInputs.js           # Shared moderation command input extraction
+│       └── fileDiscovery.js              # Recursive .js file finder for loaders
+│
+├── test/                                 # ── 27 Test Files ──────────────────────────────────
+│   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
+│   ├── apiServer.test.js                 # Fastify lifecycle, Zod validation, session integration
+│   ├── apiRoutes.test.js                 # Route-level serialization, pagination, field stripping
+│   ├── moderationService.test.js         # Permission enforcement, hierarchy, case lifecycle
+│   ├── automodService.test.js            # Rule matching, punishment execution, channel ignoring
+│   ├── messageCommandRouter.test.js      # Prefix/no-prefix routing, admin guards
+│   └── ...                               # 21 more test files covering every service + utility
+│
+├── scripts/
+│   └── registerCommands.js               # Guild-scoped slash command deployment
+│
+├── dashboard/                            # ── Future Dashboard Contracts ────────────────────
+│   ├── contracts/                        # JSON Schema definitions for API response shapes
+│   ├── API.md                            # Planned endpoint documentation
+│   └── WIREFRAMES.md                     # UI wireframe notes
+│
+├── ecosystem.config.cjs                  # PM2 process configuration
+└── package.json                          # Node.js ≥ 20.0.0, ESM modules
+```
+
+---
+
+## Request Lifecycle
+
+### Discord Command Flow
+
+```mermaid
+sequenceDiagram
+    participant U as Discord User
+    participant D as Discord Gateway
+    participant R as Command Router
+    participant C as Command Module
+    participant S as Service Layer
+    participant DB as MongoDB
+
+    U->>D: /warn @user "reason"
+    D->>R: interactionCreate event
+    R->>R: Resolve command by name
+    R->>C: Execute command handler
+    C->>S: moderationService.warn()
+    S->>S: Validate permissions + hierarchy
+    S->>DB: Create moderation case
+    S->>D: Send mod-log embed
+    S-->>C: Return result
+    C-->>U: Reply with confirmation embed
+```
+
+### API Request Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Dashboard Client
+    participant F as Fastify
+    participant Z as Zod Schema
+    participant S as Service Layer
+    participant DB as MongoDB
+
+    C->>F: GET /v1/guilds/:id/cases?limit=20&cursor=50
+    F->>F: Cookie parse → HMAC verify → AES decrypt
+    F->>F: Session validation + guild authorization
+    F->>Z: Validate params + querystring
+    Z->>S: moderationService.listCases()
+    S->>DB: Query with cursor pagination
+    DB-->>S: Raw documents
+    S-->>Z: Response serialization (strips _id, __v)
+    Z-->>C: { data: [...], nextCursor: 31 }
+```
+
+---
+
+## Music Streaming Pipeline
+
+World Tree streams audio from Spotify, Apple Music, YouTube, and SoundCloud through a unified pipeline.
+
+```mermaid
+graph LR
+    subgraph Input["User Request"]
+        Query["play Night Changes"]
+        Link["play spotify.com/track/..."]
+    end
+
+    subgraph Resolve["Source Resolution"]
+        Spotify["Spotify Extractor"]
+        Apple["Apple Music Extractor"]
+        YT["YouTubei Extractor"]
+        SC["SoundCloud Extractor"]
+    end
+
+    subgraph Bridge["Audio Bridge"]
+        YTDLP["yt-dlp Stream Interceptor"]
+    end
+
+    subgraph Playback["Voice Playback"]
+        Opus["Opus Encoding"]
+        Voice["Discord Voice Connection"]
+    end
+
+    Query --> Resolve
+    Link --> Resolve
+    Spotify -->|metadata| Bridge
+    Apple -->|metadata| Bridge
+    YT --> Bridge
+    SC -->|native stream| Playback
+    Bridge --> YTDLP --> Opus --> Voice
+```
+
+- **Spotify & Apple Music** resolve track metadata, then bridge through YouTube for the actual audio stream
+- **YouTube** uses the `discord-player-youtubei` extractor (YouTube Music internal API) for stable playback
 - **SoundCloud** streams natively without bridging
-- Direct links from any platform are auto-detected and resolved
-
-### Playback Commands
-
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `play` | `p` | Play a song by name or link |
-| `search` | `find` | Search and pick from top 5 results |
-| `nowplaying` | `np` | Show the current track with controls |
-| `skip` | `s`, `next` | Skip the current track |
-| `stop` | `dc`, `disconnect`, `leave` | Stop playback and clear queue |
-| `resume` | `pause`, `togglepause` | Pause or resume playback |
-| `volume` | `vol` | Set volume (0-100) |
-| `queue` | `q` | View the current queue |
-| `shuffle` | `mix` | Shuffle the queue |
-| `loop` | `repeat` | Cycle loop modes (off/track/queue) |
-| `autoplay` | `ap` | Auto-queue related songs |
-| `filter` | `fx`, `filters` | Toggle audio effects |
-| `join` | `connect`, `summon` | Join voice channel |
-| `247` | `stay`, `24/7` | Toggle 24/7 mode |
+- **yt-dlp** intercepts and provides the raw audio stream when the default extractors fail
 
 ### Player Controls
 
@@ -66,305 +292,205 @@ Now Playing embeds include two rows of interactive buttons:
 
 The ⚙️ Settings button opens a private panel with loop mode selection, autoplay toggle, and audio filter controls.
 
-### Audio Filters
+Available filters: `bassboost`, `nightcore`, `vaporwave`, `8D`, `karaoke`, `tremolo`, `vibrato`.
 
-Available filters: `bassboost`, `nightcore`, `vaporwave`, `8D`, `karaoke`, `tremolo`, `vibrato`. Toggle with `tree filter <name>` or via the Settings panel.
+---
 
-### Dedicated Music Channel
+## Session & Security Infrastructure
 
-Use `setup-music` to create a `#music-requests` channel. Any message in that channel is automatically treated as a play command, with the message auto-deleted after processing.
+The API uses a **zero-dependency session system** — no Redis, no database sessions, no JWTs.
+
+```mermaid
+graph LR
+    subgraph Creation["Session Creation (OAuth2 Callback)"]
+        Token["Discord Access Token"]
+        AES["AES-256-GCM Encrypt"]
+        HKDF["HKDF-SHA256 Key Derivation"]
+        HMAC["HMAC-SHA256 Cookie Signing"]
+    end
+
+    subgraph Cookie["HttpOnly Cookie"]
+        Payload["{ discordUserId, encryptedToken, expiresAt }"]
+    end
+
+    subgraph Validation["Every Protected Request"]
+        Unsign["Verify HMAC Signature"]
+        Decrypt["AES-GCM Decrypt + Auth Tag"]
+        Expiry["Check expiresAt"]
+        Attach["Attach request.session"]
+    end
+
+    Token --> AES --> Payload
+    HKDF --> AES
+    Payload --> HMAC --> Cookie
+    Cookie --> Unsign --> Decrypt --> Expiry --> Attach
+```
+
+| Property | Value |
+|---|---|
+| Encryption | AES-256-GCM with 12-byte random IV |
+| Key Derivation | HKDF-SHA256 from `SESSION_SECRET` |
+| Cookie Signing | HMAC-SHA256 via `@fastify/cookie` (timing-safe) |
+| Cookie Flags | `HttpOnly`, `SameSite=Lax`, `Secure` (prod), `Path=/` |
+| Token Storage | Encrypted inside cookie — no server-side session state |
+
+---
 
 ## Command Model
 
-World Tree routes all supported inputs into the same command architecture.
+World Tree routes all input types into the same command architecture.
 
-### Slash Commands
+### Three Input Modes
 
-Examples:
+| Mode | Format | Example |
+|---|---|---|
+| **Slash** | Discord slash commands | `/warn user:@user reason:Spam` |
+| **Prefix** | `tree` prefix (case-insensitive) | `tree warn @user "Spam"` |
+| **No-Prefix** | Allowlisted users only | `warn @user "Spam"` |
 
-```text
-/ping
-/help
-/play query:Night Changes
-/search query:One Direction
-/settings view
-/settings modlog set
-/settings automod toggle
-/case list
-/case view
-/warn
-/timeout
-/purge
-/dashboard
-```
+No-prefix access is **global and bot-managed** — not inherited from Discord server permissions. Only the bot owner can manage the allowlist via `tree noprefix add/remove/list`.
 
-### Prefix Commands
+### Playback Commands
 
-The prefix is exactly:
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `play` | `p` | Play a song by name or link |
+| `search` | `find` | Search and pick from top 5 results |
+| `nowplaying` | `np` | Current track with interactive controls |
+| `skip` | `s`, `next` | Skip the current track |
+| `stop` | `dc`, `disconnect`, `leave` | Stop playback and clear queue |
+| `resume` | `pause`, `togglepause` | Toggle pause/resume |
+| `volume` | `vol` | Set volume (0–100) |
+| `queue` | `q` | View the current queue |
+| `shuffle` | `mix` | Shuffle the queue |
+| `loop` | `repeat` | Cycle: off → track → queue |
+| `autoplay` | `ap` | Auto-queue related songs |
+| `filter` | `fx`, `filters` | Toggle audio effects |
+| `join` | `connect`, `summon` | Join voice channel |
+| `247` | `stay`, `24/7` | Toggle 24/7 mode |
 
-```text
-tree
-```
+### Moderation Commands
 
-It is case-insensitive and requires whitespace after the prefix:
+`warn` · `warnings` · `timeout` · `untimeout` · `kick` · `ban` · `purge`
 
-```text
-tree ping
-Tree play ishq wala love
-TREE warn @user "Repeated spam"
-tree search Night Changes
-```
+Case lifecycle: `/case view` · `/case list` · `/case resolve` · `/case delete` · `/case stats`
 
-`treeping` does not trigger the bot.
+Cases are soft-deleted. The moderation service enforces permission checks, role hierarchy, bot capability validation, reason requirements, and mod-log delivery on every action.
 
-### No-Prefix Shortcuts
+### Automod
 
-Approved shortcuts can be used only by explicitly allowlisted users or the bot owner:
+Settings-driven, in-memory rolling windows. No Redis.
 
-```text
-ping
-userinfo @user
-play some song
-purge 10
-case list
-```
+- Bad word filtering (case-insensitive)
+- Mention spam (threshold within time window)
+- Repeated message spam (duplicate detection)
+- Link spam (with domain allowlist)
+- Caps spam (ratio + minimum length)
+- Punishments: `delete`, `warn`, `timeout`
 
-Normal users are ignored silently. Server owner status, Administrator permission, and trusted server roles do not automatically grant no-prefix access.
+---
 
-No-prefix access is global and bot-managed, not inherited from server permissions. Manage it with:
+## Deployment Model
 
 ```text
-tree noprefix add @user
-tree noprefix remove @user
-tree noprefix list
+┌─────────────────────────────────────────┐
+│          antiX Linux (self-hosted)       │
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │         PM2 Process Manager       │  │
+│  │                                   │  │
+│  │  ┌─────────────────────────────┐  │  │
+│  │  │    world-tree (fork mode)   │  │  │
+│  │  │                             │  │  │
+│  │  │  Discord Client  ◄──────►  Discord API  │
+│  │  │  Fastify API     ◄──────►  :3000        │
+│  │  │  Mongoose        ◄──────►  MongoDB Atlas│
+│  │  │                             │  │  │
+│  │  │  max_memory_restart: 500M   │  │  │
+│  │  └─────────────────────────────┘  │  │
+│  └───────────────────────────────────┘  │
+└─────────────────────────────────────────┘
 ```
 
-Only the configured bot owner can manage this allowlist.
+- **Single process**, fork mode — no cluster, no workers
+- **PM2** handles restarts, memory limits, and log rotation
+- **Graceful shutdown** orchestrated in `index.js`: Discord client → API server → MongoDB connection
+- **`SIGINT`/`SIGTERM`** handlers ensure clean exit on PM2 stop/restart
+- **`unhandledRejection`/`uncaughtException`** trigger controlled shutdown — never silently continue in corrupted state
 
-## Settings And Automod
-
-Settings are stored per guild in MongoDB.
-
-Useful commands:
-
-- `/settings view`
-- `/settings modlog set`
-- `/settings trusted-role add`
-- `/settings trusted-role remove`
-- `/settings trusted-role list`
-- `/settings automod view`
-- `/settings automod toggle`
-- `/settings automod threshold`
-- `/settings automod punishment`
-- `/settings automod badword add`
-- `/settings automod badword remove`
-- `/settings automod badword list`
-
-Prefix equivalents include:
-
-```text
-tree settings view
-tree modlog #mod-log
-tree trustedrole add @Staff
-tree automod view
-tree automod on
-tree automod threshold mentionSpam 6
-tree automod punishment badWords timeout 10m
-tree automod badword add blockedword
-```
-
-Automod is settings-driven and currently supports:
-
-- Bad word filtering
-- Mention spam
-- Repeated message spam
-- Link spam with allowlist support
-- Caps spam
-- Delete, warn, and timeout punishments
-- Persistent automod cases
-- Mod-log output when configured
-
-Automod uses in-memory rolling windows for spam checks. It does not require Redis in this phase.
-
-## Moderation
-
-Moderation commands:
-
-- `warn`
-- `warnings`
-- `timeout`
-- `untimeout`
-- `kick`
-- `ban`
-- `purge`
-
-Case lifecycle commands:
-
-- `/case view`
-- `/case list`
-- `/case resolve`
-- `/case delete`
-- `/case stats`
-
-Cases are soft-deleted instead of physically removed. Moderation services enforce permissions, role hierarchy, bot capability checks, reason validation, persistence, and logging.
-
-## Utility Commands
-
-- `ping`
-- `avatar`
-- `banner`
-- `userinfo`
-- `serverinfo`
-- `roleinfo`
-- `botinfo`
-- `uptime`
-- `membercount`
-- `stats`
-- `dashboard`
-- `help`
+---
 
 ## Environment Variables
 
-Create `.env` in the project root. Do not commit it.
-
 ```env
+# ── Core ───────────────────────────────────
 DISCORD_TOKEN=your_discord_bot_token
 MONGO_URI=your_mongodb_atlas_connection_string
 CLIENT_ID=your_discord_application_client_id
-GUILD_ID=your_test_discord_server_id
-MONGO_SERVER_SELECTION_TIMEOUT_MS=10000
-BOT_OWNER_ID=optional_owner_discord_user_id
-TRUSTED_ADMIN_ROLE_IDS=optional_role_id,optional_second_role_id
-DASHBOARD_URL=
+GUILD_ID=your_test_guild_id
+BOT_OWNER_ID=your_discord_user_id
 NODE_ENV=development
 
-# API Configuration
+# ── API (required when ENABLE_API=true) ────
 ENABLE_API=true
 API_PORT=3000
+SESSION_SECRET=random_32_byte_hex_string
+DISCORD_CLIENT_SECRET=your_oauth2_client_secret
+DASHBOARD_ORIGIN=http://localhost:5173
 
-# Spotify (optional - improves Spotify search accuracy)
+# ── Music (optional) ──────────────────────
 DP_SPOTIFY_CLIENT_ID=your_spotify_client_id
 DP_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 ```
 
-`GUILD_ID` is used for development slash-command registration. Runtime startup does not require it.
-`BOT_OWNER_ID` is required if you want to manage the global no-prefix allowlist.
-`DP_SPOTIFY_CLIENT_ID` and `DP_SPOTIFY_CLIENT_SECRET` are optional. The Spotify extractor can work without them via web scraping, but API credentials improve search accuracy and reduce rate limiting. Get them free from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
+---
 
-## Discord Setup
-
-In the Discord Developer Portal:
-
-- Create or select the application
-- Add a bot user
-- Copy the bot token into `.env`
-- Copy the application client ID into `.env`
-- Enable Message Content intent for prefix commands and automod
-- Enable Server Members intent for member fetches, moderation checks, and role-aware utilities
-- Invite the bot with permissions needed for moderation actions and voice (Connect, Speak)
-
-World Tree currently uses:
-
-- `Guilds`
-- `GuildMembers`
-- `GuildMessages`
-- `MessageContent`
-- `GuildVoiceStates`
-
-## MongoDB
-
-World Tree uses MongoDB Atlas through Mongoose.
-
-Collections:
-
-- `guild_settings`
-- `moderation_cases`
-- `counters`
-- `no_prefix_privileges`
-
-Existing guild settings are normalized through service defaults, so adding nested settings does not require a migration script.
-
-## Local Development
-
-Install dependencies:
+## Development
 
 ```bash
-npm install
+npm install                  # Install dependencies
+npm test                     # Run full test suite (Node.js built-in test runner)
+npm run register:commands    # Deploy slash commands to test guild
+npm run dev                  # Start with nodemon (auto-reload)
+npm start                    # Production start
 ```
 
-Run tests (includes full API, route validation, and DB repository tests):
+### Discord Setup
 
-```bash
-npm test
-```
+In the Developer Portal, enable these gateway intents:
 
-Register slash commands to the configured test guild:
+- `Guilds` · `GuildMembers` · `GuildMessages` · `MessageContent` · `GuildVoiceStates`
 
-```bash
-npm run register:commands
-```
+### MongoDB Collections
 
-Start locally:
+| Collection | Purpose |
+|---|---|
+| `guild_settings` | Per-guild configuration: automod rules, moderation settings, trusted roles |
+| `moderation_cases` | Case records with atomic auto-increment IDs |
+| `counters` | Atomic counter sequences for case ID generation |
+| `no_prefix_privileges` | Global no-prefix user grants |
 
-```bash
-npm run dev
-```
+---
 
-Production-style start:
+## Platform Evolution
 
-```bash
-npm start
-```
+World Tree is transitioning from a Discord bot into a backend platform. Each phase is deliberate.
 
-## Project Structure
+| Phase | Status | Focus |
+|---|---|---|
+| **Stabilization** | ✅ Complete | Architecture freeze, lifecycle hardening, test coverage |
+| **Phase 1 — API Foundation** | ✅ Complete | Fastify bootstrap, Zod integration, plugin architecture |
+| **Phase 2 — Read-Only Endpoints** | ✅ Complete | Settings, cases, stats endpoints with strict response schemas |
+| **Phase 3a — Session Infrastructure** | ✅ Complete | AES-256-GCM sessions, HMAC-signed cookies, HKDF key derivation |
+| **Phase 3b — OAuth2 Flow** | 🔜 Next | Discord OAuth2, login/callback/logout, guild authorization |
+| **Phase 3c — Route Guards** | Planned | Protected route scoping, MANAGE_GUILD verification |
+| **Phase 4 — Dashboard** | Future | Authenticated web UI integration |
 
-```text
-src/
-├── api/
-│   ├── plugins/
-│   ├── routes/
-│   └── server.js
-├── bootstrap.js
-├── client.js
-├── commands/
-│   ├── moderation/
-│   ├── music/
-│   ├── setup/
-│   └── utility/
-├── config/
-├── database/
-│   └── mongo/
-│       ├── models/
-│       └── repositories/
-├── events/
-├── loaders/
-├── middleware/
-├── services/
-│   └── automod/
-└── utils/
-```
+---
 
-## Architecture
+<div align="center">
 
-```text
-Incoming Request
-├── Discord Interaction -> Router -> Command Adapter
-└── HTTP API Request -> Fastify Route -> Zod Validation
-    └── Shared Service Layer (Business Logic)
-        └── Repository Layer (Mongoose/MongoDB)
-```
+*Designed for low-overhead self-hosted infrastructure.*
+*Built with intentional architecture, not accidental complexity.*
 
-Commands and API routes remain thin transport layers. The Service layer owns business behavior, ensuring both Discord and API operations respect the same moderation rules, cache validation, and constraints. Repositories isolate MongoDB access. Utilities centralize formatting, parsing, embeds, and response mechanics.
-
-## Roadmap
-
-**Current Focus:**
-- Phase 3: Route Guard Systems & Authentication Planning (Mapping dashboard tokens to Discord permissions safely).
-- Controlled endpoint expansion for write-operations (post-auth).
-- Operational observability and logging enhancements.
-
-**Later:**
-- Dashboard Web UI Integration.
-- Server atmosphere systems.
-- Analytics summaries.
-- AI/context-aware features.
+</div>
