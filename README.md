@@ -1,25 +1,30 @@
 # World Tree
 
-World Tree is a modular Discord utility, music, settings, automod, and moderation bot for a private friend/community server. It is built with Node.js, discord.js, MongoDB Atlas, Mongoose, and a hybrid command model that supports slash commands, `tree` prefix commands, and bot-managed no-prefix shortcuts.
+World Tree is a self-hosted platform evolving from a modular Discord utility bot into a full-stack community management system. It provides music, settings, automod, and moderation capabilities for a private friend/community server.
 
-The project favors practical foundations: clean architecture, persistent moderation history, configurable server behavior, polished embeds, and reliable moderator workflows. Future dashboard, analytics, atmosphere, AI, or memory systems should build on these boundaries rather than replacing them.
+Historically a standalone Discord bot (Node.js, discord.js, MongoDB), World Tree is currently undergoing a phased architecture freeze and platform evolution. We are establishing a lightweight, low-overhead backend API foundation designed to support a future dashboard and authenticated web layer without compromising the stability of the existing Discord runtime.
+
+## Platform Evolution (Current Phase)
+
+World Tree is currently in **Phase 2** of its platform evolution. The core focus is establishing safe boundaries between the Discord runtime and the web API.
+
+- **Fastify API Foundation:** A lightweight Fastify server now runs alongside the Discord client within the same Node.js process. It remains operationally negligible and is gated behind the `ENABLE_API` flag.
+- **Zod Serialization Contracts:** All read-only endpoints strictly define their responses using `fastify-type-provider-zod`. This prevents internal MongoDB properties (`_id`, `__v`) or Discord runtime objects from leaking to API consumers.
+- **Lifecycle Hardening:** The backend is hardened with graceful shutdown hooks orchestrating the API server, Discord client, and MongoDB connections cleanly.
+- **Self-Hosted Infrastructure:** We strictly adhere to a low-overhead philosophy. The architecture relies on the existing Node.js + MongoDB stack and avoids premature abstractions like Redis, external caching layers, or microservices.
 
 ## Current Features
 
 - Slash commands and guild command registration
 - Prefix commands using exactly `tree`
 - Bot-managed no-prefix shortcut allowlist
-- MongoDB-backed guild settings
-- MongoDB-backed moderation cases
-- MongoDB-backed no-prefix privileges
-- Configurable mod-log channel
-- Persisted trusted admin roles
+- MongoDB-backed guild settings, moderation cases, and privileges
+- Configurable mod-log channel and trusted admin roles
 - Configurable automod for bad words, mention spam, repeated messages, link spam, and caps spam
 - Moderation lifecycle commands for viewing, listing, resolving, deleting, and summarizing cases
 - Utility commands for user, server, role, banner, avatar, runtime, stats, and dashboard status
 - Interactive category-based help menu
 - Full music system with multi-platform support
-- Dependency-free dashboard contracts and planning docs
 - Automated tests with Node's built-in test runner
 
 ## Music System
@@ -233,6 +238,10 @@ TRUSTED_ADMIN_ROLE_IDS=optional_role_id,optional_second_role_id
 DASHBOARD_URL=
 NODE_ENV=development
 
+# API Configuration
+ENABLE_API=true
+API_PORT=3000
+
 # Spotify (optional - improves Spotify search accuracy)
 DP_SPOTIFY_CLIENT_ID=your_spotify_client_id
 DP_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
@@ -283,7 +292,7 @@ Install dependencies:
 npm install
 ```
 
-Run tests:
+Run tests (includes full API, route validation, and DB repository tests):
 
 ```bash
 npm test
@@ -311,25 +320,15 @@ npm start
 
 ```text
 src/
+├── api/
+│   ├── plugins/
+│   ├── routes/
+│   └── server.js
 ├── bootstrap.js
 ├── client.js
 ├── commands/
 │   ├── moderation/
 │   ├── music/
-│   │   ├── play.js
-│   │   ├── search.js
-│   │   ├── nowplaying.js
-│   │   ├── skip.js
-│   │   ├── stop.js
-│   │   ├── resume.js
-│   │   ├── volume.js
-│   │   ├── queue.js
-│   │   ├── shuffle.js
-│   │   ├── loop.js
-│   │   ├── autoplay.js
-│   │   ├── filter.js
-│   │   ├── join.js
-│   │   └── 247.js
 │   ├── setup/
 │   └── utility/
 ├── config/
@@ -348,44 +347,24 @@ src/
 ## Architecture
 
 ```text
-Discord interaction or message
-→ router / parser
-→ command adapter
-→ service layer
-→ repository layer
-→ MongoDB / Discord action
-→ response or moderation log
+Incoming Request
+├── Discord Interaction -> Router -> Command Adapter
+└── HTTP API Request -> Fastify Route -> Zod Validation
+    └── Shared Service Layer (Business Logic)
+        └── Repository Layer (Mongoose/MongoDB)
 ```
 
-Commands stay thin. Services own business behavior. Repositories isolate MongoDB access. Utilities centralize formatting, parsing, embeds, and response mechanics.
-
-## Dashboard Foundation
-
-The dashboard is not a production web app yet. The `dashboard/` directory contains contracts, route plans, and wireframe notes for a later authenticated dashboard phase.
-
-Current dashboard foundation:
-
-- `dashboard/contracts/guild-settings.schema.json`
-- `dashboard/contracts/automod-settings.schema.json`
-- `dashboard/contracts/moderation-case.schema.json`
-- `dashboard/API.md`
-- `dashboard/WIREFRAMES.md`
-
-No OAuth, sessions, API server, or frontend runtime is implemented in this phase.
+Commands and API routes remain thin transport layers. The Service layer owns business behavior, ensuring both Discord and API operations respect the same moderation rules, cache validation, and constraints. Repositories isolate MongoDB access. Utilities centralize formatting, parsing, embeds, and response mechanics.
 
 ## Roadmap
 
-Near-term:
+**Current Focus:**
+- Phase 3: Route Guard Systems & Authentication Planning (Mapping dashboard tokens to Discord permissions safely).
+- Controlled endpoint expansion for write-operations (post-auth).
+- Operational observability and logging enhancements.
 
-- More settings controls for ignored automod roles/channels
-- Better pagination for case history
-- More granular automod allowlists
-- Dashboard OAuth and API implementation
-- Lyrics command integration
-
-Later:
-
-- Server atmosphere systems
-- Analytics summaries
-- AI/context-aware features
-- Memory systems
+**Later:**
+- Dashboard Web UI Integration.
+- Server atmosphere systems.
+- Analytics summaries.
+- AI/context-aware features.
