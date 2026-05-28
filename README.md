@@ -263,6 +263,13 @@ world-tree/
 │
 ├── ecosystem.config.cjs                  # PM2 process config — fork mode, 500M memory limit
 ├── .env.example                          # Environment variable template
+├── .gitignore                            # Git ignore rules (node_modules, .env, logs)
+├── Tree.jpg                              # Bot avatar / project logo
+├── Checklist.txt                         # Development progress checklist
+├── Implementation_Plan.txt               # Original implementation planning document
+├── PRD.txt                               # Product requirements document
+├── System_Architecture.txt               # System architecture design notes
+├── Technical_Specification.txt           # Technical specification reference
 └── package.json                          # Node.js ≥ 20.0.0, ESM modules
 ```
 
