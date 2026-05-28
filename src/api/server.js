@@ -4,18 +4,39 @@ import cors from '@fastify/cors';
 
 import { logger } from '../utils/logger.js';
 import { cookiePlugin } from './plugins/cookiePlugin.js';
+import { discordOAuthPlugin } from './plugins/discordOAuthPlugin.js';
 import { errorHandler } from './plugins/errorHandler.js';
 import { sessionPlugin } from './plugins/sessionPlugin.js';
 import { servicesPlugin } from './plugins/servicesPlugin.js';
+import { authRoutes } from './routes/v1/auth/auth.route.js';
 import { healthRoutes } from './routes/v1/health/health.route.js';
 import { settingsRoutes } from './routes/v1/guilds/settings.route.js';
 import { casesRoutes } from './routes/v1/guilds/cases.route.js';
 import { statsRoutes } from './routes/v1/guilds/stats.route.js';
 
+const AUTH_CALLBACK_PATH = '/v1/auth/callback';
+
+export function sanitizeRequestUrl(url) {
+  if (typeof url !== 'string') {
+    return url;
+  }
+
+  try {
+    const parsedUrl = new URL(url, 'http://world-tree.local');
+    if (parsedUrl.pathname === AUTH_CALLBACK_PATH) {
+      return AUTH_CALLBACK_PATH;
+    }
+  } catch {
+    return url;
+  }
+
+  return url;
+}
+
 /**
  * Creates and configures the Fastify server instance.
  */
-export async function createServer(discordClient, { env = discordClient?.runtimeConfig ?? {} } = {}) {
+export async function createServer(discordClient, { env = discordClient?.runtimeConfig ?? {}, fetchImpl = globalThis.fetch } = {}) {
   // We use Fastify's native Pino logger, but we adapt it so it doesn't
   // clash too heavily with the bot's console output.
   const app = fastify({
@@ -25,7 +46,7 @@ export async function createServer(discordClient, { env = discordClient?.runtime
         req(request) {
           return {
             method: request.method,
-            url: request.url,
+            url: sanitizeRequestUrl(request.url),
             hostname: request.hostname,
             remoteAddress: request.ip,
           };
@@ -55,9 +76,11 @@ export async function createServer(discordClient, { env = discordClient?.runtime
   });
 
   app.addHook('onResponse', async (request, reply) => {
+    const sanitizedUrl = sanitizeRequestUrl(request.url);
+
     app.log.info(
       { req: request, res: { statusCode: reply.statusCode }, responseTime: reply.getResponseTime() },
-      `${request.method} ${request.url} - ${reply.statusCode} [${Math.round(reply.getResponseTime())}ms]`
+      `${request.method} ${sanitizedUrl} - ${reply.statusCode} [${Math.round(reply.getResponseTime())}ms]`
     );
   });
 
@@ -70,6 +93,25 @@ export async function createServer(discordClient, { env = discordClient?.runtime
       sessionSecret: env.sessionSecret,
       isProduction: env.isProduction
     });
+  }
+
+  if (
+    env.sessionSecret &&
+    env.clientId &&
+    env.discordClientSecret &&
+    env.dashboardOrigin &&
+    env.apiOrigin
+  ) {
+    app.register(discordOAuthPlugin, {
+      clientId: env.clientId,
+      clientSecret: env.discordClientSecret,
+      dashboardOrigin: env.dashboardOrigin,
+      apiOrigin: env.apiOrigin,
+      isProduction: env.isProduction,
+      fetchImpl
+    });
+
+    app.register(authRoutes, { prefix: '/v1/auth' });
   }
 
   // Register Routes

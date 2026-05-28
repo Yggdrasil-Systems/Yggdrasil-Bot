@@ -38,12 +38,37 @@ function readCsv(source, key) {
     .filter(Boolean);
 }
 
+function readOrigin(source, key) {
+  const rawValue = cleanValue(source[key]);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(rawValue);
+  } catch {
+    throw new Error(`${key} must be a valid http or https origin.`);
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw new Error(`${key} must be a valid http or https origin.`);
+  }
+
+  if (parsedUrl.pathname !== '/' || parsedUrl.search || parsedUrl.hash) {
+    throw new Error(`${key} must be an origin without a path, query, or hash.`);
+  }
+
+  return parsedUrl.origin;
+}
+
 function requireWhenApiEnabled(source, enableApi) {
   if (!enableApi) {
     return;
   }
 
-  const requiredKeys = ['SESSION_SECRET', 'DISCORD_CLIENT_SECRET', 'DASHBOARD_ORIGIN'];
+  const requiredKeys = ['CLIENT_ID', 'SESSION_SECRET', 'DISCORD_CLIENT_SECRET', 'DASHBOARD_ORIGIN', 'API_ORIGIN'];
   const missingKeys = requiredKeys.filter((key) => !cleanValue(source[key]));
 
   if (missingKeys.length > 0) {
@@ -87,7 +112,8 @@ export function readEnv(source = process.env, profile = 'runtime') {
     guildId: cleanValue(source.GUILD_ID) || null,
     botOwnerId: cleanValue(source.BOT_OWNER_ID) || null,
     dashboardUrl: cleanValue(source.DASHBOARD_URL) || null,
-    dashboardOrigin: cleanValue(source.DASHBOARD_ORIGIN) || null,
+    dashboardOrigin: readOrigin(source, 'DASHBOARD_ORIGIN'),
+    apiOrigin: readOrigin(source, 'API_ORIGIN'),
     discordClientSecret: cleanValue(source.DISCORD_CLIENT_SECRET) || null,
     sessionSecret: readSessionSecret(source),
     trustedAdminRoleIds: readCsv(source, 'TRUSTED_ADMIN_ROLE_IDS'),

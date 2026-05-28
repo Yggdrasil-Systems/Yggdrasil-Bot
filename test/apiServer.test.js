@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { createServer } from '../src/api/server.js';
+import { createServer, sanitizeRequestUrl } from '../src/api/server.js';
 import { z } from 'zod';
 
 describe('API Server', () => {
@@ -96,5 +96,17 @@ describe('API Server', () => {
     assert.strictEqual(response.statusCode, 200);
     assert.strictEqual(response.headers['access-control-allow-origin'], 'http://localhost:5173');
     assert.deepStrictEqual(JSON.parse(response.payload), { session: null });
+  });
+
+  it('redacts OAuth callback query parameters from request logs', () => {
+    assert.strictEqual(
+      sanitizeRequestUrl('/v1/auth/callback?code=authorization-code&state=oauth-state'),
+      '/v1/auth/callback'
+    );
+
+    assert.strictEqual(
+      sanitizeRequestUrl('/v1/guilds/123/cases?limit=2'),
+      '/v1/guilds/123/cases?limit=2'
+    );
   });
 });

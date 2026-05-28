@@ -21,6 +21,7 @@ test('readRuntimeEnv returns trimmed runtime configuration values', () => {
     botOwnerId: null,
     dashboardUrl: null,
     dashboardOrigin: null,
+    apiOrigin: null,
     discordClientSecret: null,
     sessionSecret: null,
     trustedAdminRoleIds: [],
@@ -87,7 +88,7 @@ test('readRuntimeEnv requires dashboard auth secrets when API is enabled', () =>
       MONGO_URI: 'mongodb://localhost/world-tree',
       ENABLE_API: 'true'
     }),
-    /Missing required environment variables: SESSION_SECRET, DISCORD_CLIENT_SECRET, DASHBOARD_ORIGIN/
+    /Missing required environment variables: CLIENT_ID, SESSION_SECRET, DISCORD_CLIENT_SECRET, DASHBOARD_ORIGIN, API_ORIGIN/
   );
 });
 
@@ -97,9 +98,11 @@ test('readRuntimeEnv rejects short session secrets', () => {
       DISCORD_TOKEN: 'token',
       MONGO_URI: 'mongodb://localhost/world-tree',
       ENABLE_API: 'true',
+      CLIENT_ID: 'discord-client-id',
       SESSION_SECRET: 'short',
       DISCORD_CLIENT_SECRET: 'discord-secret',
-      DASHBOARD_ORIGIN: 'http://localhost:5173'
+      DASHBOARD_ORIGIN: 'http://localhost:5173',
+      API_ORIGIN: 'http://localhost:3000'
     }),
     /SESSION_SECRET must be at least 32 characters/
   );
@@ -110,12 +113,16 @@ test('readRuntimeEnv returns trimmed dashboard auth configuration', () => {
     DISCORD_TOKEN: 'token',
     MONGO_URI: 'mongodb://localhost/world-tree',
     ENABLE_API: 'true',
+    CLIENT_ID: ' discord-client-id ',
     SESSION_SECRET: ' 12345678901234567890123456789012 ',
     DISCORD_CLIENT_SECRET: ' discord-secret ',
-    DASHBOARD_ORIGIN: ' http://localhost:5173 '
+    DASHBOARD_ORIGIN: ' http://localhost:5173/ ',
+    API_ORIGIN: ' http://localhost:3000/ '
   });
 
+  assert.equal(env.clientId, 'discord-client-id');
   assert.equal(env.sessionSecret, '12345678901234567890123456789012');
   assert.equal(env.discordClientSecret, 'discord-secret');
   assert.equal(env.dashboardOrigin, 'http://localhost:5173');
+  assert.equal(env.apiOrigin, 'http://localhost:3000');
 });
