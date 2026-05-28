@@ -79,7 +79,7 @@ describe('API Server', () => {
       }
     });
 
-    authApp.get('/v1/test-session', { preHandler: authApp.sessionValidator }, async (request) => ({
+    authApp.get('/v1/test-session', { preHandler: authApp.sessionDecorator }, async (request) => ({
       session: request.session
     }));
 

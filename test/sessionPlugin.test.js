@@ -58,7 +58,11 @@ async function buildSessionApp({ isProduction = false } = {}) {
     return { ok: true };
   });
 
-  app.get('/session', { preHandler: app.sessionValidator }, async (request) => ({
+  app.get('/decorated-session', { preHandler: app.sessionDecorator }, async (request) => ({
+    session: request.session
+  }));
+
+  app.get('/guarded-session', { preHandler: app.sessionGuard }, async (request) => ({
     session: request.session
   }));
 
@@ -99,14 +103,14 @@ describe('sessionPlugin', () => {
     });
   });
 
-  it('attaches request.session for valid signed session cookies', async () => {
+  it('sessionDecorator attaches request.session for valid signed session cookies', async () => {
     const app = await buildSessionApp();
 
     const issueResponse = await app.inject({ method: 'GET', url: '/issue' });
     const cookieHeader = extractCookie(issueResponse.headers['set-cookie']);
     const sessionResponse = await app.inject({
       method: 'GET',
-      url: '/session',
+      url: '/decorated-session',
       headers: { cookie: cookieHeader }
     });
 
@@ -149,12 +153,27 @@ describe('sessionPlugin', () => {
     assert.match(response.headers['set-cookie'], /Secure/);
   });
 
-  it('rejects invalid signatures', async () => {
+  it('sessionDecorator leaves request.session null for invalid signatures', async () => {
     const app = await buildSessionApp();
 
     const response = await app.inject({
       method: 'GET',
-      url: '/session',
+      url: '/decorated-session',
+      headers: { cookie: `${SESSION_COOKIE_NAME}=unsigned-value` }
+    });
+
+    await app.close();
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(JSON.parse(response.payload), { session: null });
+  });
+
+  it('sessionGuard rejects invalid signatures', async () => {
+    const app = await buildSessionApp();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/guarded-session',
       headers: { cookie: `${SESSION_COOKIE_NAME}=unsigned-value` }
     });
 
@@ -168,14 +187,14 @@ describe('sessionPlugin', () => {
     });
   });
 
-  it('rejects tampered cookies', async () => {
+  it('sessionGuard rejects tampered cookies', async () => {
     const app = await buildSessionApp();
 
     const issueResponse = await app.inject({ method: 'GET', url: '/issue' });
     const cookieHeader = tamperCookie(extractCookie(issueResponse.headers['set-cookie']));
     const response = await app.inject({
       method: 'GET',
-      url: '/session',
+      url: '/guarded-session',
       headers: { cookie: cookieHeader }
     });
 
@@ -184,14 +203,14 @@ describe('sessionPlugin', () => {
     assert.equal(response.statusCode, 401);
   });
 
-  it('rejects expired sessions', async () => {
+  it('sessionGuard rejects expired sessions', async () => {
     const app = await buildSessionApp();
 
     const issueResponse = await app.inject({ method: 'GET', url: '/issue-expired' });
     const cookieHeader = extractCookie(issueResponse.headers['set-cookie']);
     const response = await app.inject({
       method: 'GET',
-      url: '/session',
+      url: '/guarded-session',
       headers: { cookie: cookieHeader }
     });
 
@@ -200,14 +219,14 @@ describe('sessionPlugin', () => {
     assert.equal(response.statusCode, 401);
   });
 
-  it('rejects corrupted payloads', async () => {
+  it('sessionGuard rejects corrupted payloads', async () => {
     const app = await buildSessionApp();
 
     const issueResponse = await app.inject({ method: 'GET', url: '/issue-corrupted' });
     const cookieHeader = extractCookie(issueResponse.headers['set-cookie']);
     const response = await app.inject({
       method: 'GET',
-      url: '/session',
+      url: '/guarded-session',
       headers: { cookie: cookieHeader }
     });
 
@@ -216,12 +235,12 @@ describe('sessionPlugin', () => {
     assert.equal(response.statusCode, 401);
   });
 
-  it('handles malformed cookie values without throwing', async () => {
+  it('sessionGuard handles malformed cookie values without throwing', async () => {
     const app = await buildSessionApp();
 
     const response = await app.inject({
       method: 'GET',
-      url: '/session',
+      url: '/guarded-session',
       headers: { cookie: `${SESSION_COOKIE_NAME}=` }
     });
 
@@ -230,14 +249,46 @@ describe('sessionPlugin', () => {
     assert.equal(response.statusCode, 401);
   });
 
-  it('leaves request.session null when no session cookie is present', async () => {
+  it('sessionDecorator leaves request.session null when no session cookie is present', async () => {
     const app = await buildSessionApp();
 
-    const response = await app.inject({ method: 'GET', url: '/session' });
+    const response = await app.inject({ method: 'GET', url: '/decorated-session' });
 
     await app.close();
 
     assert.equal(response.statusCode, 200);
     assert.deepEqual(JSON.parse(response.payload), { session: null });
+  });
+
+  it('sessionGuard rejects missing session cookies', async () => {
+    const app = await buildSessionApp();
+
+    const response = await app.inject({ method: 'GET', url: '/guarded-session' });
+
+    await app.close();
+
+    assert.equal(response.statusCode, 401);
+    assert.deepEqual(JSON.parse(response.payload), {
+      statusCode: 401,
+      error: 'Unauthorized',
+      message: 'Invalid session'
+    });
+  });
+
+  it('sessionGuard attaches request.session for valid signed session cookies', async () => {
+    const app = await buildSessionApp();
+
+    const issueResponse = await app.inject({ method: 'GET', url: '/issue' });
+    const cookieHeader = extractCookie(issueResponse.headers['set-cookie']);
+    const response = await app.inject({
+      method: 'GET',
+      url: '/guarded-session',
+      headers: { cookie: cookieHeader }
+    });
+
+    await app.close();
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(JSON.parse(response.payload).session.accessToken, 'discord-access-token');
   });
 });

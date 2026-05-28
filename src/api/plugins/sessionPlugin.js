@@ -74,6 +74,33 @@ function unauthorized(reply) {
   });
 }
 
+function readSessionFromCookie(request, sessionSecret) {
+  const hasSessionCookie = Object.hasOwn(request.cookies ?? {}, SESSION_COOKIE_NAME);
+  const signedCookie = request.cookies?.[SESSION_COOKIE_NAME];
+
+  if (!hasSessionCookie) {
+    return { ok: false, reason: 'missing' };
+  }
+
+  if (typeof signedCookie !== 'string' || signedCookie.length === 0) {
+    return { ok: false, reason: 'malformed' };
+  }
+
+  const unsignedCookie = request.unsignCookie(signedCookie);
+
+  if (!unsignedCookie.valid || !unsignedCookie.value) {
+    return { ok: false, reason: 'signature' };
+  }
+
+  const session = deserializeSession(unsignedCookie.value, sessionSecret);
+
+  if (!session) {
+    return { ok: false, reason: 'payload' };
+  }
+
+  return { ok: true, session };
+}
+
 export function encryptAccessToken(accessToken, sessionSecret) {
   if (typeof accessToken !== 'string' || accessToken.length === 0) {
     throw new Error('Access token must be a non-empty string.');
@@ -200,36 +227,34 @@ export const sessionPlugin = fp(async (fastify, opts) => {
     });
   });
 
-  fastify.decorate('sessionValidator', async function sessionValidator(request, reply) {
+  fastify.decorate('sessionDecorator', async function sessionDecorator(request, reply) {
     request.session = null;
 
-    const hasSessionCookie = Object.hasOwn(request.cookies ?? {}, SESSION_COOKIE_NAME);
-    const signedCookie = request.cookies?.[SESSION_COOKIE_NAME];
+    const result = readSessionFromCookie(request, sessionSecret);
 
-    if (!hasSessionCookie) {
+    if (!result.ok) {
+      if (result.reason !== 'missing') {
+        reply.clearSessionCookie();
+      }
       return;
     }
 
-    if (typeof signedCookie !== 'string' || signedCookie.length === 0) {
-      reply.clearSessionCookie();
+    request.session = result.session;
+  });
+
+  fastify.decorate('sessionGuard', async function sessionGuard(request, reply) {
+    request.session = null;
+
+    const result = readSessionFromCookie(request, sessionSecret);
+
+    if (!result.ok) {
+      if (result.reason !== 'missing') {
+        reply.clearSessionCookie();
+      }
       return unauthorized(reply);
     }
 
-    const unsignedCookie = request.unsignCookie(signedCookie);
-
-    if (!unsignedCookie.valid || !unsignedCookie.value) {
-      reply.clearSessionCookie();
-      return unauthorized(reply);
-    }
-
-    const session = deserializeSession(unsignedCookie.value, sessionSecret);
-
-    if (!session) {
-      reply.clearSessionCookie();
-      return unauthorized(reply);
-    }
-
-    request.session = session;
+    request.session = result.session;
   });
 }, {
   name: 'sessionPlugin',
