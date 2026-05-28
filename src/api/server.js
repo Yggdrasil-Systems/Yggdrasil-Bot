@@ -1,8 +1,11 @@
 import fastify from 'fastify';
 import { serializerCompiler, validatorCompiler, jsonSchemaTransform } from 'fastify-type-provider-zod';
+import cors from '@fastify/cors';
 
 import { logger } from '../utils/logger.js';
+import { cookiePlugin } from './plugins/cookiePlugin.js';
 import { errorHandler } from './plugins/errorHandler.js';
+import { sessionPlugin } from './plugins/sessionPlugin.js';
 import { servicesPlugin } from './plugins/servicesPlugin.js';
 import { healthRoutes } from './routes/v1/health/health.route.js';
 import { settingsRoutes } from './routes/v1/guilds/settings.route.js';
@@ -12,7 +15,7 @@ import { statsRoutes } from './routes/v1/guilds/stats.route.js';
 /**
  * Creates and configures the Fastify server instance.
  */
-export async function createServer(discordClient) {
+export async function createServer(discordClient, { env = discordClient?.runtimeConfig ?? {} } = {}) {
   // We use Fastify's native Pino logger, but we adapt it so it doesn't
   // clash too heavily with the bot's console output.
   const app = fastify({
@@ -39,6 +42,13 @@ export async function createServer(discordClient) {
   // Global Error Handler
   app.register(errorHandler);
 
+  if (env.dashboardOrigin) {
+    app.register(cors, {
+      origin: env.dashboardOrigin,
+      credentials: true
+    });
+  }
+
   // Clean request logging
   app.addHook('onRequest', async (request, reply) => {
     app.log.debug({ req: request }, 'Incoming request');
@@ -53,6 +63,14 @@ export async function createServer(discordClient) {
 
   // Inject shared services
   app.register(servicesPlugin, { client: discordClient });
+
+  if (env.sessionSecret) {
+    app.register(cookiePlugin, { sessionSecret: env.sessionSecret });
+    app.register(sessionPlugin, {
+      sessionSecret: env.sessionSecret,
+      isProduction: env.isProduction
+    });
+  }
 
   // Register Routes
   app.register(healthRoutes, { prefix: '/v1/health' });

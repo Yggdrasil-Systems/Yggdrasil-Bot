@@ -69,4 +69,32 @@ describe('API Server', () => {
     // Wait, our errorHandler only kicks in for zod validation if it has `error.validation`. Fastify's default compiler sets `error.validation`.
     assert.strictEqual(payload.error, 'Bad Request');
   });
+
+  it('registers dashboard cookie/session infrastructure when auth env is provided', async () => {
+    const authApp = await createServer(mockDiscordClient, {
+      env: {
+        dashboardOrigin: 'http://localhost:5173',
+        sessionSecret: '12345678901234567890123456789012',
+        isProduction: false
+      }
+    });
+
+    authApp.get('/v1/test-session', { preHandler: authApp.sessionValidator }, async (request) => ({
+      session: request.session
+    }));
+
+    const response = await authApp.inject({
+      method: 'GET',
+      url: '/v1/test-session',
+      headers: {
+        origin: 'http://localhost:5173'
+      }
+    });
+
+    await authApp.close();
+
+    assert.strictEqual(response.statusCode, 200);
+    assert.strictEqual(response.headers['access-control-allow-origin'], 'http://localhost:5173');
+    assert.deepStrictEqual(JSON.parse(response.payload), { session: null });
+  });
 });

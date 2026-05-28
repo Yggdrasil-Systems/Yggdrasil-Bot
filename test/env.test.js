@@ -20,6 +20,9 @@ test('readRuntimeEnv returns trimmed runtime configuration values', () => {
     guildId: null,
     botOwnerId: null,
     dashboardUrl: null,
+    dashboardOrigin: null,
+    discordClientSecret: null,
+    sessionSecret: null,
     trustedAdminRoleIds: [],
     enableApi: false,
     apiPort: 3000,
@@ -75,4 +78,44 @@ test('readRuntimeEnv rejects invalid MongoDB timeout values', () => {
     }),
     /MONGO_SERVER_SELECTION_TIMEOUT_MS must be a positive integer/
   );
+});
+
+test('readRuntimeEnv requires dashboard auth secrets when API is enabled', () => {
+  assert.throws(
+    () => readRuntimeEnv({
+      DISCORD_TOKEN: 'token',
+      MONGO_URI: 'mongodb://localhost/world-tree',
+      ENABLE_API: 'true'
+    }),
+    /Missing required environment variables: SESSION_SECRET, DISCORD_CLIENT_SECRET, DASHBOARD_ORIGIN/
+  );
+});
+
+test('readRuntimeEnv rejects short session secrets', () => {
+  assert.throws(
+    () => readRuntimeEnv({
+      DISCORD_TOKEN: 'token',
+      MONGO_URI: 'mongodb://localhost/world-tree',
+      ENABLE_API: 'true',
+      SESSION_SECRET: 'short',
+      DISCORD_CLIENT_SECRET: 'discord-secret',
+      DASHBOARD_ORIGIN: 'http://localhost:5173'
+    }),
+    /SESSION_SECRET must be at least 32 characters/
+  );
+});
+
+test('readRuntimeEnv returns trimmed dashboard auth configuration', () => {
+  const env = readRuntimeEnv({
+    DISCORD_TOKEN: 'token',
+    MONGO_URI: 'mongodb://localhost/world-tree',
+    ENABLE_API: 'true',
+    SESSION_SECRET: ' 12345678901234567890123456789012 ',
+    DISCORD_CLIENT_SECRET: ' discord-secret ',
+    DASHBOARD_ORIGIN: ' http://localhost:5173 '
+  });
+
+  assert.equal(env.sessionSecret, '12345678901234567890123456789012');
+  assert.equal(env.discordClientSecret, 'discord-secret');
+  assert.equal(env.dashboardOrigin, 'http://localhost:5173');
 });

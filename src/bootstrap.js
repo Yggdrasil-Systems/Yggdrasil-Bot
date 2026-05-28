@@ -47,7 +47,7 @@ export async function bootstrap({
 
   let apiServer = null;
   if (env.enableApi) {
-    apiServer = await createServer(client);
+    apiServer = await createServer(client, { env });
     await apiServer.listen({ port: env.apiPort, host: '0.0.0.0' });
     log.info(`API Server listening on port ${env.apiPort}`);
   }

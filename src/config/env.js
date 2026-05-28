@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
 const DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MS = 10000;
+const MIN_SESSION_SECRET_LENGTH = 32;
 
 const ENV_PROFILES = Object.freeze({
   core: ['DISCORD_TOKEN'],
@@ -37,6 +38,29 @@ function readCsv(source, key) {
     .filter(Boolean);
 }
 
+function requireWhenApiEnabled(source, enableApi) {
+  if (!enableApi) {
+    return;
+  }
+
+  const requiredKeys = ['SESSION_SECRET', 'DISCORD_CLIENT_SECRET', 'DASHBOARD_ORIGIN'];
+  const missingKeys = requiredKeys.filter((key) => !cleanValue(source[key]));
+
+  if (missingKeys.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingKeys.join(', ')}`);
+  }
+}
+
+function readSessionSecret(source) {
+  const sessionSecret = cleanValue(source.SESSION_SECRET);
+
+  if (sessionSecret && sessionSecret.length < MIN_SESSION_SECRET_LENGTH) {
+    throw new Error(`SESSION_SECRET must be at least ${MIN_SESSION_SECRET_LENGTH} characters.`);
+  }
+
+  return sessionSecret || null;
+}
+
 export function readEnv(source = process.env, profile = 'runtime') {
   const requiredKeys = ENV_PROFILES[profile];
 
@@ -50,6 +74,10 @@ export function readEnv(source = process.env, profile = 'runtime') {
     throw new Error(`Missing required environment variables: ${missingKeys.join(', ')}`);
   }
 
+  const enableApi = cleanValue(source.ENABLE_API) === 'true';
+
+  requireWhenApiEnabled(source, enableApi);
+
   const nodeEnv = cleanValue(source.NODE_ENV) || 'development';
 
   return {
@@ -59,8 +87,11 @@ export function readEnv(source = process.env, profile = 'runtime') {
     guildId: cleanValue(source.GUILD_ID) || null,
     botOwnerId: cleanValue(source.BOT_OWNER_ID) || null,
     dashboardUrl: cleanValue(source.DASHBOARD_URL) || null,
+    dashboardOrigin: cleanValue(source.DASHBOARD_ORIGIN) || null,
+    discordClientSecret: cleanValue(source.DISCORD_CLIENT_SECRET) || null,
+    sessionSecret: readSessionSecret(source),
     trustedAdminRoleIds: readCsv(source, 'TRUSTED_ADMIN_ROLE_IDS'),
-    enableApi: cleanValue(source.ENABLE_API) === 'true',
+    enableApi,
     apiPort: readPositiveInteger(source, 'API_PORT', 3000),
     nodeEnv,
     isProduction: nodeEnv === 'production',
