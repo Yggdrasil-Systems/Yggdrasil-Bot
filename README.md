@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🌳 World Tree
+# 🌳 World Tree - Yggdrasil
 
 **A self-hosted Discord platform with modular services, encrypted API infrastructure, and low-overhead architecture.**
 
-Built for a private community. Designed like production infrastructure.
+Built for fun. Designed like production infrastructure.
 
 `Node.js` · `discord.js` · `Fastify` · `MongoDB` · `Zod` · `PM2` · `antiX Linux`
 
