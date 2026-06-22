@@ -83,6 +83,19 @@ describe('Logger', () => {
     assert.equal(capture.entries[0].guildId, 'guild-1');
   });
 
+  it('redacts sensitive child logger bindings', () => {
+    const capture = createCaptureStream();
+    const testLogger = createLogger({
+      isProduction: true,
+      stream: capture.stream
+    }).child({ component: 'auth', accessToken: 'secret-token' });
+
+    testLogger.info('Child binding message');
+
+    assert.equal(capture.entries[0].component, 'auth');
+    assert.equal(capture.entries[0].accessToken, '[REDACTED]');
+  });
+
   it('redacts auth-sensitive values from messages and details', () => {
     const capture = createCaptureStream();
     const testLogger = createLogger({

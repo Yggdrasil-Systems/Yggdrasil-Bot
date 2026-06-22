@@ -54,7 +54,7 @@ function buildPinoOptions({ scope, level, bindings, isProduction, stream }) {
     level,
     base: {
       scope,
-      ...bindings
+      ...sanitizeDetails(bindings)
     },
     timestamp: pino.stdTimeFunctions.isoTime,
     formatters: {
@@ -121,6 +121,10 @@ export function createLogger({
     stream
   );
 
+  return createLoggerAdapter(pinoLogger);
+}
+
+function createLoggerAdapter(pinoLogger) {
   function emit(logLevel, message, details) {
     const safeMessage = redactMessage(message);
     const safeDetails = normalizeDetails(details);
@@ -151,17 +155,7 @@ export function createLogger({
     },
 
     child(childBindings = {}) {
-      return createLogger({
-        scope,
-        component: childBindings.component ?? component,
-        bindings: {
-          ...bindings,
-          ...childBindings
-        },
-        isProduction,
-        level,
-        stream
-      });
+      return createLoggerAdapter(pinoLogger.child(sanitizeDetails(childBindings)));
     }
   });
 }
