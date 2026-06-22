@@ -18,14 +18,29 @@ async function registerCommands() {
     .map((command) => command.data.toJSON());
   const rest = new REST({ version: '10' }).setToken(env.discordToken);
 
-  logger.info(`Registering ${commandPayload.length} guild slash command(s).`);
+  if (env.isProduction) {
+    logger.info(`Registering ${commandPayload.length} global slash command(s).`);
+    logger.info('This will make commands available in all servers. Propagation may take up to 1 hour.');
 
-  await rest.put(
-    Routes.applicationGuildCommands(env.clientId, env.guildId),
-    { body: commandPayload }
-  );
+    await rest.put(
+      Routes.applicationCommands(env.clientId),
+      { body: commandPayload }
+    );
 
-  logger.info('Slash commands registered.');
+    logger.info('Global slash commands registered successfully.');
+  } else {
+    const targetGuildId = env.devGuildId;
+
+    logger.info(`Registering ${commandPayload.length} guild slash command(s) for development guild ${targetGuildId}.`);
+    logger.info('Guild commands update instantly — no propagation delay.');
+
+    await rest.put(
+      Routes.applicationGuildCommands(env.clientId, targetGuildId),
+      { body: commandPayload }
+    );
+
+    logger.info('Guild slash commands registered successfully.');
+  }
 }
 
 registerCommands().catch((error) => {

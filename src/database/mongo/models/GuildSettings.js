@@ -15,6 +15,14 @@ const punishmentSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const activityRoleConfigSchema = new mongoose.Schema(
+  {
+    enabled: { type: Boolean, default: false },
+    roleId: { type: String, default: null }
+  },
+  { _id: false }
+);
+
 const guildSettingsSchema = new mongoose.Schema(
   {
     guildId: {
@@ -90,6 +98,12 @@ const guildSettingsSchema = new mongoose.Schema(
     prefix: {
       type: String,
       default: 'tree'
+    },
+    activityRoles: {
+      spotify: { type: activityRoleConfigSchema, default: () => ({ enabled: false, roleId: null }) },
+      streaming: { type: activityRoleConfigSchema, default: () => ({ enabled: false, roleId: null }) },
+      gaming: { type: activityRoleConfigSchema, default: () => ({ enabled: false, roleId: null }) },
+      voice: { type: activityRoleConfigSchema, default: () => ({ enabled: false, roleId: null }) }
     }
   },
   { timestamps: true }

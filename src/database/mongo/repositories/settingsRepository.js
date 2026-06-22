@@ -98,6 +98,24 @@ export function createSettingsRepository(model = GuildSettings) {
         { $pull: { 'automod.rules.badWords.words': word.toLowerCase() } },
         upsertOptions()
       ).lean();
+    },
+
+    // ─── Activity Roles ───────────────────────────────────────────────────────
+
+    async setActivityRole(guildId, activityType, { enabled, roleId }) {
+      return model.findOneAndUpdate(
+        { guildId },
+        { $set: buildNestedSet(`activityRoles.${activityType}`, { enabled, roleId }) },
+        upsertOptions()
+      ).lean();
+    },
+
+    async removeActivityRole(guildId, activityType) {
+      return model.findOneAndUpdate(
+        { guildId },
+        { $set: { [`activityRoles.${activityType}.enabled`]: false, [`activityRoles.${activityType}.roleId`]: null } },
+        upsertOptions()
+      ).lean();
     }
   };
 }

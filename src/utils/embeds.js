@@ -400,13 +400,22 @@ export function buildSettingsEmbed(settings) {
     ? settings.trustedAdminRoleIds.map((roleId) => `<@&${roleId}>`).join(', ')
     : 'None configured';
 
+  const activityRoles = Object.entries(settings.activityRoles ?? {})
+    .filter(([, config]) => config?.enabled && config?.roleId)
+    .map(([type, config]) => {
+      const labels = { spotify: '🟢', streaming: '🔴', gaming: '🎮', voice: '🔊' };
+      return `${labels[type] ?? '⚡'} <@&${config.roleId}>`;
+    })
+    .join('\n') || 'None configured';
+
   return buildBaseEmbed({
     title: `⚙️ ${BOT.name} Settings`,
     description: `Server ID: \`${settings.guildId}\``
   }).addFields(
     { name: '📝 Mod Log', value: settings.modLogChannelId ? `<#${settings.modLogChannelId}>` : 'Not configured', inline: true },
     { name: '🛡️ Automod', value: formatBoolean(settings.automod.enabled), inline: true },
-    { name: '🎭 Trusted Admin Roles', value: trustedRoles.slice(0, 1024), inline: false }
+    { name: '🎭 Trusted Admin Roles', value: trustedRoles.slice(0, 1024), inline: false },
+    { name: '⚡ Activity Roles', value: activityRoles.slice(0, 1024), inline: false }
   );
 }
 

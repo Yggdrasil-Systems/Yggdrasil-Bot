@@ -3,6 +3,7 @@ import { Collection, PermissionsBitField } from 'discord.js';
 import { test } from 'node:test';
 
 import { handleMessageCommand } from '../src/middleware/messageCommandRouter.js';
+import * as activityRoleCommand from '../src/commands/setup/activityrole.js';
 
 function createMessage({ content, command, commandName = 'ping', member, guildOwnerId = 'owner' }) {
   const replies = [];
@@ -94,6 +95,39 @@ test('handleMessageCommand allows no-prefix shortcuts for allowlisted users', as
   assert.equal(executed, true);
   assert.equal(context.mode, 'no-prefix');
   assert.equal(context.commandName, 'ping');
+});
+
+test('handleMessageCommand allows bot owner no-prefix admin shortcuts', async () => {
+  let context;
+  const { message } = createMessage({
+    content: 'activityrole set spotify @Spotify',
+    commandName: 'activityrole',
+    command: {
+      name: 'activityrole',
+      adminOnly: true,
+      allowNoPrefix: true,
+      executeMessage: async (receivedContext) => {
+        context = receivedContext;
+      }
+    },
+    member: {
+      permissions: new PermissionsBitField([]),
+      roles: { cache: new Map() }
+    }
+  });
+  message.author.id = 'owner';
+  message.client.runtimeConfig = { botOwnerId: 'owner' };
+
+  const executed = await handleMessageCommand(message);
+
+  assert.equal(executed, true);
+  assert.equal(context.mode, 'no-prefix');
+  assert.equal(context.commandName, 'activityrole');
+  assert.deepEqual(context.args, ['set', 'spotify', '@Spotify']);
+});
+
+test('activityrole command is registered for no-prefix routing', () => {
+  assert.equal(activityRoleCommand.allowNoPrefix, true);
 });
 
 test('handleMessageCommand does not treat denied no-prefix lookalikes as executed commands', async () => {

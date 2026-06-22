@@ -96,8 +96,11 @@ world-tree/
 │   │   │   ├── cookiePlugin.js           # @fastify/cookie with HMAC-SHA256 signing
 │   │   │   ├── sessionPlugin.js          # AES-256-GCM encrypted sessions, HKDF key derivation
 │   │   │   ├── servicesPlugin.js         # Dependency injection — shared services into Fastify context
+│   │   │   ├── discordOAuthPlugin.js     # Discord OAuth2 + PKCE helpers and safe Discord API calls
 │   │   │   └── errorHandler.js           # Centralized Zod validation + 5xx error formatting
 │   │   └── routes/v1/
+│   │       ├── auth/
+│   │       │   └── auth.route.js         # GET login/callback/me + POST logout
 │   │       ├── health/
 │   │       │   └── health.route.js       # GET /v1/health — runtime + Discord + DB status
 │   │       └── guilds/
@@ -139,6 +142,7 @@ world-tree/
 │   │   │   ├── setmodlog.js            # Set mod-log channel (prefix variant)
 │   │   │   ├── noprefix.js             # No-prefix allowlist management (add/remove/list)
 │   │   │   ├── trustedrole.js          # Trusted admin role management entry point
+│   │   │   ├── activityrole.js         # Activity role shortcut command
 │   │   │   └── setup-music.js          # Create #music-requests channel with auto-play behavior
 │   │   │
 │   │   └── utility/
@@ -159,6 +163,7 @@ world-tree/
 │   ├── services/                         # ── Business Logic ────────────────────────────────
 │   │   ├── moderationService.js          # Permission checks, hierarchy validation, case lifecycle
 │   │   ├── settingsService.js            # Guild settings with in-memory TTL cache + normalization
+│   │   ├── activityRoleService.js        # Presence/voice activity role assignment
 │   │   ├── musicService.js               # discord-player init, extractor pipeline, event wiring
 │   │   ├── helpService.js                # Category-based help menu builder
 │   │   ├── utilityService.js             # User/server/role/bot info aggregation
@@ -180,7 +185,7 @@ world-tree/
 │   │   ├── connection.js                 # Mongoose connection with configurable timeout
 │   │   ├── queryOptions.js               # Shared upsert/lean options
 │   │   ├── models/
-│   │   │   ├── GuildSettings.js          # Per-guild config: automod, moderation, trusted roles
+│   │   │   ├── GuildSettings.js          # Per-guild config: automod, moderation, trusted/activity roles
 │   │   │   ├── ModerationCase.js         # Case records: warn, timeout, kick, ban, purge
 │   │   │   ├── Counter.js               # Atomic auto-increment for case IDs
 │   │   │   └── NoPrefixPrivilege.js      # Global no-prefix user grants
@@ -206,7 +211,9 @@ world-tree/
 │   ├── events/
 │   │   ├── ready.js                      # Client ready — log confirmation + activity status
 │   │   ├── interactionCreate.js          # Route interactions to commandRouter
-│   │   └── messageCreate.js              # Route messages to messageCommandRouter + automod
+│   │   ├── messageCreate.js              # Route messages to messageCommandRouter + automod
+│   │   ├── presenceUpdate.js             # Spotify/streaming/gaming activity role updates
+│   │   └── voiceStateUpdate.js           # Voice activity role updates
 │   │
 │   └── utils/
 │       ├── embeds.js                     # Visual embed system — moderation, music, utility, help
@@ -220,10 +227,12 @@ world-tree/
 │       ├── moderationInputs.js           # Shared moderation command input extraction
 │       └── fileDiscovery.js              # Recursive .js file finder for loaders
 │
-├── test/                                 # ── 27 Test Files ──────────────────────────────────
+├── test/                                 # ── 32 Test Files ──────────────────────────────────
 │   ├── apiServer.test.js                 # Fastify lifecycle, Zod validation, session integration
 │   ├── apiRoutes.test.js                 # Route serialization, pagination, field stripping
 │   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
+│   ├── authRoutes.test.js                # OAuth login/callback/me/logout route behavior
+│   ├── discordOAuth.test.js              # PKCE, state, token exchange, identity fetch helpers
 │   ├── bootstrap.test.js                 # Startup sequencer integration
 │   ├── env.test.js                       # Environment config profiles, validation, API secrets
 │   ├── commandLoader.test.js             # Command discovery, contract validation, duplicates
@@ -234,6 +243,9 @@ world-tree/
 │   ├── moderationService.test.js         # Permission enforcement, hierarchy, case lifecycle
 │   ├── moderationRepository.test.js      # Atomic counters, case creation, warning listing
 │   ├── settingsService.test.js           # Settings normalization, cache invalidation
+│   ├── settingsServiceActivityRoles.test.js # Activity role settings persistence
+│   ├── activityRoleService.test.js       # Presence/voice role assignment behavior
+│   ├── discordConfigActivityRoles.test.js # Presence intent configuration
 │   ├── settingsRepository.test.js        # CRUD, mod-log, automod rule updates
 │   ├── noPrefixService.test.js           # Owner override, add/remove, cache behavior
 │   ├── noPrefixRepository.test.js        # Privilege upsert operations
@@ -415,6 +427,19 @@ graph LR
 | Cookie Flags | `HttpOnly`, `SameSite=Lax`, `Secure` (prod), `Path=/` |
 | Token Storage | Encrypted inside cookie — no server-side session state |
 
+### OAuth2 + PKCE Flow
+
+Discord is the only identity provider. The API implements the Authorization Code flow with PKCE and issues the existing encrypted session cookie after Discord identity is verified.
+
+| Route | Behavior |
+|---|---|
+| `GET /v1/auth/login` | Generates state + PKCE verifier cookies and redirects to Discord |
+| `GET /v1/auth/callback` | Validates state/verifier, exchanges code, fetches `/users/@me`, issues session |
+| `GET /v1/auth/me` | Requires `sessionGuard`, fetches live Discord identity, returns safe profile fields |
+| `POST /v1/auth/logout` | Requires `sessionGuard`, clears the session cookie |
+
+Redirect URIs are built only from explicit config: `${API_ORIGIN}/v1/auth/callback`. Dashboard redirects always use `DASHBOARD_ORIGIN`; request headers are never trusted for redirect targets.
+
 ---
 
 ## Command Model
@@ -469,6 +494,41 @@ Settings-driven, in-memory rolling windows. No Redis.
 - Caps spam (ratio + minimum length)
 - Punishments: `delete`, `warn`, `timeout`
 
+### Activity Roles
+
+Activity roles assign or remove configured roles when a member starts or stops a tracked activity.
+
+| Type | Trigger |
+|---|---|
+| `spotify` | Listening to Spotify |
+| `streaming` | Streaming activity |
+| `gaming` | Playing a game |
+| `voice` | Joining or leaving a voice channel |
+
+Slash command:
+
+```bash
+/activityrole set type:spotify role:@Spotify
+/activityrole remove type:spotify
+/activityrole list
+```
+
+Prefix and owner no-prefix shortcuts:
+
+```bash
+tree activityrole set spotify @Spotify
+tree activityrole remove spotify
+activityrole set spotify @Spotify
+```
+
+Operational requirements:
+
+- The bot needs `Manage Roles`.
+- The bot's highest role must be above the activity role.
+- Presence-based types require the Developer Portal `Presence Intent`.
+- Voice roles require `GuildVoiceStates`, which is enabled in the bot client config.
+- Discord server owners can receive activity roles, but bot accounts are ignored.
+
 ---
 
 ## Deployment Model
@@ -508,9 +568,14 @@ Settings-driven, in-memory rolling windows. No Redis.
 DISCORD_TOKEN=your_discord_bot_token
 MONGO_URI=your_mongodb_atlas_connection_string
 CLIENT_ID=your_discord_application_client_id
-GUILD_ID=your_test_guild_id
 BOT_OWNER_ID=your_discord_user_id
 NODE_ENV=development
+
+# ── Command Registration ─────────────────────
+# DEV_GUILD_ID: Required for development (instant guild-scoped registration)
+# GUILD_ID: Backward-compatible alias for DEV_GUILD_ID
+# In production (NODE_ENV=production), commands are registered globally — no guild ID needed
+DEV_GUILD_ID=your_test_discord_server_id
 
 # ── API (required when ENABLE_API=true) ────
 ENABLE_API=true
@@ -518,6 +583,7 @@ API_PORT=3000
 SESSION_SECRET=random_32_byte_hex_string
 DISCORD_CLIENT_SECRET=your_oauth2_client_secret
 DASHBOARD_ORIGIN=http://localhost:5173
+API_ORIGIN=http://localhost:3000
 
 # ── Music (optional) ──────────────────────
 DP_SPOTIFY_CLIENT_ID=your_spotify_client_id
@@ -526,12 +592,47 @@ DP_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 
 ---
 
+## Command Registration
+
+World Tree uses a **dual-mode command registration strategy** depending on `NODE_ENV`.
+
+### Development Mode (default)
+
+```bash
+npm run register:commands
+```
+
+- Registers commands **guild-scoped** using `DEV_GUILD_ID`
+- Updates are **instant** — no propagation delay
+- Only visible in the configured development guild
+- Perfect for rapid iteration during development
+
+### Production Mode
+
+```bash
+NODE_ENV=production npm run register:commands
+```
+
+- Registers commands **globally** across all servers
+- May take up to **1 hour** to propagate across Discord
+- Visible to every server where the bot is invited
+- Run this once per deploy when commands change
+
+### Why Two Modes?
+
+| Mode | Scope | Speed | Use Case |
+|------|-------|-------|----------|
+| Guild | Single server | Instant | Development, testing |
+| Global | All servers | Up to 1 hour | Production deployments |
+
+---
+
 ## Development
 
 ```bash
 npm install                  # Install dependencies
 npm test                     # Run full test suite (Node.js built-in test runner)
-npm run register:commands    # Deploy slash commands to test guild
+npm run register:commands    # Deploy slash commands to test guild (instant)
 npm run dev                  # Start with nodemon (auto-reload)
 npm start                    # Production start
 ```
@@ -541,6 +642,12 @@ npm start                    # Production start
 In the Developer Portal, enable these gateway intents:
 
 - `Guilds` · `GuildMembers` · `GuildMessages` · `MessageContent` · `GuildVoiceStates`
+
+If you want **activity roles** (Spotify auto-role, etc.), also enable:
+
+- `Presence Intent` — Required for detecting user activities like Spotify listening
+
+After changing intents in the Developer Portal, restart the bot. If slash commands changed, run `npm run register:commands` again.
 
 ### MongoDB Collections
 
@@ -563,8 +670,8 @@ World Tree is transitioning from a Discord bot into a backend platform. Each pha
 | **Phase 1 — API Foundation** | ✅ Complete | Fastify bootstrap, Zod integration, plugin architecture |
 | **Phase 2 — Read-Only Endpoints** | ✅ Complete | Settings, cases, stats endpoints with strict response schemas |
 | **Phase 3a — Session Infrastructure** | ✅ Complete | AES-256-GCM sessions, HMAC-signed cookies, HKDF key derivation |
-| **Phase 3b — OAuth2 Flow** | 🔜 Next | Discord OAuth2, login/callback/logout, guild authorization |
-| **Phase 3c — Route Guards** | Planned | Protected route scoping, MANAGE_GUILD verification |
+| **Phase 3b — OAuth2 Flow** | ✅ Complete | Discord OAuth2 + PKCE login/callback/me/logout |
+| **Phase 3c — Guild Authorization** | Planned | Protected route scoping, MANAGE_GUILD verification |
 | **Phase 4 — Dashboard** | Future | Authenticated web UI integration |
 
 ---

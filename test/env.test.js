@@ -17,6 +17,7 @@ test('readRuntimeEnv returns trimmed runtime configuration values', () => {
     discordToken: 'token',
     mongoUri: 'mongodb://localhost/world-tree',
     clientId: null,
+    devGuildId: null,
     guildId: null,
     botOwnerId: null,
     dashboardUrl: null,
@@ -40,10 +41,25 @@ test('readRuntimeEnv does not require command registration-only values', () => {
   });
 
   assert.equal(env.clientId, null);
+  assert.equal(env.devGuildId, null);
   assert.equal(env.guildId, null);
 });
 
-test('readCommandRegistrationEnv does not require MongoDB configuration', () => {
+test('readCommandRegistrationEnv accepts DEV_GUILD_ID', () => {
+  const env = readCommandRegistrationEnv({
+    DISCORD_TOKEN: 'token',
+    CLIENT_ID: 'client-id',
+    DEV_GUILD_ID: 'dev-guild-id'
+  });
+
+  assert.equal(env.discordToken, 'token');
+  assert.equal(env.clientId, 'client-id');
+  assert.equal(env.devGuildId, 'dev-guild-id');
+  assert.equal(env.guildId, null);
+  assert.equal(env.mongoUri, null);
+});
+
+test('readCommandRegistrationEnv falls back to GUILD_ID for backward compatibility', () => {
   const env = readCommandRegistrationEnv({
     DISCORD_TOKEN: 'token',
     CLIENT_ID: 'client-id',
@@ -52,8 +68,34 @@ test('readCommandRegistrationEnv does not require MongoDB configuration', () => 
 
   assert.equal(env.discordToken, 'token');
   assert.equal(env.clientId, 'client-id');
+  assert.equal(env.devGuildId, 'guild-id');
   assert.equal(env.guildId, 'guild-id');
   assert.equal(env.mongoUri, null);
+});
+
+test('readCommandRegistrationEnv prefers DEV_GUILD_ID over GUILD_ID', () => {
+  const env = readCommandRegistrationEnv({
+    DISCORD_TOKEN: 'token',
+    CLIENT_ID: 'client-id',
+    DEV_GUILD_ID: 'dev-guild-id',
+    GUILD_ID: 'guild-id'
+  });
+
+  assert.equal(env.devGuildId, 'dev-guild-id');
+  assert.equal(env.guildId, 'guild-id');
+});
+
+test('readCommandRegistrationEnv does not require guild ID in production', () => {
+  const env = readCommandRegistrationEnv({
+    DISCORD_TOKEN: 'token',
+    CLIENT_ID: 'client-id',
+    NODE_ENV: 'production'
+  });
+
+  assert.equal(env.discordToken, 'token');
+  assert.equal(env.clientId, 'client-id');
+  assert.equal(env.isProduction, true);
+  assert.equal(env.devGuildId, null);
 });
 
 test('readRuntimeEnv reports runtime-specific missing environment variables', () => {
@@ -66,7 +108,14 @@ test('readRuntimeEnv reports runtime-specific missing environment variables', ()
 test('readCommandRegistrationEnv reports registration-specific missing environment variables', () => {
   assert.throws(
     () => readCommandRegistrationEnv({ DISCORD_TOKEN: 'token' }),
-    /Missing required environment variables: CLIENT_ID, GUILD_ID/
+    /Missing required environment variables: CLIENT_ID/
+  );
+});
+
+test('readCommandRegistrationEnv requires DEV_GUILD_ID in non-production', () => {
+  assert.throws(
+    () => readCommandRegistrationEnv({ DISCORD_TOKEN: 'token', CLIENT_ID: 'client-id' }),
+    /Missing required environment variable: DEV_GUILD_ID/
   );
 });
 

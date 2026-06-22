@@ -35,7 +35,13 @@ export const settingsResponseSchema = z.object({
     moderation: z.boolean(),
     automod: z.boolean(),
     utility: z.boolean()
-  })
+  }),
+  activityRoles: z.object({
+    spotify: z.object({ enabled: z.boolean(), roleId: z.string().nullable() }),
+    streaming: z.object({ enabled: z.boolean(), roleId: z.string().nullable() }),
+    gaming: z.object({ enabled: z.boolean(), roleId: z.string().nullable() }),
+    voice: z.object({ enabled: z.boolean(), roleId: z.string().nullable() })
+  }).optional()
 });
 
 export const getSettingsParamsSchema = z.object({

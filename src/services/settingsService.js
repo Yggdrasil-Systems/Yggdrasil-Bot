@@ -1,9 +1,10 @@
 import { settingsRepository } from '../database/mongo/repositories/settingsRepository.js';
-import { DEFAULT_AUTOMOD, DEFAULT_MODERATION_SETTINGS } from '../utils/constants.js';
+import { DEFAULT_AUTOMOD, DEFAULT_MODERATION_SETTINGS, DEFAULT_ACTIVITY_ROLES, ACTIVITY_TYPES } from '../utils/constants.js';
 
 const DEFAULT_CACHE_TTL_MS = 30_000;
 const VALID_RULES = new Set(Object.keys(DEFAULT_AUTOMOD.rules));
 const VALID_ACTIONS = new Set(['delete', 'warn', 'timeout']);
+const VALID_ACTIVITY_TYPES = new Set(Object.keys(ACTIVITY_TYPES));
 
 function clone(value) {
   return structuredClone(value);
@@ -24,6 +25,7 @@ function mergeObject(defaults, value = {}) {
 export function normalizeGuildSettings(settings = {}) {
   const automod = mergeObject(DEFAULT_AUTOMOD, settings.automod ?? {});
   const moderation = mergeObject(DEFAULT_MODERATION_SETTINGS, settings.moderation ?? {});
+  const activityRoles = mergeObject(DEFAULT_ACTIVITY_ROLES, settings.activityRoles ?? {});
 
   automod.enabled = Boolean(settings.automod?.enabled ?? settings.automodEnabled ?? automod.enabled);
 
@@ -31,6 +33,7 @@ export function normalizeGuildSettings(settings = {}) {
     ...settings,
     automod,
     moderation,
+    activityRoles,
     trustedAdminRoleIds: settings.trustedAdminRoleIds ?? [],
     featureToggles: {
       moderation: true,
@@ -50,6 +53,12 @@ function assertRuleName(ruleName) {
 function assertAction(action) {
   if (!VALID_ACTIONS.has(action)) {
     throw new Error(`Unsupported automod action: ${action}`);
+  }
+}
+
+function assertActivityType(activityType) {
+  if (!VALID_ACTIVITY_TYPES.has(activityType)) {
+    throw new Error(`Unsupported activity type: ${activityType}. Valid types: ${Array.from(VALID_ACTIVITY_TYPES).join(', ')}`);
   }
 }
 
@@ -153,6 +162,22 @@ export function createSettingsService(repository = settingsRepository, { cacheTt
 
     async removeBadWord(guildId, word) {
       const settings = normalizeGuildSettings(await repository.removeBadWord(guildId, String(word ?? '').trim().toLowerCase()));
+      clearCache(guildId);
+      return settings;
+    },
+
+    // ─── Activity Roles ───────────────────────────────────────────────────────
+
+    async setActivityRole(guildId, activityType, { enabled, roleId }) {
+      assertActivityType(activityType);
+      const settings = normalizeGuildSettings(await repository.setActivityRole(guildId, activityType, { enabled, roleId }));
+      clearCache(guildId);
+      return settings;
+    },
+
+    async removeActivityRole(guildId, activityType) {
+      assertActivityType(activityType);
+      const settings = normalizeGuildSettings(await repository.removeActivityRole(guildId, activityType));
       clearCache(guildId);
       return settings;
     }

@@ -36,7 +36,8 @@ const HELP_CATEGORIES = Object.freeze({
     description: 'Configure World Tree per server through persistent guild settings.',
     fields: [
       { name: 'Core', value: '`/settings view`, `/settings modlog set`, `/settings trusted-role add/remove/list`' },
-      { name: 'Prefix', value: 'Use `tree settings view`, `tree modlog #logs`, or `tree trustedrole add @Staff`.' }
+      { name: 'Activity Roles', value: '`/activityrole set`, `/activityrole remove`, `/activityrole list` — auto-assign roles based on Spotify, streaming, gaming, or voice activity.' },
+      { name: 'Prefix', value: '`tree settings view`, `tree modlog #logs`, `tree activityrole set spotify @role`, or `tree trustedrole add @Staff`.' }
     ]
   },
   automod: {

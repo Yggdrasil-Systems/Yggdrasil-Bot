@@ -75,3 +75,31 @@ export const DEFAULT_MODERATION_SETTINGS = Object.freeze({
   requireReason: true,
   caseLogEnabled: true
 });
+
+export const ACTIVITY_TYPES = Object.freeze({
+  spotify: 'spotify',
+  streaming: 'streaming',
+  gaming: 'gaming',
+  voice: 'voice'
+});
+
+export const DEFAULT_ACTIVITY_ROLES = Object.freeze({
+  spotify: { enabled: false, roleId: null },
+  streaming: { enabled: false, roleId: null },
+  gaming: { enabled: false, roleId: null },
+  voice: { enabled: false, roleId: null }
+});
+
+export const ACTIVITY_TYPE_LABELS = Object.freeze({
+  spotify: '🟢 Spotify',
+  streaming: '🔴 Streaming',
+  gaming: '🎮 Gaming',
+  voice: '🔊 Voice Channel'
+});
+
+export const ACTIVITY_TYPE_DESCRIPTIONS = Object.freeze({
+  spotify: 'Granted when listening to Spotify',
+  streaming: 'Granted when streaming (Twitch, YouTube)',
+  gaming: 'Granted when playing a game',
+  voice: 'Granted when connected to a voice channel'
+});

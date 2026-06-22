@@ -8,7 +8,7 @@ const MIN_SESSION_SECRET_LENGTH = 32;
 const ENV_PROFILES = Object.freeze({
   core: ['DISCORD_TOKEN'],
   runtime: ['DISCORD_TOKEN', 'MONGO_URI'],
-  commandRegistration: ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID']
+  commandRegistration: ['DISCORD_TOKEN', 'CLIENT_ID']
 });
 
 function cleanValue(value) {
@@ -76,6 +76,18 @@ function requireWhenApiEnabled(source, enableApi) {
   }
 }
 
+function requireDevGuildIdForRegistration(source, isProduction) {
+  if (isProduction) {
+    return;
+  }
+
+  const devGuildId = cleanValue(source.DEV_GUILD_ID) || cleanValue(source.GUILD_ID);
+
+  if (!devGuildId) {
+    throw new Error('Missing required environment variable: DEV_GUILD_ID (or GUILD_ID for backward compatibility). A development guild ID is required for non-production command registration.');
+  }
+}
+
 function readSessionSecret(source) {
   const sessionSecret = cleanValue(source.SESSION_SECRET);
 
@@ -100,15 +112,18 @@ export function readEnv(source = process.env, profile = 'runtime') {
   }
 
   const enableApi = cleanValue(source.ENABLE_API) === 'true';
+  const nodeEnv = cleanValue(source.NODE_ENV) || 'development';
 
   requireWhenApiEnabled(source, enableApi);
-
-  const nodeEnv = cleanValue(source.NODE_ENV) || 'development';
+  if (profile === 'commandRegistration') {
+    requireDevGuildIdForRegistration(source, nodeEnv === 'production');
+  }
 
   return {
     discordToken: cleanValue(source.DISCORD_TOKEN),
     mongoUri: cleanValue(source.MONGO_URI) || null,
     clientId: cleanValue(source.CLIENT_ID) || null,
+    devGuildId: cleanValue(source.DEV_GUILD_ID) || cleanValue(source.GUILD_ID) || null,
     guildId: cleanValue(source.GUILD_ID) || null,
     botOwnerId: cleanValue(source.BOT_OWNER_ID) || null,
     dashboardUrl: cleanValue(source.DASHBOARD_URL) || null,

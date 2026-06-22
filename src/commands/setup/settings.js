@@ -150,6 +150,18 @@ async function handleSettingsAction({ guildId, group, subcommand, values }) {
     }
   }
 
+  if (group === 'activityrole') {
+    if (subcommand === 'set') {
+      await settingsService.setActivityRole(guildId, values.activityType, { enabled: true, roleId: values.roleId });
+      return { embed: buildSuccessEmbed('Activity role configured', `${values.activityType} role is now set to <@&${values.roleId}>.`) };
+    }
+
+    if (subcommand === 'remove') {
+      await settingsService.removeActivityRole(guildId, values.activityType);
+      return { embed: buildSuccessEmbed('Activity role removed', `${values.activityType} activity role is now disabled.`) };
+    }
+  }
+
   return { embed: buildErrorEmbed('Settings unavailable', 'That settings action is not available.') };
 }
 
@@ -183,11 +195,61 @@ export async function executeMessage(context) {
     result = await handleSettingsActionSafely({ guildId: context.guild.id, subcommand: 'view', values: {} });
   } else if (section === 'automod') {
     result = await handleAutomodMessage(context, action, rest);
+  } else if (section === 'activityrole' || section === 'activity-role') {
+    result = await handleActivityRoleMessage(context, action, rest);
   } else {
-    result = { embed: buildErrorEmbed('Settings unavailable', 'Use `tree settings view` or `tree automod ...`.') };
+    result = { embed: buildErrorEmbed('Settings unavailable', 'Use `tree settings view`, `tree automod ...`, or `tree activityrole ...`.') };
   }
 
   await context.respond({ embeds: [result.embed] });
+}
+
+async function handleActivityRoleMessage(context, action, rest) {
+  const { resolveRoleFromMessage } = await import('../../utils/discordResolvers.js');
+
+  if (action === 'list' || !action) {
+    return handleSettingsActionSafely({ guildId: context.guild.id, subcommand: 'view', values: {} });
+  }
+
+  if (action === 'set') {
+    const activityType = rest[0];
+    const VALID_TYPES = ['spotify', 'streaming', 'gaming', 'voice'];
+
+    if (!VALID_TYPES.includes(activityType)) {
+      return { embed: buildErrorEmbed('Invalid activity type', `Use: \`spotify\`, \`streaming\`, \`gaming\`, or \`voice\`.`) };
+    }
+
+    const role = resolveRoleFromMessage(context.message, rest.slice(1));
+
+    if (!role) {
+      return { embed: buildErrorEmbed('Role required', 'Mention a role or provide a role name.\n`tree activityrole set spotify @Role`') };
+    }
+
+    return handleSettingsActionSafely({
+      guildId: context.guild.id,
+      group: 'activityrole',
+      subcommand: 'set',
+      values: { activityType, roleId: role.id }
+    });
+  }
+
+  if (action === 'remove') {
+    const activityType = rest[0];
+    const VALID_TYPES = ['spotify', 'streaming', 'gaming', 'voice'];
+
+    if (!VALID_TYPES.includes(activityType)) {
+      return { embed: buildErrorEmbed('Invalid activity type', `Use: \`spotify\`, \`streaming\`, \`gaming\`, or \`voice\`.`) };
+    }
+
+    return handleSettingsActionSafely({
+      guildId: context.guild.id,
+      group: 'activityrole',
+      subcommand: 'remove',
+      values: { activityType }
+    });
+  }
+
+  return { embed: buildErrorEmbed('Activity role action unavailable', 'Use `list`, `set <type> @role`, or `remove <type>`.') };
 }
 
 async function handleAutomodMessage(context, action, rest) {
