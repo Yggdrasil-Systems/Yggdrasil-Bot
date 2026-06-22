@@ -1,50 +1,105 @@
-import { describe, it, mock } from 'node:test';
-import assert from 'node:assert';
-import { logger } from '../src/utils/logger.js';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+
+import { createLogger, logger } from '../src/utils/logger.js';
+
+function createCaptureStream() {
+  const entries = [];
+
+  return {
+    entries,
+    stream: {
+      write(chunk) {
+        entries.push(JSON.parse(String(chunk)));
+      }
+    }
+  };
+}
 
 describe('Logger', () => {
-  it('formats and outputs info logs', () => {
-    const originalConsoleLog = console.log;
-    const logSpy = mock.fn();
-    console.log = logSpy;
-
-    logger.info('Test info message');
-    
-    assert.strictEqual(logSpy.mock.calls.length, 1);
-    assert.match(logSpy.mock.calls[0].arguments[0], /\[World Tree\] \[info\] Test info message/);
-
-    console.log = originalConsoleLog;
+  it('exports the existing logger call shape', () => {
+    assert.equal(typeof logger.info, 'function');
+    assert.equal(typeof logger.warn, 'function');
+    assert.equal(typeof logger.error, 'function');
+    assert.equal(typeof logger.debug, 'function');
+    assert.equal(typeof logger.child, 'function');
   });
 
-  it('formats and outputs error logs with error objects', () => {
-    const originalConsoleError = console.error;
-    const errorSpy = mock.fn();
-    console.error = errorSpy;
+  it('emits structured info logs through Pino', () => {
+    const capture = createCaptureStream();
+    const testLogger = createLogger({
+      isProduction: true,
+      stream: capture.stream
+    });
 
-    const errorObj = new Error('Test error');
-    logger.error('Test error message', errorObj);
-    
-    assert.strictEqual(errorSpy.mock.calls.length, 2);
-    assert.match(errorSpy.mock.calls[0].arguments[0], /\[World Tree\] \[error\] Test error message/);
-    assert.strictEqual(errorSpy.mock.calls[1].arguments[0], errorObj);
+    testLogger.info('Structured message', { guildId: '123' });
 
-    console.error = originalConsoleError;
+    assert.equal(capture.entries.length, 1);
+    assert.equal(capture.entries[0].scope, 'World Tree');
+    assert.equal(capture.entries[0].level, 'info');
+    assert.equal(capture.entries[0].msg, 'Structured message');
+    assert.deepEqual(capture.entries[0].details, { guildId: '123' });
   });
 
-  it('formats and outputs debug logs in non-production', () => {
-    const originalConsoleLog = console.log;
-    const logSpy = mock.fn();
-    console.log = logSpy;
+  it('formats error details safely', () => {
+    const capture = createCaptureStream();
+    const testLogger = createLogger({
+      isProduction: true,
+      stream: capture.stream
+    });
 
-    // By default tests run in non-production (unless NODE_ENV is explicitly production)
-    logger.debug('Test debug message');
-    
-    // We expect it to log unless NODE_ENV=production
-    if (process.env.NODE_ENV !== 'production') {
-      assert.strictEqual(logSpy.mock.calls.length, 1);
-      assert.match(logSpy.mock.calls[0].arguments[0], /\[World Tree\] \[debug\] Test debug message/);
-    }
+    testLogger.error('Test error message', new Error('Test error'));
 
-    console.log = originalConsoleLog;
+    assert.equal(capture.entries.length, 1);
+    assert.equal(capture.entries[0].level, 'error');
+    assert.equal(capture.entries[0].msg, 'Test error message');
+    assert.equal(capture.entries[0].details.type, 'Error');
+    assert.equal(capture.entries[0].details.message, 'Test error');
+  });
+
+  it('filters debug logs below the configured level', () => {
+    const capture = createCaptureStream();
+    const testLogger = createLogger({
+      isProduction: true,
+      level: 'info',
+      stream: capture.stream
+    });
+
+    testLogger.debug('Hidden debug message');
+
+    assert.equal(capture.entries.length, 0);
+  });
+
+  it('supports child logger bindings', () => {
+    const capture = createCaptureStream();
+    const testLogger = createLogger({
+      isProduction: true,
+      stream: capture.stream
+    }).child({ component: 'activityRoleService', guildId: 'guild-1' });
+
+    testLogger.info('Child message');
+
+    assert.equal(capture.entries[0].component, 'activityRoleService');
+    assert.equal(capture.entries[0].guildId, 'guild-1');
+  });
+
+  it('redacts auth-sensitive values from messages and details', () => {
+    const capture = createCaptureStream();
+    const testLogger = createLogger({
+      isProduction: true,
+      stream: capture.stream
+    });
+
+    testLogger.info(
+      'Callback /v1/auth/callback?code=secret-code&state=secret-state',
+      { accessToken: 'secret-token', nested: { client_secret: 'secret-client' } }
+    );
+
+    assert.equal(
+      capture.entries[0].msg,
+      'Callback /v1/auth/callback?code=[REDACTED]&state=[REDACTED]'
+    );
+    assert.equal(capture.entries[0].details.accessToken, '[REDACTED]');
+    assert.equal(capture.entries[0].details.nested.client_secret, '[REDACTED]');
   });
 });

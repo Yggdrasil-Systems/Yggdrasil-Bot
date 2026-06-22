@@ -561,6 +561,18 @@ Operational requirements:
 
 ---
 
+## Logging
+
+World Tree uses Pino through a thin local wrapper at `src/utils/logger.js`.
+
+- Production logs are structured JSON with stable `level`, `time`, `scope`, `msg`, and optional `component` fields.
+- Development logs use `pino-pretty` automatically for readable terminal output.
+- Existing call sites keep the simple `logger.info/warn/error/debug(message, details)` shape.
+- Auth-sensitive values are redacted, including OAuth codes, verifier/state values, access tokens, authorization headers, and client secrets.
+- Child loggers are supported with `logger.child({ component: 'serviceName' })`.
+
+---
+
 ## Environment Variables
 
 ```env
