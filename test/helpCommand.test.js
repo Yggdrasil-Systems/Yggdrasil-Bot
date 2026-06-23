@@ -13,6 +13,7 @@ test('help embed explains slash, prefix, and no-prefix command modes', () => {
   assert.match(fieldText, /tree activityrole list/i);
   assert.match(fieldText, /tree settings view/i);
   assert.match(fieldText, /no-prefix/i);
+  assert.match(fieldText, /tree noprefix list/i);
 });
 
 test('help service builds category embeds and select menu components', () => {
@@ -29,6 +30,8 @@ test('help service builds category embeds and select menu components', () => {
   assert.match(settingsText, /trustedrole/i);
   assert.match(settingsText, /activityrole/i);
   assert.match(settingsText, /setup-music/i);
+  assert.match(settingsText, /noprefix list/i);
+  assert.match(settingsText, /spotify @role/i);
   assert.equal(components.length, 1);
   assert.match(components[0].components[0].data.custom_id, /help:category:user-1/);
 });
