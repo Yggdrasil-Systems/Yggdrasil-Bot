@@ -168,6 +168,7 @@ world-tree/
 │   │   ├── settingsService.js            # Guild settings with in-memory TTL cache + normalization
 │   │   ├── activityRoleService.js        # Presence/voice activity role assignment
 │   │   ├── musicService.js               # discord-player init, extractor pipeline, event wiring
+│   │   ├── musicChannelService.js         # Dedicated music-channel auto-play routing
 │   │   ├── playerService.js              # Music player access helpers and guild queue lookup
 │   │   ├── helpService.js                # Category-based help menu builder
 │   │   ├── utilityService.js             # User/server/role/bot info aggregation

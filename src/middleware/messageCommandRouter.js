@@ -3,6 +3,7 @@ import { BOT } from '../utils/constants.js';
 import { logger } from '../utils/logger.js';
 import { parseMessageCommand } from '../utils/messageParser.js';
 import { getAppContext } from '../context/appContext.js';
+import { handleMusicChannelMessage } from '../services/musicChannelService.js';
 import { canUseAdminCommand, canUseNoPrefixShortcuts } from './permissionGuard.js';
 import { handleMessageCommandError } from './errorHandler.js';
 import { replyToMessage } from '../utils/responses.js';
@@ -92,32 +93,9 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
   const runtimeConfig = appContext.runtimeConfig ?? message.client.runtimeConfig ?? {};
   const settingsService = appContext.settingsService ?? message.client.settingsService ?? null;
   const commands = appContext.commands ?? message.client.commands;
-  const settings = settingsService
-    ? await settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
-    : null;
 
-  if (settings?.musicChannelId && message.channel.id === settings.musicChannelId) {
-    const playCommand = findMessageCommand(commands, 'play');
-    if (playCommand && message.content.trim().length > 0) {
-      setTimeout(() => message.delete().catch(() => null), 1000);
-      try {
-        await playCommand.executeMessage({
-          mode: 'no-prefix',
-          commandName: 'play',
-          args: message.content.trim().split(/\s+/),
-          message,
-          client: message.client,
-          appContext,
-          guild: message.guild,
-          user: message.author,
-          member: message.member,
-          respond: (payload) => replyToMessage(message, payload)
-        });
-        return true;
-      } catch (error) {
-        log.error?.('Music channel play failed', error);
-      }
-    }
+  if (await handleMusicChannelMessage(message, { commands, settingsService, appContext, log })) {
+    return true;
   }
 
   const prefixedCommand = parseMessageCommand(message.content, {
