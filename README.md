@@ -731,5 +731,5 @@ World Tree is transitioning from a Discord bot into a backend platform. Each pha
 
 *Designed for low-overhead self-hosted infrastructure.*
 *Built with intentional architecture, not accidental complexity.*
-
+*Crafted with passion and dedication by Harshit*
 </div>
