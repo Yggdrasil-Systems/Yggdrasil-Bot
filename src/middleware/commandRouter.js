@@ -1,15 +1,14 @@
-import { buildErrorEmbed, buildSuccessEmbed, buildNowPlayingEmbed, buildQueueEmbed, buildNeutralEmbed, buildPingEmbed } from '../utils/embeds.js';
+import { buildErrorEmbed, buildSuccessEmbed, buildNowPlayingEmbed, buildQueueEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildMusicPlayerComponents, buildSettingsComponents, buildFilterComponents, buildQueueComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
 import { replyToInteraction } from '../utils/responses.js';
 import { handleHelpSelectInteraction } from '../interactions/helpInteractionHandler.js';
+import { handlePingRefreshInteraction } from '../interactions/pingInteractionHandler.js';
 import { handleInteractionError } from './errorHandler.js';
 import { canUseAdminCommand } from './permissionGuard.js';
 import { player } from '../services/musicService.js';
 import { executePlay } from '../commands/music/play.js';
 import { handleSearchSelect } from '../commands/music/search.js';
-import { getBotInfoSummary } from '../services/utilityService.js';
-import { formatDuration } from '../utils/formatters.js';
 
 async function handleUnknownCommand(interaction, log) {
   log.warn(`No command handler found for /${interaction.commandName}.`);
@@ -277,22 +276,8 @@ export async function handleComponentInteraction(interaction) {
     }
 
     // ─── Ping Refresh Button ──────────────────────────────────────────────
-    if (interaction.isButton() && id === 'ping_refresh') {
-      const startTime = Date.now();
-      const client = interaction.client;
-      const botInfo = getBotInfoSummary({ client });
-
-      const summary = {
-        websocketLatency: Math.max(0, Math.round(client.ws.ping)),
-        responseLatency: Math.max(1, Date.now() - startTime),
-        clientAvatarUrl: client.user?.displayAvatarURL({ size: 1024, extension: 'png' }),
-        uptime: formatDuration(botInfo.uptimeMs),
-        memoryUsed: `${botInfo.memoryUsed} MB`,
-        guildCount: botInfo.guildCount,
-        requestedBy: interaction.user.displayName ?? interaction.user.username
-      };
-
-      return interaction.update({ embeds: [buildPingEmbed(summary)] });
+    if (await handlePingRefreshInteraction(interaction)) {
+      return;
     }
 
     // ─── Search Result Select Menu ──────────────────────────────────────
