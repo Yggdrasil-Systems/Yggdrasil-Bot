@@ -10,18 +10,22 @@ export const data = new SlashCommandBuilder()
   .setName('dashboard')
   .setDescription('View dashboard foundation status.');
 
-function getDashboardUrl(client) {
-  return client.runtimeConfig?.dashboardUrl ?? null;
+export function getDashboardUrl(source) {
+  return source?.appContext?.runtimeConfig?.dashboardUrl
+    ?? source?.runtimeConfig?.dashboardUrl
+    ?? source?.client?.appContext?.runtimeConfig?.dashboardUrl
+    ?? source?.client?.runtimeConfig?.dashboardUrl
+    ?? null;
 }
 
 export async function execute(interaction) {
   await replyToInteraction(interaction, {
-    embeds: [buildDashboardEmbed({ dashboardUrl: getDashboardUrl(interaction.client) })]
+    embeds: [buildDashboardEmbed({ dashboardUrl: getDashboardUrl(interaction) })]
   }, { ephemeral: true });
 }
 
 export async function executeMessage(context) {
   await context.respond({
-    embeds: [buildDashboardEmbed({ dashboardUrl: getDashboardUrl(context.client) })]
+    embeds: [buildDashboardEmbed({ dashboardUrl: getDashboardUrl(context) })]
   });
 }

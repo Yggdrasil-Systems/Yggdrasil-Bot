@@ -6,8 +6,11 @@ export const name = 'noprefix';
 export const aliases = ['no-prefix'];
 export const botOwnerOnly = true;
 
-function getService(context) {
-  return context.client.noPrefixService ?? defaultNoPrefixService;
+export function getService(context) {
+  return context.appContext?.noPrefixService
+    ?? context.client.appContext?.noPrefixService
+    ?? context.client.noPrefixService
+    ?? defaultNoPrefixService;
 }
 
 function formatUserList(users) {

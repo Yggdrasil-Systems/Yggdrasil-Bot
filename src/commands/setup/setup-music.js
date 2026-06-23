@@ -15,6 +15,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   const guild = interaction.guild;
+  const settingsService = interaction.client.appContext?.settingsService ?? interaction.client.settingsService ?? null;
   
   // Create a new text channel
   const channel = await guild.channels.create({
@@ -37,8 +38,8 @@ export async function execute(interaction) {
     components: buildMusicPlayerComponents()
   });
 
-  if (interaction.client.settingsService) {
-    await interaction.client.settingsService.setMusicPanel(guild.id, channel.id, message.id);
+  if (settingsService) {
+    await settingsService.setMusicPanel(guild.id, channel.id, message.id);
   }
 
   await replyToInteraction(interaction, {
