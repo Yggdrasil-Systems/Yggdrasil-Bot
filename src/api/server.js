@@ -38,7 +38,7 @@ export function sanitizeRequestUrl(url) {
  * Creates and configures the Fastify server instance.
  */
 export async function createServer(discordClient, {
-  env = discordClient?.runtimeConfig ?? {},
+  env = discordClient?.appContext?.config ?? discordClient?.appContext?.runtimeConfig ?? {},
   fetchImpl = globalThis.fetch,
   rateLimit = {},
   dbConnection

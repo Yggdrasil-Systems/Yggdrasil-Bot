@@ -39,9 +39,6 @@ export async function bootstrap({
   });
 
   client.appContext = appContext;
-  client.runtimeConfig = env;
-  client.settingsService = appContext.settingsService;
-  client.noPrefixService = appContext.noPrefixService;
 
   await connectDatabase(env.mongoUri, {
     serverSelectionTimeoutMS: env.mongoServerSelectionTimeoutMs
