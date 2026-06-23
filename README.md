@@ -196,10 +196,17 @@ world-tree/
 │   │       └── noPrefixRepository.js     # Privilege upsert and listing
 │   │
 │   ├── middleware/                        # ── Runtime Guards ───────────────────────────────
-│   │   ├── commandRouter.js              # Slash command dispatch + button/select interaction routing
+│   │   ├── commandRouter.js              # Slash command dispatch + delegated component interaction routing
 │   │   ├── messageCommandRouter.js       # Prefix parsing + no-prefix shortcut resolution
 │   │   ├── permissionGuard.js            # Permission checks: admin, moderation, no-prefix, hierarchy
 │   │   └── errorHandler.js               # Interaction-level error recovery
+│   │
+│   ├── interactions/                     # ── Component Interaction Handlers ─────────────────
+│   │   ├── helpInteractionHandler.js     # Help select menu routing and response updates
+│   │   ├── pingInteractionHandler.js     # Ping refresh button handling
+│   │   ├── queueInteractionHandler.js    # Queue clear button handling
+│   │   ├── searchInteractionHandler.js   # Search result select handling
+│   │   └── musicSettingsInteractionHandler.js # Playback settings panel handling
 │   │
 │   ├── loaders/
 │   │   ├── commandLoader.js              # Recursive command discovery + contract validation
@@ -211,7 +218,7 @@ world-tree/
 │   │
 │   ├── events/
 │   │   ├── ready.js                      # Client ready — log confirmation + activity status
-│   │   ├── interactionCreate.js          # Route interactions to commandRouter
+│   │   ├── interactionCreate.js          # Route interactions to commandRouter + component handlers
 │   │   ├── messageCreate.js              # Route messages to messageCommandRouter + automod
 │   │   ├── presenceUpdate.js             # Spotify/streaming/gaming activity role updates
 │   │   └── voiceStateUpdate.js           # Voice activity role updates
@@ -228,7 +235,7 @@ world-tree/
 │       ├── moderationInputs.js           # Shared moderation command input extraction
 │       └── fileDiscovery.js              # Recursive .js file finder for loaders
 │
-├── test/                                 # ── 33 Test Files ──────────────────────────────────
+├── test/                                 # ── 37 Test Files ──────────────────────────────────
 │   ├── apiServer.test.js                 # Fastify lifecycle, Zod validation, session integration
 │   ├── apiRoutes.test.js                 # Route serialization, pagination, field stripping
 │   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs

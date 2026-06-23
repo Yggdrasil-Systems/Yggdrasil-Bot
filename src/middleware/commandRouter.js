@@ -1,14 +1,15 @@
-import { buildErrorEmbed, buildSuccessEmbed, buildNowPlayingEmbed, buildQueueEmbed, buildNeutralEmbed } from '../utils/embeds.js';
-import { buildMusicPlayerComponents, buildSettingsComponents, buildFilterComponents, buildQueueComponents } from '../utils/components.js';
+import { buildErrorEmbed, buildSuccessEmbed, buildQueueEmbed, buildNeutralEmbed } from '../utils/embeds.js';
+import { buildSettingsComponents, buildFilterComponents, buildQueueComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
 import { replyToInteraction } from '../utils/responses.js';
 import { handleHelpSelectInteraction } from '../interactions/helpInteractionHandler.js';
 import { handlePingRefreshInteraction } from '../interactions/pingInteractionHandler.js';
+import { handleSearchSelectInteraction } from '../interactions/searchInteractionHandler.js';
+import { handleQueueClearInteraction } from '../interactions/queueInteractionHandler.js';
+import { handleMusicSettingsInteraction } from '../interactions/musicSettingsInteractionHandler.js';
 import { handleInteractionError } from './errorHandler.js';
 import { canUseAdminCommand } from './permissionGuard.js';
 import { player } from '../services/musicService.js';
-import { executePlay } from '../commands/music/play.js';
-import { handleSearchSelect } from '../commands/music/search.js';
 
 async function handleUnknownCommand(interaction, log) {
   log.warn(`No command handler found for /${interaction.commandName}.`);
@@ -112,21 +113,6 @@ export async function handleComponentInteraction(interaction) {
         queue.delete();
         return interaction.reply({
           embeds: [buildSuccessEmbed('⏹️ Stopped', 'Stopped the music and cleared the queue.')]
-        });
-      }
-
-      // Settings button — shows ephemeral settings panel
-      if (id === 'music_settings') {
-        const queue = requireQueue(interaction);
-        if (!queue) return;
-        const loopLabels = { 0: '➡️ Off', 1: '🔂 Track', 2: '🔁 Queue', 3: '📻 Autoplay' };
-        return interaction.reply({
-          embeds: [buildNeutralEmbed(
-            '⚙️ Playback Settings',
-            `**Loop Mode:** ${loopLabels[queue.repeatMode] || '➡️ Off'}\n**Volume:** ${queue.node.volume ?? 80}%\n\nUse the buttons below to adjust settings.`
-          )],
-          components: buildSettingsComponents(queue),
-          flags: 64
         });
       }
 
@@ -264,31 +250,17 @@ export async function handleComponentInteraction(interaction) {
       return;
     }
 
-    // ─── Queue Clear Button ──────────────────────────────────────────────
-    if (interaction.isButton() && id === 'queue_clear') {
-      const queue = requireQueue(interaction);
-      if (!queue) return;
-      queue.tracks.clear();
-      return interaction.reply({
-        embeds: [buildSuccessEmbed('🗑️ Queue Cleared', 'The queue has been cleared. The current track will finish playing.')],
-        flags: 64
-      });
-    }
-
     // ─── Ping Refresh Button ──────────────────────────────────────────────
     if (await handlePingRefreshInteraction(interaction)) {
       return;
     }
 
-    // ─── Search Result Select Menu ──────────────────────────────────────
-    if (interaction.isStringSelectMenu() && id.startsWith('search_select_')) {
-      const ownerId = id.replace('search_select_', '');
-      if (interaction.user.id !== ownerId) {
-        return interaction.reply({ embeds: [buildErrorEmbed('Not Your Search', 'Only the person who searched can pick a result.')], flags: 64 });
-      }
+    // ─── Queue + Search Select Menus ────────────────────────────────────
+    if (await handleQueueClearInteraction(interaction)) {
+      return;
+    }
 
-      await interaction.deferUpdate();
-      await handleSearchSelect(interaction);
+    if (await handleSearchSelectInteraction(interaction)) {
       return;
     }
 
