@@ -6,10 +6,10 @@ const HELP_CATEGORIES = Object.freeze({
   overview: {
     label: '📋 Overview',
     title: '🌳 World Tree Help',
-    description: 'A premium utility, music, settings, automod, and moderation bot.',
+    description: 'A premium utility, moderation, settings, automod, music, and admin-shortcut bot.',
     fields: [
       { name: 'Input modes', value: 'Use slash commands, `tree` prefix commands, or bot-owner managed no-prefix shortcuts.' },
-      { name: 'Start here', value: '`tree play`, `tree ping`, `/help`, `/settings view`, `/warn`' }
+      { name: 'Start here', value: '`/help`, `tree help`, `tree dashboard`, `tree ping`, `tree settings view`, `tree activityrole list`' }
     ]
   },
   utility: {
@@ -17,8 +17,8 @@ const HELP_CATEGORIES = Object.freeze({
     title: '🔧 Utility Commands',
     description: 'Quick server and user context without clutter.',
     fields: [
-      { name: 'Commands', value: '`ping`, `avatar`, `banner`, `userinfo`, `serverinfo`, `roleinfo`, `botinfo`, `uptime`, `membercount`, `stats`' },
-      { name: 'Examples', value: '`tree avatar @user`\n`/serverinfo`\n`tree stats`' }
+      { name: 'Commands', value: '`ping`, `avatar`, `banner`, `userinfo`, `serverinfo`, `roleinfo`, `botinfo`, `dashboard`, `help`, `uptime`, `membercount`, `stats`, `ownerinfo`' },
+      { name: 'Examples', value: '`tree avatar @user`\n`tree botinfo`\n`tree dashboard`\n`/serverinfo`\n`tree stats`' }
     ]
   },
   moderation: {
@@ -26,7 +26,7 @@ const HELP_CATEGORIES = Object.freeze({
     title: '⚔️ Moderation Commands',
     description: 'Persistent cases, clear logs, and guarded staff workflows.',
     fields: [
-      { name: 'Actions', value: '`warn`, `warnings`, `timeout`, `untimeout`, `kick`, `ban`, `purge`' },
+      { name: 'Actions', value: '`warn`, `warnings`, `timeout`, `untimeout`, `kick`, `ban`, `purge`, `case`' },
       { name: 'Cases', value: '`/case view`, `/case list`, `/case resolve`, `/case delete`, `/case stats`' }
     ]
   },
@@ -35,9 +35,10 @@ const HELP_CATEGORIES = Object.freeze({
     title: '⚙️ Settings Commands',
     description: 'Configure World Tree per server through persistent guild settings.',
     fields: [
-      { name: 'Core', value: '`/settings view`, `/settings modlog set`, `/settings trusted-role add/remove/list`' },
-      { name: 'Activity Roles', value: '`/activityrole set`, `/activityrole remove`, `/activityrole list` — auto-assign roles based on Spotify, streaming, gaming, or voice activity.' },
-      { name: 'Prefix', value: '`tree settings view`, `tree modlog #logs`, `tree activityrole set spotify @role`, or `tree trustedrole add @Staff`.' }
+      { name: 'Core', value: '`/settings view`, `/settings modlog set`, `/settings trusted-role add/remove/list`, `/settings automod view/toggle/threshold/punishment/badword`' },
+      { name: 'Prefix', value: '`tree settings view`, `tree setmodlog #logs`, `tree modlog #logs`, `tree trustedrole add @Staff`, `tree automod view`' },
+      { name: 'Activity Roles', value: '`tree activityrole list`, `tree activityrole set spotify @role`, `tree activityrole set streaming @role`, `tree activityrole set gaming @role`, `tree activityrole set voice @role` — auto-assign roles based on Spotify, streaming, gaming, or voice activity.' },
+      { name: 'Music Setup', value: '`tree setup-music` creates a dedicated music request channel.' }
     ]
   },
   automod: {
@@ -45,7 +46,7 @@ const HELP_CATEGORIES = Object.freeze({
     title: '🛡️ Automod Commands',
     description: 'Settings-driven moderation for repeat spam, mentions, links, caps, and configured blocked words.',
     fields: [
-      { name: 'Configure', value: '`/settings automod toggle`, `/settings automod threshold`, `/settings automod punishment`' },
+      { name: 'Configure', value: '`/settings automod view`, `/settings automod toggle`, `/settings automod threshold`, `/settings automod punishment`' },
       { name: 'Bad words', value: '`/settings automod badword add`, `remove`, or `list`' }
     ]
   },
@@ -54,7 +55,7 @@ const HELP_CATEGORIES = Object.freeze({
     title: '👑 Admin Shortcuts',
     description: 'Explicitly allowlisted users can use approved no-prefix shortcuts without exposing them to normal chat.',
     fields: [
-      { name: 'Examples', value: '`ping`, `userinfo @user`, `purge 10`, `case list`' },
+      { name: 'Examples', value: '`ping`, `userinfo @user`, `purge 10`, `case list`, `activityrole list`' },
       { name: 'Protection', value: 'Shortcuts require bot owner access or a persisted global no-prefix allowlist grant.' }
     ]
   },
@@ -63,9 +64,9 @@ const HELP_CATEGORIES = Object.freeze({
     title: '🎵 Music Commands',
     description: 'High-quality music streaming with Spotify, YouTube, Apple Music, and SoundCloud.',
     fields: [
-      { name: '🎶 Playback', value: '`play`, `nowplaying`, `skip`, `stop`, `resume`, `volume`, `queue`, `shuffle`' },
+      { name: '🎶 Playback', value: '`play`, `nowplaying`, `skip`, `stop`, `resume`, `volume`, `queue`, `shuffle`, `loop`, `autoplay`' },
       { name: '🔍 Discovery', value: '`search` — pick from top results\n`autoplay` — auto-queue related tracks' },
-      { name: '🎛️ Customization', value: '`filter` — audio effects (bass boost, nightcore, etc.)\n`loop` — loop track/queue/autoplay' },
+      { name: '🎛️ Customization', value: '`filter` — audio effects (bass boost, nightcore, etc.)\n`loop` — loop track or queue' },
       { name: '🔗 Voice', value: '`join`, `247`' },
       { name: '💡 Examples', value: '`tree play ishq wala love`\n`tree search Night Changes`\n`tree np` · `tree skip` · `tree queue`\n`tree filter bassboost` · `tree loop track`\n`tree 247` · `tree volume 80`' }
     ]

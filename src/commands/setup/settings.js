@@ -1,7 +1,8 @@
 import { ChannelType, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 
 import { settingsService } from '../../services/settingsService.js';
-import { buildAutomodSettingsEmbed, buildErrorEmbed, buildSettingsEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
+import { buildAutomodSettingsEmbed, buildErrorEmbed, buildNeutralEmbed, buildSettingsEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
+import { ACTIVITY_TYPE_LABELS } from '../../utils/constants.js';
 import { parsePositiveInteger, resolveRoleFromMessage } from '../../utils/discordResolvers.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
@@ -18,6 +19,21 @@ const ACTION_CHOICES = [
   { name: 'Warn', value: 'warn' },
   { name: 'Timeout', value: 'timeout' }
 ];
+
+function buildActivityRoleSummaryEmbed(settings) {
+  const activityRoles = Object.entries(settings.activityRoles ?? {})
+    .map(([type, config]) => {
+      const label = ACTIVITY_TYPE_LABELS[type] ?? type;
+      const status = config.enabled && config.roleId ? `✅ <@&${config.roleId}>` : '❌ Disabled';
+      return `${label}: ${status}`;
+    })
+    .join('\n');
+
+  return buildNeutralEmbed(
+    'Activity Roles',
+    activityRoles || 'No activity roles configured.'
+  );
+}
 
 export const name = 'settings';
 export const aliases = ['config'];
@@ -205,10 +221,9 @@ export async function executeMessage(context) {
 }
 
 async function handleActivityRoleMessage(context, action, rest) {
-  const { resolveRoleFromMessage } = await import('../../utils/discordResolvers.js');
-
   if (action === 'list' || !action) {
-    return handleSettingsActionSafely({ guildId: context.guild.id, subcommand: 'view', values: {} });
+    const settings = await settingsService.getEffectiveSettings(context.guild.id);
+    return { embed: buildActivityRoleSummaryEmbed(settings) };
   }
 
   if (action === 'set') {
