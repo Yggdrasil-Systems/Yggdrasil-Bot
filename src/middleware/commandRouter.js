@@ -2,7 +2,7 @@ import { buildErrorEmbed, buildSuccessEmbed, buildNowPlayingEmbed, buildQueueEmb
 import { buildMusicPlayerComponents, buildSettingsComponents, buildFilterComponents, buildQueueComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
 import { replyToInteraction } from '../utils/responses.js';
-import { buildHelpCategoryEmbed, buildHelpComponents, parseHelpComponentId } from '../services/helpService.js';
+import { handleHelpSelectInteraction } from '../interactions/helpInteractionHandler.js';
 import { handleInteractionError } from './errorHandler.js';
 import { canUseAdminCommand } from './permissionGuard.js';
 import { player } from '../services/musicService.js';
@@ -308,24 +308,8 @@ export async function handleComponentInteraction(interaction) {
     }
 
     // ─── Help Select Menu ───────────────────────────────────────────────
-    if (interaction.isStringSelectMenu()) {
-      const helpComponent = parseHelpComponentId(interaction.customId);
-      if (!helpComponent) return;
-
-      if (interaction.user.id !== helpComponent.requesterId) {
-        await replyToInteraction(
-          interaction,
-          { embeds: [buildErrorEmbed('Help session locked', 'This help menu belongs to the user who opened it.')] },
-          { ephemeral: true }
-        );
-        return;
-      }
-
-      const category = interaction.values[0] ?? 'overview';
-      await interaction.update({
-        embeds: [buildHelpCategoryEmbed(category)],
-        components: buildHelpComponents({ requesterId: interaction.user.id, selectedCategory: category })
-      });
+    if (await handleHelpSelectInteraction(interaction)) {
+      return;
     }
   } catch (error) {
     logger.error('Component interaction error:', error.message);
