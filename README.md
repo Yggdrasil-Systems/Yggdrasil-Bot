@@ -204,6 +204,8 @@ world-tree/
 │   ├── interactions/                     # ── Component Interaction Handlers ─────────────────
 │   │   ├── helpInteractionHandler.js     # Help select menu routing and response updates
 │   │   ├── pingInteractionHandler.js     # Ping refresh button handling
+│   │   ├── musicPlaybackInteractionHandler.js # Playback controls: pause/resume/skip/queue/volume
+│   │   ├── musicFilterInteractionHandler.js   # Filter panel actions and filter toggles
 │   │   ├── queueInteractionHandler.js    # Queue clear button handling
 │   │   ├── searchInteractionHandler.js   # Search result select handling
 │   │   └── musicSettingsInteractionHandler.js # Playback settings panel handling
@@ -235,7 +237,7 @@ world-tree/
 │       ├── moderationInputs.js           # Shared moderation command input extraction
 │       └── fileDiscovery.js              # Recursive .js file finder for loaders
 │
-├── test/                                 # ── 37 Test Files ──────────────────────────────────
+├── test/                                 # ── 39 Test Files ──────────────────────────────────
 │   ├── apiServer.test.js                 # Fastify lifecycle, Zod validation, session integration
 │   ├── apiRoutes.test.js                 # Route serialization, pagination, field stripping
 │   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
