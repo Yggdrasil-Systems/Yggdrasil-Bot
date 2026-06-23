@@ -19,7 +19,7 @@ export async function execute(oldPresence, newPresence, client) {
     return;
   }
 
-  const settingsService = client.settingsService;
+  const settingsService = client.appContext?.settingsService ?? client.settingsService;
 
   if (!settingsService) {
     logger.warn('PresenceUpdate event fired but settingsService is not available on client.');

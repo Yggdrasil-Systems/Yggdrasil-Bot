@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
-import { player, getSourceEmoji, getSourceLabel, ytDlpStreamHook } from '../../services/musicService.js';
+import { getSourceEmoji, getSourceLabel, ytDlpStreamHook } from '../../services/musicService.js';
+import { getGuildQueue, getPlayer } from '../../services/playerService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 
@@ -39,10 +40,17 @@ export async function executePlay(query, voiceChannel, user, textChannel, respon
   }
 
   const searchEngine = isUrl(query) ? QueryType.AUTO : QueryType.AUTO_SEARCH;
+  const musicPlayer = getPlayer();
+
+  if (!musicPlayer) {
+    return respond({
+      embeds: [buildErrorEmbed('Music Unavailable', 'The music system is not ready yet. Try again in a moment.')]
+    });
+  }
 
   let result;
   try {
-    result = await player.search(query, {
+    result = await musicPlayer.search(query, {
       requestedBy: user,
       searchEngine
     });
@@ -68,9 +76,9 @@ export async function executePlay(query, voiceChannel, user, textChannel, respon
   }
 
   // ─── Enqueue ────────────────────────────────────────────────────────────
-  const existingQueue = player.nodes.get(voiceChannel.guild.id);
+  const existingQueue = getGuildQueue(voiceChannel.guild.id);
 
-  const queue = player.nodes.create(voiceChannel.guild, {
+  const queue = musicPlayer.nodes.create(voiceChannel.guild, {
     metadata: existingQueue?.metadata ?? {
       channel: textChannel,
       is247: false

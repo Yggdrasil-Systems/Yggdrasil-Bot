@@ -4,9 +4,8 @@ import { YoutubeiExtractor } from 'discord-player-youtubei';
 import { buildNowPlayingEmbed, buildSuccessEmbed, buildErrorEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildMusicPlayerComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
+import { setPlayer } from './playerService.js';
 import ytDlp from 'yt-dlp-exec';
-
-export let player = null;
 
 // ─── Safe channel sender ────────────────────────────────────────────────────
 
@@ -113,9 +112,9 @@ export const ytDlpStreamHook = async (track, method, queue) => {
 // ─── Player initialization ──────────────────────────────────────────────────
 
 export async function initializePlayer(client) {
-  player = new Player(client, {
+  const player = setPlayer(new Player(client, {
     skipFFmpeg: false
-  });
+  }));
 
   // 1. Load default extractors (SoundCloud, Spotify metadata, Apple metadata, etc.)
   await player.extractors.loadMulti(DefaultExtractors);

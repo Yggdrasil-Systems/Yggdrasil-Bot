@@ -89,6 +89,8 @@ world-tree/
 │   ├── index.js                          # Process entry — lifecycle hooks, shutdown orchestration
 │   ├── bootstrap.js                      # Startup sequencer — DB → commands → events → login → API
 │   ├── client.js                         # Discord.js client factory with gateway intents
+│   ├── context/
+│   │   └── appContext.js                 # Shared runtime container for bot dependencies
 │   │
 │   ├── api/                              # ── Fastify REST API ──────────────────────────────
 │   │   ├── server.js                     # Server factory — Zod compiler, CORS, plugin registration
@@ -166,6 +168,7 @@ world-tree/
 │   │   ├── settingsService.js            # Guild settings with in-memory TTL cache + normalization
 │   │   ├── activityRoleService.js        # Presence/voice activity role assignment
 │   │   ├── musicService.js               # discord-player init, extractor pipeline, event wiring
+│   │   ├── playerService.js              # Music player access helpers and guild queue lookup
 │   │   ├── helpService.js                # Category-based help menu builder
 │   │   ├── utilityService.js             # User/server/role/bot info aggregation
 │   │   ├── loggingService.js             # Mod-log channel delivery

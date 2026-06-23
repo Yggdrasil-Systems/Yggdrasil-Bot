@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { createClient } from './client.js';
 import { getRuntimeEnv } from './config/env.js';
+import { createAppContext } from './context/appContext.js';
 import { connectMongo } from './database/mongo/connection.js';
 import { loadCommands } from './loaders/commandLoader.js';
 import { loadEvents } from './loaders/eventLoader.js';
@@ -28,15 +29,26 @@ export async function bootstrap({
   log = logger
 } = {}) {
   log.info(`Starting ${BOT.name} in ${env.nodeEnv} mode.`);
+  const appContext = createAppContext({
+    client,
+    config: env,
+    settingsService,
+    noPrefixService: createNoPrefixService(undefined, { botOwnerId: env.botOwnerId }),
+    logger: log,
+    commands: client.commands
+  });
+
+  client.appContext = appContext;
   client.runtimeConfig = env;
-  client.settingsService = settingsService;
-  client.noPrefixService = createNoPrefixService(undefined, { botOwnerId: env.botOwnerId });
+  client.settingsService = appContext.settingsService;
+  client.noPrefixService = appContext.noPrefixService;
 
   await connectDatabase(env.mongoUri, {
     serverSelectionTimeoutMS: env.mongoServerSelectionTimeoutMs
   });
 
   client.commands = await loadCommandCollection(commandsPath);
+  client.appContext.commands = client.commands;
   const eventCount = await loadEventHandlers(client, eventsPath);
 
   log.info(`Loaded ${client.commands.size} command(s) and ${eventCount} event handler(s).`);
@@ -55,6 +67,7 @@ export async function bootstrap({
   return {
     client,
     apiServer,
+    appContext: client.appContext,
     commandCount: client.commands.size,
     eventCount
   };

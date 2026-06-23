@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { player } from '../../services/musicService.js';
+import { getGuildQueue } from '../../services/playerService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'filter';
@@ -34,7 +34,7 @@ const FILTER_EMOJIS = {
 };
 
 async function executeFilter(filterName, guildId, respond) {
-  const queue = player.nodes.get(guildId);
+  const queue = getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
     return respond({

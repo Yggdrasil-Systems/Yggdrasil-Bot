@@ -8,6 +8,7 @@ import { handleQueueClearInteraction } from '../interactions/queueInteractionHan
 import { handleMusicSettingsInteraction } from '../interactions/musicSettingsInteractionHandler.js';
 import { handleMusicPlaybackInteraction } from '../interactions/musicPlaybackInteractionHandler.js';
 import { handleMusicFilterInteraction } from '../interactions/musicFilterInteractionHandler.js';
+import { getAppContext } from '../context/appContext.js';
 import { handleInteractionError } from './errorHandler.js';
 import { canUseAdminCommand } from './permissionGuard.js';
 
@@ -73,18 +74,22 @@ export async function handleComponentInteraction(interaction) {
 // ─── Slash Command Handler ──────────────────────────────────────────────────
 
 export async function handleChatInputCommand(interaction, { log = logger } = {}) {
-  const command = interaction.client.commands.get(interaction.commandName);
+  const appContext = getAppContext(interaction) ?? {};
+  const commands = appContext.commands ?? interaction.client.commands;
+  const runtimeConfig = appContext.runtimeConfig ?? interaction.client.runtimeConfig ?? {};
+  const settingsService = appContext.settingsService ?? interaction.client.settingsService ?? null;
+  const command = commands.get(interaction.commandName);
 
   if (!command) {
     await handleUnknownCommand(interaction, log);
     return;
   }
 
-  const settings = interaction.client.settingsService && interaction.guild?.id
-    ? await interaction.client.settingsService.getEffectiveSettings(interaction.guild.id).catch(() => null)
+  const settings = settingsService && interaction.guild?.id
+    ? await settingsService.getEffectiveSettings(interaction.guild.id).catch(() => null)
     : null;
 
-  if (command.botOwnerOnly && interaction.user.id !== interaction.client.runtimeConfig?.botOwnerId) {
+  if (command.botOwnerOnly && interaction.user.id !== runtimeConfig.botOwnerId) {
     await replyToInteraction(
       interaction,
       { embeds: [buildErrorEmbed('Permission required', 'Only the configured bot owner can use that command.')] },
@@ -96,10 +101,10 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
   if (command.adminOnly && !canUseAdminCommand({
     userId: interaction.user.id,
     guildOwnerId: interaction.guild?.ownerId ?? null,
-    botOwnerId: interaction.client.runtimeConfig?.botOwnerId ?? null,
+    botOwnerId: runtimeConfig.botOwnerId ?? null,
     member: interaction.member,
     trustedAdminRoleIds: [
-      ...(interaction.client.runtimeConfig?.trustedAdminRoleIds ?? []),
+      ...(runtimeConfig.trustedAdminRoleIds ?? []),
       ...(settings?.trustedAdminRoleIds ?? [])
     ]
   })) {

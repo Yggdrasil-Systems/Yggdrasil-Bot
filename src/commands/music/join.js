@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { player, ytDlpStreamHook } from '../../services/musicService.js';
+import { ytDlpStreamHook } from '../../services/musicService.js';
+import { getGuildQueue, getPlayer } from '../../services/playerService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'join';
@@ -17,10 +18,18 @@ async function executeJoin(voiceChannel, textChannel, respond) {
     });
   }
 
-  let queue = player.nodes.get(voiceChannel.guild.id);
+  const musicPlayer = getPlayer();
+
+  if (!musicPlayer) {
+    return respond({
+      embeds: [buildErrorEmbed('Music Unavailable', 'The music system is not ready yet. Try again in a moment.')]
+    });
+  }
+
+  let queue = getGuildQueue(voiceChannel.guild.id);
 
   if (!queue) {
-    queue = player.nodes.create(voiceChannel.guild, {
+    queue = musicPlayer.nodes.create(voiceChannel.guild, {
       metadata: {
         channel: textChannel
       },

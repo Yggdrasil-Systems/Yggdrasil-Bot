@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { player } from '../../services/musicService.js';
+import { getGuildQueue } from '../../services/playerService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'shuffle';
@@ -11,7 +11,7 @@ export const data = new SlashCommandBuilder()
   .setDescription('Shuffles the current music queue.');
 
 async function executeShuffle(guildId, respond) {
-  const queue = player.nodes.get(guildId);
+  const queue = getGuildQueue(guildId);
 
   if (!queue || !queue.isPlaying()) {
     return respond({

@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
-import { player } from '../../services/musicService.js';
+import { getPlayer } from '../../services/playerService.js';
 import { buildBaseEmbed, buildErrorEmbed } from '../../utils/embeds.js';
 import { executePlay } from './play.js';
 import { logger } from '../../utils/logger.js';
@@ -28,9 +28,17 @@ async function executeSearch(query, voiceChannel, user, textChannel, respond) {
     });
   }
 
+  const musicPlayer = getPlayer();
+
+  if (!musicPlayer) {
+    return respond({
+      embeds: [buildErrorEmbed('Music Unavailable', 'The music system is not ready yet. Try again in a moment.')]
+    });
+  }
+
   let result;
   try {
-    result = await player.search(query, {
+    result = await musicPlayer.search(query, {
       requestedBy: user,
       searchEngine: QueryType.AUTO_SEARCH
     });

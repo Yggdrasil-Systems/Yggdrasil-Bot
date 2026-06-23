@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { player } from '../../services/musicService.js';
+import { getGuildQueue } from '../../services/playerService.js';
 import { buildQueueEmbed, buildErrorEmbed } from '../../utils/embeds.js';
 import { buildQueueComponents } from '../../utils/components.js';
 
@@ -12,7 +12,7 @@ export const data = new SlashCommandBuilder()
   .setDescription('Show the current music queue.');
 
 async function executeQueue(guildId, respond) {
-  const queue = player.nodes.get(guildId);
+  const queue = getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
     return respond({

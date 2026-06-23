@@ -2,6 +2,7 @@ import { buildErrorEmbed } from '../utils/embeds.js';
 import { BOT } from '../utils/constants.js';
 import { logger } from '../utils/logger.js';
 import { parseMessageCommand } from '../utils/messageParser.js';
+import { getAppContext } from '../context/appContext.js';
 import { canUseAdminCommand, canUseNoPrefixShortcuts } from './permissionGuard.js';
 import { handleMessageCommandError } from './errorHandler.js';
 import { replyToMessage } from '../utils/responses.js';
@@ -31,9 +32,11 @@ function findMessageCommand(commands, commandName) {
 }
 
 async function getPrivilegeContext(message) {
-  const runtimeConfig = message.client.runtimeConfig ?? {};
-  const settings = message.client.settingsService && message.guild?.id
-    ? await message.client.settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
+  const appContext = getAppContext(message) ?? {};
+  const runtimeConfig = appContext.runtimeConfig ?? message.client.runtimeConfig ?? {};
+  const settingsService = appContext.settingsService ?? message.client.settingsService ?? null;
+  const settings = settingsService && message.guild?.id
+    ? await settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
     : null;
 
   return {
@@ -60,9 +63,11 @@ async function replyWithPermissionError(message) {
 }
 
 async function canUseNoPrefix(message) {
-  const runtimeConfig = message.client.runtimeConfig ?? {};
-  const noPrefixAllowed = message.client.noPrefixService
-    ? await message.client.noPrefixService.canUseNoPrefix(message.author.id).catch(() => false)
+  const appContext = getAppContext(message) ?? {};
+  const runtimeConfig = appContext.runtimeConfig ?? message.client.runtimeConfig ?? {};
+  const noPrefixService = appContext.noPrefixService ?? message.client.noPrefixService ?? null;
+  const noPrefixAllowed = noPrefixService
+    ? await noPrefixService.canUseNoPrefix(message.author.id).catch(() => false)
     : false;
 
   return canUseNoPrefixShortcuts({
@@ -73,7 +78,8 @@ async function canUseNoPrefix(message) {
 }
 
 function isBotOwner(message) {
-  const botOwnerId = message.client.runtimeConfig?.botOwnerId;
+  const appContext = getAppContext(message) ?? {};
+  const botOwnerId = appContext.runtimeConfig?.botOwnerId ?? message.client.runtimeConfig?.botOwnerId;
   return Boolean(botOwnerId && message.author.id === botOwnerId);
 }
 
@@ -82,12 +88,16 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
     return false;
   }
 
-  const settings = message.client.settingsService
-    ? await message.client.settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
+  const appContext = getAppContext(message) ?? {};
+  const runtimeConfig = appContext.runtimeConfig ?? message.client.runtimeConfig ?? {};
+  const settingsService = appContext.settingsService ?? message.client.settingsService ?? null;
+  const commands = appContext.commands ?? message.client.commands;
+  const settings = settingsService
+    ? await settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
     : null;
 
   if (settings?.musicChannelId && message.channel.id === settings.musicChannelId) {
-    const playCommand = findMessageCommand(message.client.commands, 'play');
+    const playCommand = findMessageCommand(commands, 'play');
     if (playCommand && message.content.trim().length > 0) {
       setTimeout(() => message.delete().catch(() => null), 1000);
       try {
@@ -97,6 +107,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
           args: message.content.trim().split(/\s+/),
           message,
           client: message.client,
+          appContext,
           guild: message.guild,
           user: message.author,
           member: message.member,
@@ -113,7 +124,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
     prefix: BOT.prefix,
     allowNoPrefix: false
   });
-  const noPrefixCommandNames = getNoPrefixCommandNames(message.client.commands);
+  const noPrefixCommandNames = getNoPrefixCommandNames(commands);
   let parsedCommand = prefixedCommand;
 
   if (!parsedCommand) {
@@ -132,7 +143,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
     }
   }
 
-  const command = findMessageCommand(message.client.commands, parsedCommand.commandName);
+  const command = findMessageCommand(commands, parsedCommand.commandName);
 
   if (!command) {
     if (parsedCommand.mode === 'prefix') {
@@ -168,6 +179,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
       args: parsedCommand.args,
       message,
       client: message.client,
+      appContext,
       guild: message.guild,
       user: message.author,
       member: message.member,

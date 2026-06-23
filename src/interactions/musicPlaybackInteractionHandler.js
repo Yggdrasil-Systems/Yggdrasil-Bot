@@ -1,9 +1,9 @@
 import { buildErrorEmbed, buildSuccessEmbed, buildQueueEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildQueueComponents } from '../utils/components.js';
-import { player } from '../services/musicService.js';
+import { getGuildQueue } from '../services/playerService.js';
 
 function getQueue(interaction) {
-  return player?.nodes?.get(interaction.guildId) ?? null;
+  return getGuildQueue(interaction.guildId);
 }
 
 function requireQueue(interaction, resolveQueue = getQueue, allowEmptyTrack = false) {

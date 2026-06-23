@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { player } from '../../services/musicService.js';
-import { buildErrorEmbed, buildSuccessEmbed, buildNeutralEmbed } from '../../utils/embeds.js';
+import { getGuildQueue } from '../../services/playerService.js';
+import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'resume';
 export const aliases = ['pause', 'togglepause'];
@@ -11,7 +11,7 @@ export const data = new SlashCommandBuilder()
   .setDescription('Resume or pause the current track.');
 
 async function executeResume(guildId, respond) {
-  const queue = player.nodes.get(guildId);
+  const queue = getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
     return respond({
