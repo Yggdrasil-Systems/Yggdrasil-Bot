@@ -18,5 +18,5 @@ export function createAppContext({
 }
 
 export function getAppContext(source) {
-  return source?.appContext ?? source?.client?.appContext ?? null;
+  return source?.appContext ?? null;
 }

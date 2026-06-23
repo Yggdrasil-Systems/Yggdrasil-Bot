@@ -5,7 +5,7 @@ import { logger } from '../utils/logger.js';
 
 export const name = Events.PresenceUpdate;
 
-export async function execute(oldPresence, newPresence, client) {
+export async function execute(oldPresence, newPresence, client, appContext = null) {
   if (!client.options.intents.has(GatewayIntentBits.GuildPresences)) {
     logger.warn('╔════════════════════════════════════════════════════════════════╗');
     logger.warn('║  Activity roles are disabled.                                  ║');
@@ -19,7 +19,7 @@ export async function execute(oldPresence, newPresence, client) {
     return;
   }
 
-  const settingsService = client.appContext?.settingsService ?? client.settingsService;
+  const settingsService = appContext?.settingsService;
 
   if (!settingsService) {
     logger.warn('PresenceUpdate event fired but settingsService is not available on client.');

@@ -22,9 +22,9 @@ function scheduleMessageDeletion(message, delayMs = 1000) {
 }
 
 export async function handleMusicChannelMessage(message, {
-  commands = message.client?.commands,
-  settingsService = message.appContext?.settingsService ?? message.client?.settingsService ?? null,
-  appContext = message.appContext ?? message.client?.appContext ?? null,
+  commands = message.appContext?.commands ?? new Map(),
+  settingsService = message.appContext?.settingsService ?? null,
+  appContext = message.appContext ?? null,
   log = logger,
   deleteDelayMs = 1000,
   scheduleDeletion = scheduleMessageDeletion

@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import { getDashboardUrl } from '../src/commands/utility/dashboard.js';
 import { getService } from '../src/commands/setup/noprefix.js';
+import { noPrefixService as defaultNoPrefixService } from '../src/services/noPrefixService.js';
 
 test('dashboard command resolves runtime URL from app context first', () => {
   const source = {
@@ -18,14 +19,10 @@ test('dashboard command resolves runtime URL from app context first', () => {
 
 test('noprefix command resolves the no-prefix service from app context first', () => {
   const appContextService = { id: 'app-context' };
-  const fallbackService = { id: 'fallback' };
 
   assert.equal(getService({
     appContext: { noPrefixService: appContextService },
-    client: { noPrefixService: fallbackService }
   }), appContextService);
 
-  assert.equal(getService({
-    client: { noPrefixService: fallbackService }
-  }), fallbackService);
+  assert.equal(getService({}), defaultNoPrefixService);
 });

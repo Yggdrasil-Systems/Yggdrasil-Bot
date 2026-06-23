@@ -75,9 +75,9 @@ export async function handleComponentInteraction(interaction) {
 
 export async function handleChatInputCommand(interaction, { log = logger } = {}) {
   const appContext = getAppContext(interaction) ?? {};
-  const commands = appContext.commands ?? interaction.client.commands;
-  const runtimeConfig = appContext.runtimeConfig ?? interaction.client.runtimeConfig ?? {};
-  const settingsService = appContext.settingsService ?? interaction.client.settingsService ?? null;
+  const commands = appContext.commands ?? new Map();
+  const runtimeConfig = appContext.runtimeConfig ?? {};
+  const settingsService = appContext.settingsService ?? null;
   const command = commands.get(interaction.commandName);
 
   if (!command) {

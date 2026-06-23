@@ -4,7 +4,9 @@ import { handleChatInputCommand, handleComponentInteraction } from '../middlewar
 
 export const name = Events.InteractionCreate;
 
-export async function execute(interaction) {
+export async function execute(interaction, client, appContext = null) {
+  interaction.appContext = appContext;
+
   if (!interaction.isChatInputCommand()) {
     await handleComponentInteraction(interaction);
     return;

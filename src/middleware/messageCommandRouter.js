@@ -34,8 +34,8 @@ function findMessageCommand(commands, commandName) {
 
 async function getPrivilegeContext(message) {
   const appContext = getAppContext(message) ?? {};
-  const runtimeConfig = appContext.runtimeConfig ?? message.client.runtimeConfig ?? {};
-  const settingsService = appContext.settingsService ?? message.client.settingsService ?? null;
+  const runtimeConfig = appContext.runtimeConfig ?? {};
+  const settingsService = appContext.settingsService ?? null;
   const settings = settingsService && message.guild?.id
     ? await settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
     : null;
@@ -65,8 +65,8 @@ async function replyWithPermissionError(message) {
 
 async function canUseNoPrefix(message) {
   const appContext = getAppContext(message) ?? {};
-  const runtimeConfig = appContext.runtimeConfig ?? message.client.runtimeConfig ?? {};
-  const noPrefixService = appContext.noPrefixService ?? message.client.noPrefixService ?? null;
+  const runtimeConfig = appContext.runtimeConfig ?? {};
+  const noPrefixService = appContext.noPrefixService ?? null;
   const noPrefixAllowed = noPrefixService
     ? await noPrefixService.canUseNoPrefix(message.author.id).catch(() => false)
     : false;
@@ -80,7 +80,7 @@ async function canUseNoPrefix(message) {
 
 function isBotOwner(message) {
   const appContext = getAppContext(message) ?? {};
-  const botOwnerId = appContext.runtimeConfig?.botOwnerId ?? message.client.runtimeConfig?.botOwnerId;
+  const botOwnerId = appContext.runtimeConfig?.botOwnerId;
   return Boolean(botOwnerId && message.author.id === botOwnerId);
 }
 
@@ -90,9 +90,9 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
   }
 
   const appContext = getAppContext(message) ?? {};
-  const runtimeConfig = appContext.runtimeConfig ?? message.client.runtimeConfig ?? {};
-  const settingsService = appContext.settingsService ?? message.client.settingsService ?? null;
-  const commands = appContext.commands ?? message.client.commands;
+  const runtimeConfig = appContext.runtimeConfig ?? {};
+  const settingsService = appContext.settingsService ?? null;
+  const commands = appContext.commands ?? new Map();
 
   if (await handleMusicChannelMessage(message, { commands, settingsService, appContext, log })) {
     return true;

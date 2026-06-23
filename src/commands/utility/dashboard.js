@@ -12,9 +12,6 @@ export const data = new SlashCommandBuilder()
 
 export function getDashboardUrl(source) {
   return source?.appContext?.runtimeConfig?.dashboardUrl
-    ?? source?.runtimeConfig?.dashboardUrl
-    ?? source?.client?.appContext?.runtimeConfig?.dashboardUrl
-    ?? source?.client?.runtimeConfig?.dashboardUrl
     ?? null;
 }
 

@@ -15,7 +15,8 @@ function createInteraction({ commandName = 'missing', command } = {}) {
   return {
     interaction: {
       commandName,
-      client: { commands },
+      appContext: { commands },
+      client: {},
       replied: false,
       deferred: false,
       reply: async (payload) => calls.push(['reply', payload]),

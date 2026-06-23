@@ -15,8 +15,8 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   const guild = interaction.guild;
-  const settingsService = interaction.client.appContext?.settingsService ?? interaction.client.settingsService ?? null;
-  
+  const settingsService = interaction.appContext?.settingsService ?? null;
+
   // Create a new text channel
   const channel = await guild.channels.create({
     name: 'music-requests',

@@ -5,7 +5,14 @@ import { test } from 'node:test';
 import { handleMessageCommand } from '../src/middleware/messageCommandRouter.js';
 import * as activityRoleCommand from '../src/commands/setup/activityrole.js';
 
-function createMessage({ content, command, commandName = 'ping', member, guildOwnerId = 'owner' }) {
+function createMessage({
+  content,
+  command,
+  commandName = 'ping',
+  member,
+  guildOwnerId = 'owner',
+  appContext = {}
+}) {
   const replies = [];
   const commands = new Collection();
 
@@ -13,13 +20,22 @@ function createMessage({ content, command, commandName = 'ping', member, guildOw
     commands.set(commandName, command);
   }
 
+  const runtimeAppContext = {
+    commands,
+    runtimeConfig: {},
+    settingsService: null,
+    noPrefixService: null,
+    ...appContext
+  };
+
   return {
     message: {
       content,
       author: { id: 'user', bot: false },
       member,
       guild: { id: 'guild', ownerId: guildOwnerId },
-      client: { commands },
+      appContext: runtimeAppContext,
+      client: {},
       reply: async (payload) => replies.push(payload)
     },
     replies
@@ -85,8 +101,8 @@ test('handleMessageCommand allows no-prefix shortcuts for allowlisted users', as
       roles: { cache: new Map() }
     }
   });
-  message.client.runtimeConfig = { botOwnerId: 'owner' };
-  message.client.noPrefixService = {
+  message.appContext.runtimeConfig = { botOwnerId: 'owner' };
+  message.appContext.noPrefixService = {
     canUseNoPrefix: async () => true
   };
 
@@ -116,7 +132,7 @@ test('handleMessageCommand allows bot owner no-prefix admin shortcuts', async ()
     }
   });
   message.author.id = 'owner';
-  message.client.runtimeConfig = { botOwnerId: 'owner' };
+  message.appContext.runtimeConfig = { botOwnerId: 'owner' };
 
   const executed = await handleMessageCommand(message);
 
@@ -146,8 +162,8 @@ test('handleMessageCommand does not treat denied no-prefix lookalikes as execute
       roles: { cache: new Map() }
     }
   });
-  message.client.runtimeConfig = { botOwnerId: 'owner' };
-  message.client.noPrefixService = {
+  message.appContext.runtimeConfig = { botOwnerId: 'owner' };
+  message.appContext.noPrefixService = {
     canUseNoPrefix: async () => false
   };
 
@@ -175,7 +191,7 @@ test('handleMessageCommand allows persisted trusted roles for admin commands', a
       roles: { cache: new Map([['trusted-role', { id: 'trusted-role' }]]) }
     }
   });
-  message.client.settingsService = {
+  message.appContext.settingsService = {
     getEffectiveSettings: async () => ({ trustedAdminRoleIds: ['trusted-role'] })
   };
 

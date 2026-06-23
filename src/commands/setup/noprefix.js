@@ -8,8 +8,6 @@ export const botOwnerOnly = true;
 
 export function getService(context) {
   return context.appContext?.noPrefixService
-    ?? context.client.appContext?.noPrefixService
-    ?? context.client.noPrefixService
     ?? defaultNoPrefixService;
 }
 

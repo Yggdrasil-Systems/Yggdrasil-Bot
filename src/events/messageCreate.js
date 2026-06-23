@@ -5,7 +5,9 @@ import { automodService } from '../services/automod/automodService.js';
 
 export const name = Events.MessageCreate;
 
-export async function execute(message) {
+export async function execute(message, client, appContext = null) {
+  message.appContext = appContext;
+
   const handledCommand = await handleMessageCommand(message);
   await automodService.handleMessage(message, { isCommand: handledCommand });
 }
