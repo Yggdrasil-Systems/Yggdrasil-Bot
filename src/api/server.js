@@ -6,6 +6,7 @@ import { logger } from '../utils/logger.js';
 import { cookiePlugin } from './plugins/cookiePlugin.js';
 import { discordOAuthPlugin } from './plugins/discordOAuthPlugin.js';
 import { errorHandler } from './plugins/errorHandler.js';
+import { rateLimitPlugin } from './plugins/rateLimitPlugin.js';
 import { sessionPlugin } from './plugins/sessionPlugin.js';
 import { servicesPlugin } from './plugins/servicesPlugin.js';
 import { authRoutes } from './routes/v1/auth/auth.route.js';
@@ -36,7 +37,12 @@ export function sanitizeRequestUrl(url) {
 /**
  * Creates and configures the Fastify server instance.
  */
-export async function createServer(discordClient, { env = discordClient?.runtimeConfig ?? {}, fetchImpl = globalThis.fetch } = {}) {
+export async function createServer(discordClient, {
+  env = discordClient?.runtimeConfig ?? {},
+  fetchImpl = globalThis.fetch,
+  rateLimit = {},
+  dbConnection
+} = {}) {
   // We use Fastify's native Pino logger, but we adapt it so it doesn't
   // clash too heavily with the bot's console output.
   const app = fastify({
@@ -62,6 +68,8 @@ export async function createServer(discordClient, { env = discordClient?.runtime
 
   // Global Error Handler
   app.register(errorHandler);
+
+  app.register(rateLimitPlugin, rateLimit);
 
   if (env.dashboardOrigin) {
     app.register(cors, {
@@ -115,7 +123,7 @@ export async function createServer(discordClient, { env = discordClient?.runtime
   }
 
   // Register Routes
-  app.register(healthRoutes, { prefix: '/v1/health' });
+  app.register(healthRoutes, { prefix: '/v1/health', dbConnection });
   app.register(settingsRoutes, { prefix: '/v1/guilds/:guildId/settings' });
   app.register(casesRoutes, { prefix: '/v1/guilds/:guildId/cases' });
   app.register(statsRoutes, { prefix: '/v1/guilds/:guildId/stats' });

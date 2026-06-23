@@ -97,12 +97,13 @@ world-tree/
 │   │   │   ├── sessionPlugin.js          # AES-256-GCM encrypted sessions, HKDF key derivation
 │   │   │   ├── servicesPlugin.js         # Dependency injection — shared services into Fastify context
 │   │   │   ├── discordOAuthPlugin.js     # Discord OAuth2 + PKCE helpers and safe Discord API calls
+│   │   │   ├── rateLimitPlugin.js        # Global API limits and auth route sub-limits
 │   │   │   └── errorHandler.js           # Centralized Zod validation + 5xx error formatting
 │   │   └── routes/v1/
 │   │       ├── auth/
 │   │       │   └── auth.route.js         # GET login/callback/me + POST logout
 │   │       ├── health/
-│   │       │   └── health.route.js       # GET /v1/health — runtime + Discord + DB status
+│   │       │   └── health.route.js       # GET /v1/health — runtime, Discord, DB, memory
 │   │       └── guilds/
 │   │           ├── settings.route.js     # GET /v1/guilds/:guildId/settings
 │   │           ├── cases.route.js        # GET /v1/guilds/:guildId/cases (cursor pagination)
@@ -220,14 +221,14 @@ world-tree/
 │       ├── components.js                 # Button rows — music player, queue, settings, filters
 │       ├── constants.js                  # Colors, limits, automod defaults, bot identity
 │       ├── responses.js                  # Interaction/message reply abstraction
-│       ├── logger.js                     # Timestamped structured logger
+│       ├── logger.js                     # Pino-backed structured logger with redaction
 │       ├── formatters.js                 # Duration, number, date formatting
 │       ├── messageParser.js              # Prefix detection + argument extraction
 │       ├── discordResolvers.js           # User/member/channel resolution from arguments
 │       ├── moderationInputs.js           # Shared moderation command input extraction
 │       └── fileDiscovery.js              # Recursive .js file finder for loaders
 │
-├── test/                                 # ── 32 Test Files ──────────────────────────────────
+├── test/                                 # ── 33 Test Files ──────────────────────────────────
 │   ├── apiServer.test.js                 # Fastify lifecycle, Zod validation, session integration
 │   ├── apiRoutes.test.js                 # Route serialization, pagination, field stripping
 │   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
@@ -273,7 +274,7 @@ world-tree/
 │   ├── README.md                         # Dashboard planning notes
 │   └── WIREFRAMES.md                     # UI wireframe notes
 │
-├── ecosystem.config.cjs                  # PM2 process config — fork mode, 500M memory limit
+├── ecosystem.config.cjs                  # PM2 process config — fork mode, restart controls, log files
 ├── .env.example                          # Environment variable template
 ├── .gitignore                            # Git ignore rules (node_modules, .env, logs)
 ├── Tree.jpg                              # Bot avatar / project logo
@@ -573,6 +574,15 @@ World Tree uses Pino through a thin local wrapper at `src/utils/logger.js`.
 
 ---
 
+## API Operations
+
+- `GET /v1/health` returns `200` when Discord and MongoDB are healthy.
+- `GET /v1/health` returns `503` with `status: degraded` when either dependency is unhealthy.
+- `API_RATE_LIMIT_MAX`, `AUTH_RATE_LIMIT_MAX`, and `RATE_LIMIT_WINDOW` tune API request limits when `ENABLE_API=true`.
+- `/v1/auth/*` uses a stricter request budget than the rest of the API.
+
+---
+
 ## Environment Variables
 
 ```env
@@ -592,6 +602,9 @@ DEV_GUILD_ID=your_test_discord_server_id
 # ── API (required when ENABLE_API=true) ────
 ENABLE_API=true
 API_PORT=3000
+API_RATE_LIMIT_MAX=120
+AUTH_RATE_LIMIT_MAX=20
+RATE_LIMIT_WINDOW=1 minute
 SESSION_SECRET=random_32_byte_hex_string
 DISCORD_CLIENT_SECRET=your_oauth2_client_secret
 DASHBOARD_ORIGIN=http://localhost:5173
@@ -661,11 +674,24 @@ If you want **activity roles** (Spotify auto-role, etc.), also enable:
 
 After changing intents in the Developer Portal, restart the bot. If slash commands changed, run `npm run register:commands` again.
 
+### PM2 Runtime
+
+The PM2 process uses fork mode with bounded restarts and separate stdout/stderr log files.
+
+- `max_memory_restart: 500M`
+- `max_restarts: 10`
+- `restart_delay: 5000`
+- `exp_backoff_restart_delay: 1000`
+- `kill_timeout: 10000`
+- `out_file: ./logs/world-tree.out.log`
+- `error_file: ./logs/world-tree.err.log`
+- `merge_logs: true`
+
 ### MongoDB Collections
 
 | Collection | Purpose |
 |---|---|
-| `guild_settings` | Per-guild configuration: automod rules, moderation settings, trusted roles |
+| `guild_settings` | Per-guild configuration: automod rules, moderation settings, trusted/activity roles |
 | `moderation_cases` | Case records with atomic auto-increment IDs |
 | `counters` | Atomic counter sequences for case ID generation |
 | `no_prefix_privileges` | Global no-prefix user grants |

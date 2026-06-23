@@ -28,6 +28,11 @@ test('readRuntimeEnv returns trimmed runtime configuration values', () => {
     trustedAdminRoleIds: [],
     enableApi: false,
     apiPort: 3000,
+    rateLimit: {
+      globalMax: 120,
+      authMax: 20,
+      timeWindow: '1 minute'
+    },
     nodeEnv: 'test',
     isProduction: false,
     mongoServerSelectionTimeoutMs: 10000
@@ -174,4 +179,31 @@ test('readRuntimeEnv returns trimmed dashboard auth configuration', () => {
   assert.equal(env.discordClientSecret, 'discord-secret');
   assert.equal(env.dashboardOrigin, 'http://localhost:5173');
   assert.equal(env.apiOrigin, 'http://localhost:3000');
+});
+
+test('readRuntimeEnv reads API rate limit configuration', () => {
+  const env = readRuntimeEnv({
+    DISCORD_TOKEN: 'token',
+    MONGO_URI: 'mongodb://localhost/world-tree',
+    API_RATE_LIMIT_MAX: ' 240 ',
+    AUTH_RATE_LIMIT_MAX: ' 30 ',
+    RATE_LIMIT_WINDOW: ' 2 minutes '
+  });
+
+  assert.deepEqual(env.rateLimit, {
+    globalMax: 240,
+    authMax: 30,
+    timeWindow: '2 minutes'
+  });
+});
+
+test('readRuntimeEnv rejects invalid rate limit values', () => {
+  assert.throws(
+    () => readRuntimeEnv({
+      DISCORD_TOKEN: 'token',
+      MONGO_URI: 'mongodb://localhost/world-tree',
+      API_RATE_LIMIT_MAX: '0'
+    }),
+    /API_RATE_LIMIT_MAX must be a positive integer/
+  );
 });

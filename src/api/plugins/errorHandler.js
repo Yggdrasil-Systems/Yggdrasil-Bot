@@ -16,7 +16,7 @@ export const errorHandler = fp(async (fastify) => {
     // Default fastify error formatting
     if (error.statusCode >= 400 && error.statusCode < 500) {
       this.log.info({ req: request, err: error }, 'Client error');
-      return reply.send(error);
+      return reply.status(error.statusCode).send(error);
     }
 
     // Unhandled 500 Server Errors

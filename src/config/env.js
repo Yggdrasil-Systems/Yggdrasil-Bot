@@ -4,6 +4,9 @@ dotenv.config({ quiet: true });
 
 const DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MS = 10000;
 const MIN_SESSION_SECRET_LENGTH = 32;
+const DEFAULT_API_RATE_LIMIT_MAX = 120;
+const DEFAULT_AUTH_RATE_LIMIT_MAX = 20;
+const DEFAULT_RATE_LIMIT_WINDOW = '1 minute';
 
 const ENV_PROFILES = Object.freeze({
   core: ['DISCORD_TOKEN'],
@@ -134,6 +137,11 @@ export function readEnv(source = process.env, profile = 'runtime') {
     trustedAdminRoleIds: readCsv(source, 'TRUSTED_ADMIN_ROLE_IDS'),
     enableApi,
     apiPort: readPositiveInteger(source, 'API_PORT', 3000),
+    rateLimit: {
+      globalMax: readPositiveInteger(source, 'API_RATE_LIMIT_MAX', DEFAULT_API_RATE_LIMIT_MAX),
+      authMax: readPositiveInteger(source, 'AUTH_RATE_LIMIT_MAX', DEFAULT_AUTH_RATE_LIMIT_MAX),
+      timeWindow: cleanValue(source.RATE_LIMIT_WINDOW) || DEFAULT_RATE_LIMIT_WINDOW
+    },
     nodeEnv,
     isProduction: nodeEnv === 'production',
     mongoServerSelectionTimeoutMs: readPositiveInteger(

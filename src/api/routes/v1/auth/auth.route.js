@@ -57,7 +57,13 @@ function normalizeQueryValue(value) {
 }
 
 export async function authRoutes(fastify) {
-  fastify.get('/login', async (request, reply) => {
+  const authRouteConfig = {
+    config: {
+      rateLimit: fastify.authRateLimit
+    }
+  };
+
+  fastify.get('/login', authRouteConfig, async (request, reply) => {
     const state = fastify.discordOAuth.generateOAuthState();
     const verifier = fastify.discordOAuth.generatePkceVerifier();
     const codeChallenge = fastify.discordOAuth.createPkceChallenge(verifier);
@@ -72,7 +78,7 @@ export async function authRoutes(fastify) {
       .redirect(authorizeUrl);
   });
 
-  fastify.get('/callback', async (request, reply) => {
+  fastify.get('/callback', authRouteConfig, async (request, reply) => {
     const code = normalizeQueryValue(request.query?.code);
     const state = normalizeQueryValue(request.query?.state);
 
@@ -118,6 +124,7 @@ export async function authRoutes(fastify) {
   });
 
   fastify.get('/me', {
+    ...authRouteConfig,
     preHandler: fastify.sessionGuard,
     schema: {
       response: {
@@ -151,6 +158,7 @@ export async function authRoutes(fastify) {
   });
 
   fastify.post('/logout', {
+    ...authRouteConfig,
     preHandler: fastify.sessionGuard,
     schema: {
       response: {

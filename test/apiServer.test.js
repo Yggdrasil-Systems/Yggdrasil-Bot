@@ -13,7 +13,9 @@ describe('API Server', () => {
   };
 
   before(async () => {
-    app = await createServer(mockDiscordClient);
+    app = await createServer(mockDiscordClient, {
+      dbConnection: { readyState: 1 }
+    });
   });
 
   after(async () => {
@@ -37,7 +39,117 @@ describe('API Server', () => {
     assert.strictEqual(payload.discord.status, 'ready');
     assert.strictEqual(payload.discord.ping, 42);
     
-    assert.strictEqual(typeof payload.database, 'string');
+    assert.strictEqual(payload.database.status, 'connected');
+    assert.strictEqual(payload.database.readyState, 1);
+    assert.strictEqual(typeof payload.memory.heapUsed, 'number');
+  });
+
+  it('returns 503 from /v1/health when Discord is disconnected', async () => {
+    const unhealthyApp = await createServer({
+      isReady: () => false,
+      ws: { ping: null }
+    }, {
+      dbConnection: { readyState: 1 }
+    });
+
+    const response = await unhealthyApp.inject({
+      method: 'GET',
+      url: '/v1/health'
+    });
+
+    await unhealthyApp.close();
+
+    assert.strictEqual(response.statusCode, 503);
+
+    const payload = JSON.parse(response.payload);
+    assert.strictEqual(payload.status, 'degraded');
+    assert.strictEqual(payload.discord.status, 'disconnected');
+    assert.strictEqual(payload.database.status, 'connected');
+    assert.strictEqual(typeof payload.memory.rss, 'number');
+  });
+
+  it('returns 503 from /v1/health when MongoDB is disconnected', async () => {
+    const unhealthyApp = await createServer(mockDiscordClient, {
+      dbConnection: { readyState: 0 }
+    });
+
+    const response = await unhealthyApp.inject({
+      method: 'GET',
+      url: '/v1/health'
+    });
+
+    await unhealthyApp.close();
+
+    assert.strictEqual(response.statusCode, 503);
+
+    const payload = JSON.parse(response.payload);
+    assert.strictEqual(payload.status, 'degraded');
+    assert.strictEqual(payload.discord.status, 'ready');
+    assert.strictEqual(payload.database.status, 'disconnected');
+  });
+
+  it('rate limits repeated API requests', async () => {
+    const limitedApp = await createServer(mockDiscordClient, {
+      rateLimit: {
+        globalMax: 1,
+        authMax: 1,
+        timeWindow: '1 minute'
+      }
+    });
+
+    limitedApp.get('/v1/rate-limit-test', async () => ({ ok: true }));
+
+    const first = await limitedApp.inject({
+      method: 'GET',
+      url: '/v1/rate-limit-test',
+      remoteAddress: '203.0.113.1'
+    });
+
+    const second = await limitedApp.inject({
+      method: 'GET',
+      url: '/v1/rate-limit-test',
+      remoteAddress: '203.0.113.1'
+    });
+
+    await limitedApp.close();
+
+    assert.strictEqual(first.statusCode, 200);
+    assert.strictEqual(second.statusCode, 429);
+  });
+
+  it('applies stricter rate limits to auth endpoints', async () => {
+    const authApp = await createServer(mockDiscordClient, {
+      env: {
+        clientId: 'client-id',
+        discordClientSecret: 'client-secret',
+        dashboardOrigin: 'http://localhost:5173',
+        apiOrigin: 'http://localhost:3000',
+        sessionSecret: '12345678901234567890123456789012',
+        isProduction: false
+      },
+      rateLimit: {
+        globalMax: 100,
+        authMax: 1,
+        timeWindow: '1 minute'
+      }
+    });
+
+    const first = await authApp.inject({
+      method: 'GET',
+      url: '/v1/auth/login',
+      remoteAddress: '203.0.113.2'
+    });
+
+    const second = await authApp.inject({
+      method: 'GET',
+      url: '/v1/auth/login',
+      remoteAddress: '203.0.113.2'
+    });
+
+    await authApp.close();
+
+    assert.strictEqual(first.statusCode, 302);
+    assert.strictEqual(second.statusCode, 429);
   });
 
   it('formats zod validation errors cleanly via errorHandler', async () => {
