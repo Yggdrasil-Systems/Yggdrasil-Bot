@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
-import { getPlayer } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildBaseEmbed, buildErrorEmbed } from '../../utils/embeds.js';
 import { executePlay } from './play.js';
 import { logger } from '../../utils/logger.js';
@@ -21,14 +21,14 @@ export const data = new SlashCommandBuilder()
 // Store search results temporarily for select menu resolution
 const searchCache = new Map();
 
-async function executeSearch(query, voiceChannel, user, textChannel, respond) {
+async function executeSearch(query, voiceChannel, user, textChannel, playerService, respond) {
   if (!voiceChannel) {
     return respond({
       embeds: [buildErrorEmbed('Voice Channel Required', 'You need to be in a voice channel to play music.')]
     });
   }
 
-  const musicPlayer = getPlayer();
+  const musicPlayer = playerService?.getPlayer();
 
   if (!musicPlayer) {
     return respond({
@@ -59,7 +59,7 @@ async function executeSearch(query, voiceChannel, user, textChannel, respond) {
   const cacheKey = user.id;
 
   // Cache the tracks for when the user makes a selection
-  searchCache.set(cacheKey, { tracks, voiceChannel, textChannel, timestamp: Date.now() });
+  searchCache.set(cacheKey, { tracks, voiceChannel, textChannel, playerService, timestamp: Date.now() });
 
   // Auto-clean cache after 60 seconds
   setTimeout(() => searchCache.delete(cacheKey), 60000);
@@ -121,7 +121,7 @@ export async function handleSearchSelect(interaction) {
   searchCache.delete(cacheKey);
 
   // Play the selected track using its URL for exact match
-  await executePlay(track.url, cached.voiceChannel, interaction.user, cached.textChannel, async (payload) => {
+  await executePlay(track.url, cached.voiceChannel, interaction.user, cached.textChannel, cached.playerService, async (payload) => {
     await interaction.followUp(payload);
   });
 }
@@ -130,8 +130,10 @@ export async function execute(interaction) {
   const query = interaction.options.getString('query');
   const voiceChannel = interaction.member.voice.channel;
   const textChannel = interaction.channel;
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
 
-  await executeSearch(query, voiceChannel, interaction.user, textChannel, async (payload) => {
+  await executeSearch(query, voiceChannel, interaction.user, textChannel, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -151,8 +153,9 @@ export async function executeMessage(context) {
 
   const voiceChannel = context.member.voice.channel;
   const textChannel = context.message.channel;
+  const playerService = context.appContext?.playerService ?? null;
 
-  await executeSearch(query, voiceChannel, context.user, textChannel, async (payload) => {
+  await executeSearch(query, voiceChannel, context.user, textChannel, playerService, async (payload) => {
     await context.respond(payload);
   });
 }

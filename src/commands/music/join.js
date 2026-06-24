@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { ytDlpStreamHook } from '../../services/musicService.js';
-import { getGuildQueue, getPlayer } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'join';
@@ -11,14 +11,14 @@ export const data = new SlashCommandBuilder()
   .setName('join')
   .setDescription('Makes the bot join your voice channel.');
 
-async function executeJoin(voiceChannel, textChannel, respond) {
+async function executeJoin(voiceChannel, textChannel, playerService, respond) {
   if (!voiceChannel) {
     return respond({
       embeds: [buildErrorEmbed('Voice Channel Required', 'You need to be in a voice channel for me to join.')]
     });
   }
 
-  const musicPlayer = getPlayer();
+  const musicPlayer = playerService?.getPlayer();
 
   if (!musicPlayer) {
     return respond({
@@ -26,7 +26,7 @@ async function executeJoin(voiceChannel, textChannel, respond) {
     });
   }
 
-  let queue = getGuildQueue(voiceChannel.guild.id);
+  let queue = playerService?.getGuildQueue(voiceChannel.guild.id);
 
   if (!queue) {
     queue = musicPlayer.nodes.create(voiceChannel.guild, {
@@ -54,8 +54,10 @@ async function executeJoin(voiceChannel, textChannel, respond) {
 export async function execute(interaction) {
   const voiceChannel = interaction.member.voice.channel;
   const textChannel = interaction.channel;
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
 
-  await executeJoin(voiceChannel, textChannel, async (payload) => {
+  await executeJoin(voiceChannel, textChannel, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -67,10 +69,11 @@ export async function execute(interaction) {
 export async function executeMessage(context) {
   const voiceChannel = context.member.voice.channel;
   const textChannel = context.message.channel;
+  const playerService = context.appContext?.playerService ?? null;
 
   const respondFn = async (payload) => {
     await context.respond(payload);
   };
 
-  await executeJoin(voiceChannel, textChannel, respondFn);
+  await executeJoin(voiceChannel, textChannel, playerService, respondFn);
 }

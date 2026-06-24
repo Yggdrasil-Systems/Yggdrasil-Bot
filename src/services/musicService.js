@@ -4,7 +4,6 @@ import { YoutubeiExtractor } from 'discord-player-youtubei';
 import { buildNowPlayingEmbed, buildSuccessEmbed, buildErrorEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildMusicPlayerComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
-import { setPlayer } from './playerService.js';
 import ytDlp from 'yt-dlp-exec';
 
 // ─── Safe channel sender ────────────────────────────────────────────────────
@@ -111,8 +110,8 @@ export const ytDlpStreamHook = async (track, method, queue) => {
 
 // ─── Player initialization ──────────────────────────────────────────────────
 
-export async function initializePlayer(client) {
-  const player = setPlayer(new Player(client, {
+export async function initializePlayer(client, playerService) {
+  const player = playerService.setPlayer(new Player(client, {
     skipFFmpeg: false
   }));
 

@@ -1,9 +1,8 @@
 import { buildNeutralEmbed, buildErrorEmbed } from '../utils/embeds.js';
 import { buildSettingsComponents } from '../utils/components.js';
-import { getGuildQueue } from '../services/playerService.js';
 
 function getQueue(interaction) {
-  return getGuildQueue(interaction.guildId);
+  return interaction.appContext?.playerService?.getGuildQueue(interaction.guildId);
 }
 
 function requireQueue(interaction, resolveQueue = getQueue) {
@@ -33,8 +32,14 @@ function buildPlaybackSettingsCopy(queue) {
   ].join('\n');
 }
 
-export async function handleMusicSettingsInteraction(interaction, { resolveQueue = getQueue } = {}) {
-  if (!interaction?.isButton?.() || interaction.customId !== 'music_settings') {
+export const prefix = 'music_settings';
+
+export async function handle(interaction, { resolveQueue = getQueue } = {}) {
+  if (!interaction.customId?.startsWith(prefix)) {
+    return false;
+  }
+
+  if (!interaction?.isButton?.()) {
     return false;
   }
 
@@ -51,3 +56,5 @@ export async function handleMusicSettingsInteraction(interaction, { resolveQueue
 
   return true;
 }
+
+export const handleMusicSettingsInteraction = handle;

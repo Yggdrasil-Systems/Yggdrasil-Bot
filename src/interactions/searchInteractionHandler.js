@@ -1,8 +1,14 @@
 import { buildErrorEmbed } from '../utils/embeds.js';
 import { handleSearchSelect } from '../commands/music/search.js';
 
-export async function handleSearchSelectInteraction(interaction, { onSelect = handleSearchSelect } = {}) {
-  if (!interaction?.isStringSelectMenu?.() || !interaction.customId.startsWith('search_select_')) {
+export const prefix = 'search_select_';
+
+export async function handle(interaction, { onSelect = handleSearchSelect } = {}) {
+  if (!interaction.customId?.startsWith(prefix)) {
+    return false;
+  }
+
+  if (!interaction?.isStringSelectMenu?.()) {
     return false;
   }
 
@@ -20,3 +26,5 @@ export async function handleSearchSelectInteraction(interaction, { onSelect = ha
   await onSelect(interaction);
   return true;
 }
+
+export const handleSearchSelectInteraction = handle;

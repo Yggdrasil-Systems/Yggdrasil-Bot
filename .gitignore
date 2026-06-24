@@ -15,7 +15,7 @@ coverage/
 # IDEs
 .idea/
 .vscode/
-
+.kimchi/
 # Build outputs
 dist/
 *.tgz

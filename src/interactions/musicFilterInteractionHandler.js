@@ -1,9 +1,8 @@
 import { buildErrorEmbed, buildSuccessEmbed } from '../utils/embeds.js';
 import { buildFilterComponents } from '../utils/components.js';
-import { getGuildQueue } from '../services/playerService.js';
 
 function getQueue(interaction) {
-  return getGuildQueue(interaction.guildId);
+  return interaction.appContext?.playerService?.getGuildQueue(interaction.guildId);
 }
 
 function requireQueue(interaction, resolveQueue = getQueue) {
@@ -34,8 +33,14 @@ const FILTER_TARGETS = {
   '8d': '8D'
 };
 
-export async function handleMusicFilterInteraction(interaction, { resolveQueue = getQueue } = {}) {
-  if (!interaction?.isButton?.() || !interaction.customId.startsWith('filter_')) {
+export const prefix = 'filter_';
+
+export async function handle(interaction, { resolveQueue = getQueue } = {}) {
+  if (!interaction.customId?.startsWith(prefix)) {
+    return false;
+  }
+
+  if (!interaction?.isButton?.()) {
     return false;
   }
 
@@ -69,3 +74,5 @@ export async function handleMusicFilterInteraction(interaction, { resolveQueue =
 
   return true;
 }
+
+export const handleMusicFilterInteraction = handle;

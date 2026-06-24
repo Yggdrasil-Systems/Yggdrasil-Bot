@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
 import { getSourceEmoji, getSourceLabel, ytDlpStreamHook } from '../../services/musicService.js';
-import { getGuildQueue, getPlayer } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 
@@ -32,7 +32,7 @@ function isUrl(query) {
  *
  * No manual cascade needed — discord-player handles extractor iteration internally.
  */
-export async function executePlay(query, voiceChannel, user, textChannel, respond) {
+export async function executePlay(query, voiceChannel, user, textChannel, playerService, respond) {
   if (!voiceChannel) {
     return respond({
       embeds: [buildErrorEmbed('Voice Channel Required', 'You need to be in a voice channel to play music.')]
@@ -40,7 +40,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, respon
   }
 
   const searchEngine = isUrl(query) ? QueryType.AUTO : QueryType.AUTO_SEARCH;
-  const musicPlayer = getPlayer();
+  const musicPlayer = playerService?.getPlayer();
 
   if (!musicPlayer) {
     return respond({
@@ -76,7 +76,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, respon
   }
 
   // ─── Enqueue ────────────────────────────────────────────────────────────
-  const existingQueue = getGuildQueue(voiceChannel.guild.id);
+  const existingQueue = playerService?.getGuildQueue(voiceChannel.guild.id);
 
   const queue = musicPlayer.nodes.create(voiceChannel.guild, {
     metadata: existingQueue?.metadata ?? {
@@ -150,8 +150,10 @@ export async function execute(interaction) {
   const query = interaction.options.getString('query');
   const voiceChannel = interaction.member.voice.channel;
   const textChannel = interaction.channel;
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
 
-  await executePlay(query, voiceChannel, interaction.user, textChannel, async (payload) => {
+  await executePlay(query, voiceChannel, interaction.user, textChannel, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -176,8 +178,9 @@ export async function executeMessage(context) {
 
   const voiceChannel = context.member.voice.channel;
   const textChannel = context.message.channel;
+  const playerService = context.appContext?.playerService ?? null;
 
-  await executePlay(query, voiceChannel, context.user, textChannel, async (payload) => {
+  await executePlay(query, voiceChannel, context.user, textChannel, playerService, async (payload) => {
     await context.respond(payload);
   });
 }

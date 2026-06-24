@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getGuildQueue } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'loop';
@@ -22,8 +22,8 @@ export const data = new SlashCommandBuilder()
 const MODE_MAP = { off: 0, track: 1, queue: 2, autoplay: 3 };
 const MODE_LABELS = { 0: '➡️ Off', 1: '🔂 Track', 2: '🔁 Queue', 3: '📻 Autoplay' };
 
-async function executeLoop(modeName, guildId, respond) {
-  const queue = getGuildQueue(guildId);
+async function executeLoop(modeName, guildId, playerService, respond) {
+  const queue = playerService?.getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
     return respond({
@@ -56,7 +56,9 @@ async function executeLoop(modeName, guildId, respond) {
 
 export async function execute(interaction) {
   const modeName = interaction.options.getString('mode') || null;
-  await executeLoop(modeName, interaction.guild.id, async (payload) => {
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
+  await executeLoop(modeName, interaction.guild.id, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -67,7 +69,8 @@ export async function execute(interaction) {
 
 export async function executeMessage(context) {
   const modeName = context.args[0] || null;
-  await executeLoop(modeName, context.guild.id, async (payload) => {
+  const playerService = context.appContext?.playerService ?? null;
+  await executeLoop(modeName, context.guild.id, playerService, async (payload) => {
     await context.respond(payload);
   });
 }

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getGuildQueue } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'volume';
@@ -15,8 +15,8 @@ export const data = new SlashCommandBuilder()
       .setMinValue(0)
       .setMaxValue(100));
 
-async function executeVolume(level, guildId, respond) {
-  const queue = getGuildQueue(guildId);
+async function executeVolume(level, guildId, playerService, respond) {
+  const queue = playerService?.getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
     return respond({
@@ -47,7 +47,9 @@ async function executeVolume(level, guildId, respond) {
 
 export async function execute(interaction) {
   const level = interaction.options.getInteger('level');
-  await executeVolume(level, interaction.guild.id, async (payload) => {
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
+  await executeVolume(level, interaction.guild.id, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -58,7 +60,8 @@ export async function execute(interaction) {
 
 export async function executeMessage(context) {
   const level = context.args[0] ? parseInt(context.args[0], 10) : null;
-  await executeVolume(Number.isFinite(level) ? level : null, context.guild.id, async (payload) => {
+  const playerService = context.appContext?.playerService ?? null;
+  await executeVolume(Number.isFinite(level) ? level : null, context.guild.id, playerService, async (payload) => {
     await context.respond(payload);
   });
 }

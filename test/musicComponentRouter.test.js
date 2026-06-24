@@ -2,18 +2,21 @@ import assert from 'node:assert/strict';
 import { test, before } from 'node:test';
 
 import { initializePlayer } from '../src/services/musicService.js';
-import { getPlayer } from '../src/services/playerService.js';
+import { createPlayerService } from '../src/services/playerService.js';
 import { handleComponentInteraction } from '../src/middleware/commandRouter.js';
 
+let playerService;
+
 before(async () => {
-  if (!getPlayer()) {
+  playerService = createPlayerService();
+  if (!playerService.getPlayer()) {
     const mockClient = {
       options: {},
       on: () => {},
       incrementMaxListeners: () => {},
       guilds: { resolveId: (id) => id }
     };
-    await initializePlayer(mockClient);
+    await initializePlayer(mockClient, playerService);
   }
 });
 

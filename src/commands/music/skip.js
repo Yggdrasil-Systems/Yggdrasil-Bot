@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getGuildQueue } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'skip';
@@ -10,8 +10,8 @@ export const data = new SlashCommandBuilder()
   .setName('skip')
   .setDescription('Skip the current track.');
 
-async function executeSkip(guildId, respond) {
-  const queue = getGuildQueue(guildId);
+async function executeSkip(guildId, playerService, respond) {
+  const queue = playerService?.getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
     return respond({
@@ -28,7 +28,9 @@ async function executeSkip(guildId, respond) {
 }
 
 export async function execute(interaction) {
-  await executeSkip(interaction.guild.id, async (payload) => {
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
+  await executeSkip(interaction.guild.id, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -38,7 +40,8 @@ export async function execute(interaction) {
 }
 
 export async function executeMessage(context) {
-  await executeSkip(context.guild.id, async (payload) => {
+  const playerService = context.appContext?.playerService ?? null;
+  await executeSkip(context.guild.id, playerService, async (payload) => {
     await context.respond(payload);
   });
 }

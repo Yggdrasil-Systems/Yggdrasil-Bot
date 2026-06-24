@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getGuildQueue } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'resume';
@@ -10,8 +10,8 @@ export const data = new SlashCommandBuilder()
   .setName('resume')
   .setDescription('Resume or pause the current track.');
 
-async function executeResume(guildId, respond) {
-  const queue = getGuildQueue(guildId);
+async function executeResume(guildId, playerService, respond) {
+  const queue = playerService?.getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
     return respond({
@@ -33,7 +33,9 @@ async function executeResume(guildId, respond) {
 }
 
 export async function execute(interaction) {
-  await executeResume(interaction.guild.id, async (payload) => {
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
+  await executeResume(interaction.guild.id, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -43,7 +45,8 @@ export async function execute(interaction) {
 }
 
 export async function executeMessage(context) {
-  await executeResume(context.guild.id, async (payload) => {
+  const playerService = context.appContext?.playerService ?? null;
+  await executeResume(context.guild.id, playerService, async (payload) => {
     await context.respond(payload);
   });
 }

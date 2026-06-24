@@ -8,6 +8,7 @@ import { connectMongo } from './database/mongo/connection.js';
 import { loadCommands } from './loaders/commandLoader.js';
 import { loadEvents } from './loaders/eventLoader.js';
 import { createNoPrefixService } from './services/noPrefixService.js';
+import { createPlayerService } from './services/playerService.js';
 import { settingsService } from './services/settingsService.js';
 import { initializePlayer } from './services/musicService.js';
 import { BOT } from './utils/constants.js';
@@ -29,13 +30,15 @@ export async function bootstrap({
   log = logger
 } = {}) {
   log.info(`Starting ${BOT.name} in ${env.nodeEnv} mode.`);
+  const playerService = createPlayerService();
   const appContext = createAppContext({
     client,
     config: env,
     settingsService,
     noPrefixService: createNoPrefixService(undefined, { botOwnerId: env.botOwnerId }),
     logger: log,
-    commands: client.commands
+    commands: client.commands,
+    playerService
   });
 
   client.appContext = appContext;
@@ -50,7 +53,7 @@ export async function bootstrap({
 
   log.info(`Loaded ${client.commands.size} command(s) and ${eventCount} event handler(s).`);
 
-  await initializePlayer(client);
+  await initializePlayer(client, playerService);
 
   await client.login(env.discordToken);
 

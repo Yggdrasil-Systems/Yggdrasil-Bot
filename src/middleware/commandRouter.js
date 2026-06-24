@@ -1,16 +1,38 @@
+/**
+ * @file Discord interaction router.
+ *
+ * Despite the historical filename `commandRouter.js`, this module dispatches
+ * Discord component/select-menu interactions to the appropriate handler. As
+ * of the Phase 2 cleanup, direct imports of the seven interaction handler
+ * modules have been replaced with a prefix-keyed registry; see
+ * `src/interactions/registry.js` for the dispatcher and
+ * `src/interactions/registerAllHandlers.js` for the one-shot registration.
+ *
+ * The file name is retained per project decision — it is functionally the
+ * interaction router.
+ *
+ * @module middleware/commandRouter
+ */
+
 import { buildErrorEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 import { replyToInteraction } from '../utils/responses.js';
-import { handleHelpSelectInteraction } from '../interactions/helpInteractionHandler.js';
-import { handlePingRefreshInteraction } from '../interactions/pingInteractionHandler.js';
-import { handleSearchSelectInteraction } from '../interactions/searchInteractionHandler.js';
-import { handleQueueClearInteraction } from '../interactions/queueInteractionHandler.js';
-import { handleMusicSettingsInteraction } from '../interactions/musicSettingsInteractionHandler.js';
-import { handleMusicPlaybackInteraction } from '../interactions/musicPlaybackInteractionHandler.js';
-import { handleMusicFilterInteraction } from '../interactions/musicFilterInteractionHandler.js';
 import { getAppContext } from '../context/appContext.js';
 import { handleInteractionError } from './errorHandler.js';
 import { canUseAdminCommand } from './permissionGuard.js';
+import { dispatch } from '../interactions/registry.js';
+import { registerAllInteractionHandlers } from '../interactions/registerAllHandlers.js';
+
+let registered = false;
+
+function ensureHandlersRegistered() {
+  if (registered) return;
+  registerAllInteractionHandlers();
+  registered = true;
+}
+
+// Register at module load. Guarded so repeated imports / hot reloads are safe.
+ensureHandlersRegistered();
 
 async function handleUnknownCommand(interaction, log) {
   log.warn(`No command handler found for /${interaction.commandName}.`);
@@ -28,39 +50,9 @@ export async function handleComponentInteraction(interaction) {
     return;
   }
 
-  const id = interaction.customId;
-
   try {
-    // ─── Ping Refresh Button ──────────────────────────────────────────────
-    if (await handlePingRefreshInteraction(interaction)) {
-      return;
-    }
-
-    // ─── Queue + Search Select Menus ────────────────────────────────────
-    if (await handleQueueClearInteraction(interaction)) {
-      return;
-    }
-
-    if (await handleMusicSettingsInteraction(interaction)) {
-      return;
-    }
-
-    if (await handleMusicPlaybackInteraction(interaction)) {
-      return;
-    }
-
-    if (await handleMusicFilterInteraction(interaction)) {
-      return;
-    }
-
-    if (await handleSearchSelectInteraction(interaction)) {
-      return;
-    }
-
-    // ─── Help Select Menu ───────────────────────────────────────────────
-    if (await handleHelpSelectInteraction(interaction)) {
-      return;
-    }
+    ensureHandlersRegistered();
+    await dispatch(interaction);
   } catch (error) {
     logger.error('Component interaction error:', error.message);
     try {

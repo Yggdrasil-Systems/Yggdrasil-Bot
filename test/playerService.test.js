@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { beforeEach, test } from 'node:test';
 
-import { getGuildQueue, getPlayer, setPlayer } from '../src/services/playerService.js';
+import { createPlayerService } from '../src/services/playerService.js';
+
+let playerService;
+
+beforeEach(() => {
+  playerService = createPlayerService();
+});
 
 test('playerService stores and returns the active player instance', () => {
   const mockPlayer = {
@@ -10,12 +16,12 @@ test('playerService stores and returns the active player instance', () => {
     }
   };
 
-  setPlayer(mockPlayer);
+  playerService.setPlayer(mockPlayer);
 
-  assert.equal(getPlayer(), mockPlayer);
-  assert.deepEqual(getGuildQueue('guild-1'), { guildId: 'guild-1' });
+  assert.equal(playerService.getPlayer(), mockPlayer);
+  assert.deepEqual(playerService.getGuildQueue('guild-1'), { guildId: 'guild-1' });
 
-  setPlayer(null);
-  assert.equal(getPlayer(), null);
-  assert.equal(getGuildQueue('guild-1'), null);
+  playerService.setPlayer(null);
+  assert.equal(playerService.getPlayer(), null);
+  assert.equal(playerService.getGuildQueue('guild-1'), null);
 });

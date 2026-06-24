@@ -1,8 +1,7 @@
 import { buildErrorEmbed, buildSuccessEmbed } from '../utils/embeds.js';
-import { getGuildQueue } from '../services/playerService.js';
 
 function getQueue(interaction) {
-  return getGuildQueue(interaction.guildId);
+  return interaction.appContext?.playerService?.getGuildQueue(interaction.guildId);
 }
 
 function requireQueue(interaction, resolveQueue = getQueue) {
@@ -19,7 +18,13 @@ function requireQueue(interaction, resolveQueue = getQueue) {
   return queue;
 }
 
-export async function handleQueueClearInteraction(interaction, { resolveQueue = getQueue } = {}) {
+export const prefix = 'queue_';
+
+export async function handle(interaction, { resolveQueue = getQueue } = {}) {
+  if (!interaction.customId?.startsWith(prefix)) {
+    return false;
+  }
+
   if (!interaction?.isButton?.() || interaction.customId !== 'queue_clear') {
     return false;
   }
@@ -43,3 +48,5 @@ export async function handleQueueClearInteraction(interaction, { resolveQueue = 
 
   return true;
 }
+
+export const handleQueueClearInteraction = handle;

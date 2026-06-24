@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getGuildQueue } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildQueueEmbed, buildErrorEmbed } from '../../utils/embeds.js';
 import { buildQueueComponents } from '../../utils/components.js';
 
@@ -11,8 +11,8 @@ export const data = new SlashCommandBuilder()
   .setName('queue')
   .setDescription('Show the current music queue.');
 
-async function executeQueue(guildId, respond) {
-  const queue = getGuildQueue(guildId);
+async function executeQueue(guildId, playerService, respond) {
+  const queue = playerService?.getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
     return respond({
@@ -27,7 +27,9 @@ async function executeQueue(guildId, respond) {
 }
 
 export async function execute(interaction) {
-  await executeQueue(interaction.guild.id, async (payload) => {
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
+  await executeQueue(interaction.guild.id, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -37,7 +39,8 @@ export async function execute(interaction) {
 }
 
 export async function executeMessage(context) {
-  await executeQueue(context.guild.id, async (payload) => {
+  const playerService = context.appContext?.playerService ?? null;
+  await executeQueue(context.guild.id, playerService, async (payload) => {
     await context.respond(payload);
   });
 }

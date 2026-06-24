@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getGuildQueue } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'shuffle';
@@ -10,8 +10,8 @@ export const data = new SlashCommandBuilder()
   .setName('shuffle')
   .setDescription('Shuffles the current music queue.');
 
-async function executeShuffle(guildId, respond) {
-  const queue = getGuildQueue(guildId);
+async function executeShuffle(guildId, playerService, respond) {
+  const queue = playerService?.getGuildQueue(guildId);
 
   if (!queue || !queue.isPlaying()) {
     return respond({
@@ -34,8 +34,10 @@ async function executeShuffle(guildId, respond) {
 
 export async function execute(interaction) {
   const guildId = interaction.guild.id;
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
 
-  await executeShuffle(guildId, async (payload) => {
+  await executeShuffle(guildId, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -46,10 +48,11 @@ export async function execute(interaction) {
 
 export async function executeMessage(context) {
   const guildId = context.guild.id;
+  const playerService = context.appContext?.playerService ?? null;
 
   const respondFn = async (payload) => {
     await context.respond(payload);
   };
 
-  await executeShuffle(guildId, respondFn);
+  await executeShuffle(guildId, playerService, respondFn);
 }

@@ -2,7 +2,13 @@ import { buildPingEmbed } from '../utils/embeds.js';
 import { formatDuration } from '../utils/formatters.js';
 import { getBotInfoSummary } from '../services/utilityService.js';
 
-export async function handlePingRefreshInteraction(interaction) {
+export const prefix = 'ping_';
+
+export async function handle(interaction) {
+  if (!interaction.customId?.startsWith(prefix)) {
+    return false;
+  }
+
   if (!interaction?.isButton?.() || interaction.customId !== 'ping_refresh') {
     return false;
   }
@@ -24,3 +30,5 @@ export async function handlePingRefreshInteraction(interaction) {
   await interaction.update({ embeds: [buildPingEmbed(summary)] });
   return true;
 }
+
+export const handlePingRefreshInteraction = handle;

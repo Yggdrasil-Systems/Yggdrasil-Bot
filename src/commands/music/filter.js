@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getGuildQueue } from '../../services/playerService.js';
+import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'filter';
@@ -33,8 +33,8 @@ const FILTER_EMOJIS = {
   vibrato: '🎸'
 };
 
-async function executeFilter(filterName, guildId, respond) {
-  const queue = getGuildQueue(guildId);
+async function executeFilter(filterName, guildId, playerService, respond) {
+  const queue = playerService?.getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
     return respond({
@@ -82,7 +82,9 @@ async function executeFilter(filterName, guildId, respond) {
 
 export async function execute(interaction) {
   const filterName = interaction.options.getString('name') || null;
-  await executeFilter(filterName, interaction.guild.id, async (payload) => {
+  const appContext = getAppContext(interaction) ?? {};
+  const playerService = appContext.playerService ?? null;
+  await executeFilter(filterName, interaction.guild.id, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -93,7 +95,8 @@ export async function execute(interaction) {
 
 export async function executeMessage(context) {
   const filterName = context.args[0]?.toLowerCase() || null;
-  await executeFilter(filterName, context.guild.id, async (payload) => {
+  const playerService = context.appContext?.playerService ?? null;
+  await executeFilter(filterName, context.guild.id, playerService, async (payload) => {
     await context.respond(payload);
   });
 }

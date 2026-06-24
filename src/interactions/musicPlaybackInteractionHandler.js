@@ -1,9 +1,8 @@
 import { buildErrorEmbed, buildSuccessEmbed, buildQueueEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildQueueComponents } from '../utils/components.js';
-import { getGuildQueue } from '../services/playerService.js';
 
 function getQueue(interaction) {
-  return getGuildQueue(interaction.guildId);
+  return interaction.appContext?.playerService?.getGuildQueue(interaction.guildId);
 }
 
 function requireQueue(interaction, resolveQueue = getQueue, allowEmptyTrack = false) {
@@ -25,8 +24,14 @@ function buildVolumeLabel(volume) {
   return `${nextVolume}%`;
 }
 
-export async function handleMusicPlaybackInteraction(interaction, { resolveQueue = getQueue } = {}) {
-  if (!interaction?.isButton?.() || !interaction.customId.startsWith('music_')) {
+export const prefix = 'music_';
+
+export async function handle(interaction, { resolveQueue = getQueue } = {}) {
+  if (!interaction.customId?.startsWith(prefix)) {
+    return false;
+  }
+
+  if (!interaction?.isButton?.()) {
     return false;
   }
 
@@ -184,3 +189,5 @@ export async function handleMusicPlaybackInteraction(interaction, { resolveQueue
 
   return false;
 }
+
+export const handleMusicPlaybackInteraction = handle;

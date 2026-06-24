@@ -4,7 +4,8 @@ export function createAppContext({
   settingsService = null,
   noPrefixService = null,
   logger = null,
-  commands = null
+  commands = null,
+  playerService = null
 } = {}) {
   return {
     client,
@@ -13,7 +14,8 @@ export function createAppContext({
     settingsService,
     noPrefixService,
     logger,
-    commands
+    commands,
+    playerService
   };
 }
 

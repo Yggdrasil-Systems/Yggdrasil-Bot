@@ -2,7 +2,13 @@ import { buildErrorEmbed } from '../utils/embeds.js';
 import { replyToInteraction } from '../utils/responses.js';
 import { buildHelpCategoryEmbed, buildHelpComponents, parseHelpComponentId } from '../services/helpService.js';
 
-export async function handleHelpSelectInteraction(interaction) {
+export const prefix = 'help:';
+
+export async function handle(interaction) {
+  if (!interaction.customId?.startsWith(prefix)) {
+    return false;
+  }
+
   if (!interaction?.isStringSelectMenu?.()) {
     return false;
   }
@@ -31,3 +37,5 @@ export async function handleHelpSelectInteraction(interaction) {
 
   return true;
 }
+
+export const handleHelpSelectInteraction = handle;
