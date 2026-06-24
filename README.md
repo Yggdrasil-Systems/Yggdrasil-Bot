@@ -169,7 +169,7 @@ world-tree/
 │   │   ├── activityRoleService.js        # Presence/voice activity role assignment
 │   │   ├── musicService.js               # discord-player init, extractor pipeline, event wiring
 │   │   ├── musicChannelService.js         # Dedicated music-channel auto-play routing
-│   │   ├── playerService.js              # Music player access helpers and guild queue lookup
+│   │   ├── playerService.js              # Music player factory — createPlayerService() returns closure-scoped {setPlayer, getPlayer, getGuildQueue}
 │   │   ├── helpService.js                # Category-based help menu builder
 │   │   ├── utilityService.js             # User/server/role/bot info aggregation
 │   │   ├── loggingService.js             # Mod-log channel delivery
@@ -200,12 +200,14 @@ world-tree/
 │   │       └── noPrefixRepository.js     # Privilege upsert and listing
 │   │
 │   ├── middleware/                        # ── Runtime Guards ───────────────────────────────
-│   │   ├── commandRouter.js              # Slash command dispatch + delegated component interaction routing
+│   │   ├── commandRouter.js              # Slash command dispatch + component interaction dispatcher (consumes registry via dispatch)
 │   │   ├── messageCommandRouter.js       # Prefix parsing + no-prefix shortcut resolution
 │   │   ├── permissionGuard.js            # Permission checks: admin, moderation, no-prefix, hierarchy
 │   │   └── errorHandler.js               # Interaction-level error recovery
 │   │
-│   ├── interactions/                     # ── Component Interaction Handlers ─────────────────
+│   ├── interactions/                     # ── Component Interaction Handlers + Registry ──────
+│   │   ├── registry.js                   # Prefix-keyed interaction handler registry — register/dispatch/unregister
+│   │   ├── registerAllHandlers.js        # Registers all 7 interaction handlers (idempotent)
 │   │   ├── helpInteractionHandler.js     # Help select menu routing and response updates
 │   │   ├── pingInteractionHandler.js     # Ping refresh button handling
 │   │   ├── musicPlaybackInteractionHandler.js # Playback controls: pause/resume/skip/queue/volume
@@ -400,6 +402,75 @@ Now Playing embeds include two rows of interactive buttons:
 The ⚙️ Settings button opens a private panel with loop mode selection, autoplay toggle, and audio filter controls.
 
 Available filters: `bassboost`, `nightcore`, `vaporwave`, `8D`, `karaoke`, `tremolo`, `vibrato`.
+
+---
+
+## Interaction Handler Architecture
+
+Component interactions (buttons, select menus) are routed through a **prefix-keyed registry** so new handlers can be added without modifying the dispatcher.
+
+```mermaid
+graph LR
+    Int[Discord Interaction] --> CR[commandRouter.js<br/>handleComponentInteraction]
+    CR --> Disp[registry.js<br/>dispatch]
+    Disp --> H1[music_<br/>playback handler]
+    Disp --> H2[filter_<br/>filter handler]
+    Disp --> H3[queue_<br/>queue handler]
+    Disp --> H4[ping_<br/>ping handler]
+    Disp --> H5[help:<br/>help handler]
+    Disp --> H6[search_select_<br/>search handler]
+    Disp --> H7[music_settings<br/>settings handler]
+    H1 -.appContext.playerService.-> PS[playerService<br/>closure-scoped]
+    H2 -.appContext.playerService.-> PS
+```
+
+### Registry contract
+
+```js
+// src/interactions/registry.js
+registerHandler({ prefix: 'music_', handle: handlePlaybackInteraction });
+// ...
+
+export function dispatch(interaction) {
+  for (const { handle } of handlers.values()) {
+    const result = await handle(interaction);
+    if (result) return true;   // first handler to return truthy wins
+  }
+  return false;
+}
+```
+
+- Handlers self-guard via `interaction.customId.startsWith(prefix)` — `dispatch` does NOT pre-filter.
+- Handlers export `{prefix, handle}` shape; `registerAllHandlers()` registers all 7 at module load.
+- The `commandRouter.js` dispatcher imports **zero** `*InteractionHandler.js` files directly.
+
+### Adding a new handler
+
+1. Create `src/interactions/<name>InteractionHandler.js` exporting `{prefix, handle}`.
+2. Add one line to `src/interactions/registerAllHandlers.js`:
+
+   ```js
+   registerHandler({ prefix: '<unique_prefix>', handle: handle<Name>Interaction });
+   ```
+
+No edits to `commandRouter.js` are required.
+
+### playerService factory
+
+The music player is no longer a module-level global. Instead, `src/services/playerService.js` exports a factory whose closure owns the state:
+
+```js
+export function createPlayerService() {
+  let player = null;
+  return {
+    setPlayer(nextPlayer) { player = nextPlayer; return player; },
+    getPlayer()          { return player; },
+    getGuildQueue(guildId) { return player?.nodes?.get(guildId) ?? null; }
+  };
+}
+```
+
+`bootstrap.js` constructs one instance and threads it through `appContext.playerService`. Interaction handlers, music commands, and the music service all consume it via `getAppContext(source)?.playerService` — no direct imports of `services/playerService.js` from consumer code.
 
 ---
 
@@ -720,6 +791,7 @@ World Tree is transitioning from a Discord bot into a backend platform. Each pha
 | **Stabilization** | ✅ Complete | Architecture freeze, lifecycle hardening, test coverage |
 | **Phase 1 — API Foundation** | ✅ Complete | Fastify bootstrap, Zod integration, plugin architecture |
 | **Phase 2 — Read-Only Endpoints** | ✅ Complete | Settings, cases, stats endpoints with strict response schemas |
+| **Structural Architecture Cleanup** | ✅ Complete | Prefix-keyed interaction handler registry, playerService factory injection via AppContext, commandRouter as thin dispatcher (see `PHASE_2_VERIFICATION.md`) |
 | **Phase 3a — Session Infrastructure** | ✅ Complete | AES-256-GCM sessions, HMAC-signed cookies, HKDF key derivation |
 | **Phase 3b — OAuth2 Flow** | ✅ Complete | Discord OAuth2 + PKCE login/callback/me/logout |
 | **Phase 3c — Guild Authorization** | Planned | Protected route scoping, MANAGE_GUILD verification |
