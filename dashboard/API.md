@@ -1,19 +1,32 @@
 # World Tree Dashboard API Foundation
 
-This folder is a dependency-free dashboard foundation. It defines the data
-contracts and route shape a future authenticated dashboard can use without
-adding a web runtime to the bot process in Phase 4.
+This folder documents the current dashboard-facing API shape.
 
-## Planned Route Shape
+Implemented today in `src/api/routes`:
 
-- `GET /api/guilds/:guildId/settings`
-- `PATCH /api/guilds/:guildId/settings/modlog`
-- `PATCH /api/guilds/:guildId/settings/trusted-roles`
-- `PATCH /api/guilds/:guildId/settings/automod`
-- `GET /api/guilds/:guildId/cases`
-- `GET /api/guilds/:guildId/cases/:caseId`
-- `PATCH /api/guilds/:guildId/cases/:caseId/resolve`
-- `DELETE /api/guilds/:guildId/cases/:caseId`
+- `GET /v1/auth/login`
+- `GET /v1/auth/callback`
+- `GET /v1/auth/me`
+- `POST /v1/auth/logout`
+- `GET /v1/health`
+- `GET /v1/guilds/:guildId/settings`
+- `GET /v1/guilds/:guildId/cases`
+- `GET /v1/guilds/:guildId/stats`
+
+Still planned for a future dashboard phase:
+
+- write endpoints for settings and moderation actions
+- guild-scoped authorization checks beyond identity/session validation
+- browser dashboard runtime
+
+## Future Write Route Shape
+
+- `PATCH /v1/guilds/:guildId/settings/modlog`
+- `PATCH /v1/guilds/:guildId/settings/trusted-roles`
+- `PATCH /v1/guilds/:guildId/settings/automod`
+- `GET /v1/guilds/:guildId/cases/:caseId`
+- `PATCH /v1/guilds/:guildId/cases/:caseId/resolve`
+- `DELETE /v1/guilds/:guildId/cases/:caseId`
 
 ## Auth Notes
 

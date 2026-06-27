@@ -1,5 +1,7 @@
 # World Tree — Independent Architecture Audit
 
+> Historical baseline audit from 2026-05-30. Some findings in this document have already been addressed. For current repository state, cross-reference `README.md`, `DEEP_AUDIT_REPORT.md`, and `DEEP_FOUNDATION_REPORT.md`.
+
 **Auditor:** Principal Software Architect / Staff Engineer  
 **Date:** 2026-05-30  
 **Scope:** Full repository audit — structure, services, API, security, ops, maintainability  

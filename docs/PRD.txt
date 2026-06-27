@@ -1,6 +1,7 @@
 
-
 # PRD — World Tree Discord Bot
+
+Note: this PRD captures the original product shape for the bot. The live repository has since expanded to include a Fastify API, encrypted session infrastructure, and OAuth-backed dashboard preparation.
 
 ## 1. Product Summary
 

@@ -18,10 +18,14 @@
     "discord",
     "bot",
     "moderation",
-    "utility"
+    "utility",
+    "fastify",
+    "mongodb",
+    "oauth2",
+    "music"
   ],
   "author": "",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "dependencies": {
     "@discord-player/extractor": "^7.2.0",
     "@discordjs/voice": "^0.19.2",

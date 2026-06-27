@@ -1,8 +1,24 @@
 # World Tree Dashboard Foundation
 
-This directory is a dashboard foundation, not a production dashboard implementation.
+This directory is still a dashboard foundation, not a shipped frontend application.
 
-Phase 4 adds concrete data contracts and planning documents so a future web dashboard can be built against the same settings and moderation boundaries used by the bot.
+What is already implemented in the main repository:
+
+- Fastify API server
+- Discord OAuth2 + PKCE
+- encrypted cookie sessions
+- authenticated `/v1/auth/*` routes
+- read-only guild routes for settings, cases, and stats
+
+What is intentionally not implemented here yet:
+
+- a browser dashboard runtime
+- guild-picker UX
+- settings write forms
+- Vite/React build pipeline
+- production hosting for a real dashboard frontend
+
+This folder remains the contract and planning boundary for a later UI phase.
 
 ## Current Contents
 
@@ -44,10 +60,10 @@ Discord actions that require live bot state should go through a deliberately des
 
 ## Not Implemented Yet
 
-- OAuth login
-- Session storage
-- API server
-- Frontend framework
-- Deployment config
+- frontend application code
+- guild authorization and scoped access enforcement
+- settings write endpoints
+- moderation write actions from the web
+- deployment config for a dashboard frontend
 
-That is intentional. Authentication, guild selection, permission checks, hosting, and deployment boundaries should be their own focused phase.
+That is intentional. The backend/auth base exists; the operator-facing web UI is still a later phase.

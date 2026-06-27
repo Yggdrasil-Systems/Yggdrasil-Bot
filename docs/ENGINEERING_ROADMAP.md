@@ -1,5 +1,7 @@
 # World Tree — Engineering Roadmap (Post-Audit)
 
+> This is the roadmap baseline, not a claim that every item is still pending. Completed work should be verified against `README.md`, `docs/PHASE_2_VERIFICATION.md`, `DEEP_AUDIT_REPORT.md`, and `DEEP_FOUNDATION_REPORT.md`.
+
 **Technical Lead / Principal Architect / Engineering Manager**  
 **Date:** 2026-05-30  
 **Scope:** 6-month execution plan addressing all audit findings + Activity Role feature  

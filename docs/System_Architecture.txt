@@ -1,5 +1,6 @@
-
 # World Tree — System Architecture, Command List, MongoDB Design, and Build Order
+
+Note: this document is an early architecture/planning artifact. The current implementation now includes a Fastify API, app-context-based dependency flow, an interaction registry, and Discord OAuth/session infrastructure that are not fully reflected below.
 
 ---
 

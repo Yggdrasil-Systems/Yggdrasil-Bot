@@ -243,7 +243,7 @@ world-tree/
 │       ├── moderationInputs.js           # Shared moderation command input extraction
 │       └── fileDiscovery.js              # Recursive .js file finder for loaders
 │
-├── test/                                 # ── 39 Test Files ──────────────────────────────────
+├── test/                                 # ── 44 Test Files ──────────────────────────────────
 │   ├── apiServer.test.js                 # Fastify lifecycle, Zod validation, session integration
 │   ├── apiRoutes.test.js                 # Route serialization, pagination, field stripping
 │   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
@@ -746,6 +746,13 @@ npm run dev                  # Start with nodemon (auto-reload)
 npm start                    # Production start
 ```
 
+## Documentation & Public Pages
+
+- Engineering and architecture documents live in `docs/`
+- Dashboard contracts and planning notes live in `dashboard/`
+- GitHub Pages verification/site assets live in `docs/*.html`, `docs/styles.css`, `docs/robots.txt`, and `docs/sitemap.xml`
+- Public governance files live at the repository root: `LICENSE.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`
+
 ### Discord Setup
 
 In the Developer Portal, enable these gateway intents:
@@ -796,6 +803,17 @@ World Tree is transitioning from a Discord bot into a backend platform. Each pha
 | **Phase 3b — OAuth2 Flow** | ✅ Complete | Discord OAuth2 + PKCE login/callback/me/logout |
 | **Phase 3c — Guild Authorization** | Planned | Protected route scoping, MANAGE_GUILD verification |
 | **Phase 4 — Dashboard** | Future | Authenticated web UI integration |
+
+---
+
+## Contributing & License
+
+World Tree is published under the MIT License. Contribution and security policies are documented in:
+
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `CODE_OF_CONDUCT.md`
+- `LICENSE.md`
 
 ---
 
