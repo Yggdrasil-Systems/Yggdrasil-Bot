@@ -6,18 +6,150 @@
   <title>Security | World Tree</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
+
 <body>
   <main class="page">
-    <header class="topbar"><a href="./index.html">World Tree</a><nav aria-label="Primary"><a href="./privacy.html">Privacy</a><a href="./terms.html">Terms</a><a href="./status.html">Status</a></nav></header>
-    <section class="hero"><p class="eyebrow">Security</p><h1>Security</h1><p class="lede">World Tree uses explicit trust boundaries, encrypted sessions, and strict runtime configuration validation to reduce avoidable risk.</p></section>
-    <section class="content">
-      <h2>Security posture</h2>
-      <p>The current platform uses Discord OAuth2 with PKCE, signed cookies, AES-256-GCM encrypted session payloads, strict environment validation, and a service/repository architecture designed to keep trust boundaries explicit.</p>
-      <h2>Responsible disclosure</h2>
-      <p>Do not publish sensitive findings in public issues. Follow the policy in the repository <a href="https://github.com/harshitthek/Yggdrasil/blob/master/SECURITY.md">SECURITY.md</a> file.</p>
-      <h2>High-sensitivity areas</h2>
-      <p>Authentication, session handling, no-prefix access, moderation permissions, and music external-process execution are treated as high-sensitivity areas during maintenance.</p>
+
+    <header class="topbar">
+      <a href="./index.html">World Tree</a>
+      <nav aria-label="Primary">
+        <a href="./privacy.html">Privacy</a>
+        <a href="./terms.html">Terms</a>
+        <a href="./status.html">Status</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">Security</p>
+      <h1>Security</h1>
+      <p class="lede">
+        Security is a core design principle of World Tree. The project is built
+        with layered protections, responsible disclosure practices, and a
+        commitment to continuously improving its security posture.
+      </p>
     </section>
+
+    <section class="content">
+
+      <h2>Security Philosophy</h2>
+
+      <p>
+        World Tree follows a defense-in-depth approach. Authentication,
+        authorization, configuration validation, and operational safeguards are
+        designed to minimize risk while maintaining reliable functionality for
+        Discord communities.
+      </p>
+
+      <h2>Current Security Features</h2>
+
+      <p>
+        The current platform includes:
+      </p>
+
+      <ul>
+        <li>Discord OAuth2 authentication with PKCE.</li>
+        <li>Encrypted and signed authentication sessions.</li>
+        <li>AES-256-GCM protected session payloads.</li>
+        <li>Strict environment configuration validation.</li>
+        <li>Clear service and repository boundaries.</li>
+        <li>Permission-based administrative controls.</li>
+        <li>Structured logging and operational safeguards.</li>
+      </ul>
+
+      <h2>Responsible Disclosure</h2>
+
+      <p>
+        If you discover a potential security vulnerability, please do
+        <strong>not</strong> disclose it publicly through GitHub Issues,
+        Discord, or social media.
+      </p>
+
+      <p>
+        Instead, follow the reporting process described in the repository's
+        <a href="https://github.com/Yggdrasil-Systems/Yggdrasil-Bot/blob/master/SECURITY.md">
+          SECURITY.md
+        </a>.
+      </p>
+
+      <h2>High-Sensitivity Components</h2>
+
+      <p>
+        The following areas receive additional attention during development,
+        testing, and review:
+      </p>
+
+      <ul>
+        <li>Authentication and OAuth flows.</li>
+        <li>Session management.</li>
+        <li>Permission and moderation systems.</li>
+        <li>No-prefix authorization.</li>
+        <li>Dashboard authentication.</li>
+        <li>External music process execution.</li>
+        <li>Configuration and environment handling.</li>
+      </ul>
+
+      <h2>Supported Versions</h2>
+
+      <p>
+        Security updates are provided for the latest actively maintained version
+        of World Tree. Users are encouraged to keep deployments up to date to
+        receive the latest fixes and improvements.
+      </p>
+
+      <h2>Security Best Practices</h2>
+
+      <p>
+        Server administrators should protect bot tokens, regularly update
+        dependencies, restrict privileged permissions where appropriate,
+        and avoid sharing configuration files containing sensitive credentials.
+      </p>
+
+      <h2>Response Process</h2>
+
+      <p>
+        Security reports are reviewed as quickly as possible. Confirmed
+        vulnerabilities are investigated, prioritized based on severity, and
+        addressed before public disclosure whenever practical.
+      </p>
+
+      <h2>Contact</h2>
+
+      <p>
+        For general support, visit the
+        <a href="./support.html">Support</a> page.
+        For security-related concerns, follow the responsible disclosure process
+        described above.
+      </p>
+
+    </section>
+    <footer class="footer">
+
+  <hr>
+
+  <p><strong>World Tree</strong></p>
+
+  <p>
+    An open-source Discord platform developed by
+    <strong>Yggdrasil Systems</strong>.
+  </p>
+
+  <nav class="footer-links">
+    <a href="./index.html">Home</a>
+    <a href="./about.html">About</a>
+    <a href="./privacy.html">Privacy</a>
+    <a href="./terms.html">Terms</a>
+    <a href="./security.html">Security</a>
+    <a href="./support.html">Support</a>
+    <a href="./contact.html">Contact</a>
+    <a href="./status.html">Status</a>
+  </nav>
+
+  <p class="footer-small">
+    © 2026 Yggdrasil Systems. World Tree is an open-source project.
+  </p>
+
+</footer>
+
   </main>
 </body>
 </html>
