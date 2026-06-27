@@ -23,6 +23,16 @@ function isUrl(query) {
   return /^https?:\/\//i.test(query);
 }
 
+export function formatMusicErrorMessage(error, maxLength = 150) {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : 'Unknown error';
+
+  return message.slice(0, maxLength);
+}
+
 /**
  * Core play logic shared by slash and prefix commands.
  *
@@ -57,7 +67,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
   } catch (err) {
     logger.error(`Search failed for "${query}".`, err);
     return respond({
-      embeds: [buildErrorEmbed('Search Failed', `Could not search for that query.\n\`\`\`${err.message.slice(0, 150)}\`\`\`\nTry a different search term or paste a direct link.`)]
+      embeds: [buildErrorEmbed('Search Failed', `Could not search for that query.\n\`\`\`${formatMusicErrorMessage(err)}\`\`\`\nTry a different search term or paste a direct link.`)]
     });
   }
 
@@ -138,7 +148,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
     } catch (err) {
       logger.error('Failed to start playback.', err);
       return respond({
-        embeds: [buildErrorEmbed('Playback Failed', `Could not start playing.\n\`\`\`${err.message.slice(0, 150)}\`\`\`\nTry a different track or source.`)]
+        embeds: [buildErrorEmbed('Playback Failed', `Could not start playing.\n\`\`\`${formatMusicErrorMessage(err)}\`\`\`\nTry a different track or source.`)]
       });
     }
   }

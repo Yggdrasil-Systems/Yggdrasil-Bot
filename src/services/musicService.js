@@ -48,6 +48,17 @@ export { getSourceEmoji, getSourceLabel };
 function isYouTubeUrl(url) {
   return url && /youtube\.com|youtu\.be/i.test(url);
 }
+
+function formatPlaybackError(error, maxLength = 200) {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : 'Unknown error';
+
+  return message.slice(0, maxLength);
+}
+
 // Maximum duration (ms) before force-killing an orphaned yt-dlp process
 const YT_DLP_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -199,7 +210,7 @@ export async function initializePlayer(client, playerService) {
     safeSend(queue, {
       embeds: [buildErrorEmbed(
         'Playback Error',
-        `Something went wrong during playback.\n\`\`\`${error.message.slice(0, 200)}\`\`\``
+        `Something went wrong during playback.\n\`\`\`${formatPlaybackError(error)}\`\`\``
       )]
     });
   });
@@ -210,7 +221,7 @@ export async function initializePlayer(client, playerService) {
     safeSend(queue, {
       embeds: [buildErrorEmbed(
         'Track Error',
-        `Failed to stream ${trackInfo}.\n\`\`\`${error.message.slice(0, 200)}\`\`\`\nTry playing it again or use a different source.`
+        `Failed to stream ${trackInfo}.\n\`\`\`${formatPlaybackError(error)}\`\`\`\nTry playing it again or use a different source.`
       )]
     });
   });

@@ -2,7 +2,7 @@ import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } from '
 import { QueryType } from 'discord-player';
 import { getAppContext } from '../../context/appContext.js';
 import { buildBaseEmbed, buildErrorEmbed } from '../../utils/embeds.js';
-import { executePlay } from './play.js';
+import { executePlay, formatMusicErrorMessage } from './play.js';
 import { logger } from '../../utils/logger.js';
 import { COLORS } from '../../utils/constants.js';
 
@@ -45,7 +45,7 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
   } catch (err) {
     logger.error('Search failed.', err);
     return respond({
-      embeds: [buildErrorEmbed('Search Failed', `Could not search for that query.\n\`\`\`${err.message.slice(0, 150)}\`\`\``)]
+      embeds: [buildErrorEmbed('Search Failed', `Could not search for that query.\n\`\`\`${formatMusicErrorMessage(err)}\`\`\``)]
     });
   }
 

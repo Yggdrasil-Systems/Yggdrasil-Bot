@@ -1,13 +1,13 @@
 :root {
-  --bg: #f4efe6;
-  --surface: rgba(255, 252, 245, 0.88);
+  --bg: #f7f4ed;
+  --surface: rgba(255, 252, 245, 0.86);
   --surface-strong: #fffaf1;
   --text: #1c2318;
   --muted: #5c6657;
   --line: rgba(28, 35, 24, 0.12);
   --accent: #1f6f52;
   --accent-strong: #114c38;
-  --shadow: 0 20px 60px rgba(17, 36, 26, 0.12);
+  --focus: #c0842f;
 }
 
 * { box-sizing: border-box; }
@@ -17,11 +17,17 @@ body {
   font-family: Georgia, "Times New Roman", serif;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(31, 111, 82, 0.18), transparent 35%),
-    linear-gradient(180deg, #efe6d8 0%, var(--bg) 60%, #f8f3eb 100%);
+    linear-gradient(90deg, rgba(31, 111, 82, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, #eee6d8 0%, var(--bg) 48%, #fcfaf5 100%);
+  background-size: 42px 42px, auto;
 }
 
 a { color: var(--accent-strong); }
+
+a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
 
 .page {
   max-width: 1040px;
@@ -40,7 +46,8 @@ a { color: var(--accent-strong); }
   justify-content: space-between;
   gap: 16px;
   align-items: center;
-  padding: 10px 0 24px;
+  padding: 12px 0 28px;
+  border-bottom: 1px solid var(--line);
 }
 
 .topbar nav {
@@ -49,20 +56,19 @@ a { color: var(--accent-strong); }
   flex-wrap: wrap;
 }
 
-.hero, .content, .links {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  border-radius: 8px;
+.topbar a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 .hero {
-  padding: 40px;
+  padding: 64px 0 42px;
+  border-bottom: 1px solid var(--line);
 }
 
 .content {
-  margin-top: 18px;
-  padding: 32px 40px;
+  max-width: 760px;
+  padding: 34px 0 72px;
 }
 
 .eyebrow {
@@ -94,22 +100,30 @@ h2 {
   color: var(--muted);
 }
 
+.content h2 {
+  margin-top: 32px;
+}
+
 .grid {
-  margin-top: 18px;
-  padding: 18px;
+  margin-top: 24px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
 }
 
 .links a, .button {
   display: block;
   text-decoration: none;
-  border: 1px solid var(--line);
   background: var(--surface-strong);
   color: var(--text);
-  padding: 14px 16px;
-  border-radius: 6px;
+  padding: 18px 20px;
+}
+
+.links a:hover,
+.button:hover {
+  background: #f4ead9;
 }
 
 .button {
@@ -121,6 +135,7 @@ h2 {
 
 @media (max-width: 640px) {
   .page { padding: 16px; }
-  .hero, .content { padding: 24px; }
+  .hero { padding: 42px 0 28px; }
+  .content { padding: 24px 0 48px; }
   .topbar { flex-direction: column; align-items: flex-start; }
 }

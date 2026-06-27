@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
+import { formatMusicErrorMessage } from './play.js';
 
 export const name = 'filter';
 export const aliases = ['fx', 'filters'];
@@ -75,7 +76,7 @@ async function executeFilter(filterName, guildId, playerService, respond) {
     });
   } catch (err) {
     return respond({
-      embeds: [buildErrorEmbed('Filter Error', `Could not apply filter: ${err.message}`)]
+      embeds: [buildErrorEmbed('Filter Error', `Could not apply filter: ${formatMusicErrorMessage(err)}`)]
     });
   }
 }
