@@ -55,7 +55,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
       searchEngine
     });
   } catch (err) {
-    logger.error(`Search failed for "${query}":`, err.message);
+    logger.error(`Search failed for "${query}".`, err);
     return respond({
       embeds: [buildErrorEmbed('Search Failed', `Could not search for that query.\n\`\`\`${err.message.slice(0, 150)}\`\`\`\nTry a different search term or paste a direct link.`)]
     });
@@ -100,7 +100,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
   try {
     if (!queue.connection) await queue.connect(voiceChannel);
   } catch (err) {
-    logger.error('Failed to connect to voice channel:', err.message);
+    logger.error('Failed to connect to voice channel.', err);
     queue.delete();
     return respond({
       embeds: [buildErrorEmbed('Connection Failed', 'Could not join your voice channel.\nCheck that I have **Connect** and **Speak** permissions.')]
@@ -136,7 +136,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
     try {
       await queue.node.play();
     } catch (err) {
-      logger.error('Failed to start playback:', err.message);
+      logger.error('Failed to start playback.', err);
       return respond({
         embeds: [buildErrorEmbed('Playback Failed', `Could not start playing.\n\`\`\`${err.message.slice(0, 150)}\`\`\`\nTry a different track or source.`)]
       });

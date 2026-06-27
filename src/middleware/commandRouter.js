@@ -54,7 +54,7 @@ export async function handleComponentInteraction(interaction) {
     ensureHandlersRegistered();
     await dispatch(interaction);
   } catch (error) {
-    logger.error('Component interaction error:', error.message);
+    logger.error('Component interaction error.', error);
     try {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({ embeds: [buildErrorEmbed('Error', 'Something went wrong. Please try again.')], flags: 64 });

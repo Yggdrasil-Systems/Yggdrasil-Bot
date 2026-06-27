@@ -43,7 +43,7 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
       searchEngine: QueryType.AUTO_SEARCH
     });
   } catch (err) {
-    logger.error(`Search failed: ${err.message}`);
+    logger.error('Search failed.', err);
     return respond({
       embeds: [buildErrorEmbed('Search Failed', `Could not search for that query.\n\`\`\`${err.message.slice(0, 150)}\`\`\``)]
     });

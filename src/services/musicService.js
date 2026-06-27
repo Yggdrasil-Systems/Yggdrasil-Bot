@@ -13,11 +13,11 @@ function safeSend(queue, payload) {
     const channel = queue?.metadata?.channel;
     if (channel?.send) {
       channel.send(payload).catch((err) => {
-        logger.warn(`Failed to send music event message: ${err.message}`);
+        logger.warn('Failed to send music event message.', err);
       });
     }
   } catch (err) {
-    logger.error('Unexpected error in safeSend:', err.message);
+    logger.error('Unexpected error in safeSend.', err);
   }
 }
 
@@ -87,7 +87,7 @@ export const ytDlpStreamHook = async (track, method, queue) => {
     subprocess.stdout.on('close', killSubprocess);
     subprocess.stdout.on('error', killSubprocess);
     subprocess.on('error', (err) => {
-      logger.error(`[yt-dlp] Process error: ${err.message}`);
+      logger.error('[yt-dlp] Process error.', err);
     });
 
     // Safety net: kill if the process somehow outlives any reasonable track
@@ -102,7 +102,7 @@ export const ytDlpStreamHook = async (track, method, queue) => {
     logger.debug(`[yt-dlp] Stream pipeline created for: ${track.title}`);
     return subprocess.stdout;
   } catch (err) {
-    logger.error(`[yt-dlp] Failed to extract stream for "${track.title}": ${err.message}`);
+    logger.error(`[yt-dlp] Failed to extract stream for "${track.title}".`, err);
     return null;
   }
 };
@@ -195,7 +195,7 @@ export async function initializePlayer(client, playerService) {
   });
 
   player.events.on('error', (queue, error) => {
-    logger.error('Player error:', error.message);
+    logger.error('Player error.', error);
     safeSend(queue, {
       embeds: [buildErrorEmbed(
         'Playback Error',
@@ -206,7 +206,7 @@ export async function initializePlayer(client, playerService) {
 
   player.events.on('playerError', (queue, error, track) => {
     const trackInfo = track ? `**${track.title}**` : 'the current track';
-    logger.error(`Player track error on ${trackInfo}:`, error.message);
+    logger.error(`Player track error on ${trackInfo}.`, error);
     safeSend(queue, {
       embeds: [buildErrorEmbed(
         'Track Error',
