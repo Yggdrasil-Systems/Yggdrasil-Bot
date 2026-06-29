@@ -9,6 +9,30 @@ import fp from 'fastify-plugin';
 
 import { canUseAdminCommand } from '../../middleware/permissionGuard.js';
 
+const ADMIN_GUARD_CACHE_TTL_MS = 300_000;
+const ADMIN_GUARD_CACHE_MAX_SIZE = 500;
+
+const adminGuardCache = new Map();
+
+function getCachedAdminAuthorization(guildId, userId) {
+  const key = `${guildId}:${userId}`;
+  const entry = adminGuardCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > ADMIN_GUARD_CACHE_TTL_MS) {
+    adminGuardCache.delete(key);
+    return null;
+  }
+  return entry.authorized;
+}
+
+function setCachedAdminAuthorization(guildId, userId, authorized) {
+  const key = `${guildId}:${userId}`;
+  if (adminGuardCache.size >= ADMIN_GUARD_CACHE_MAX_SIZE) {
+    const firstKey = adminGuardCache.keys().next().value;
+    adminGuardCache.delete(firstKey);
+  }
+  adminGuardCache.set(key, { authorized, timestamp: Date.now() });
+}
 
 export const SESSION_COOKIE_NAME = 'wt_session';
 
@@ -275,10 +299,30 @@ export const sessionPlugin = fp(async (fastify, opts) => {
       });
     }
 
+    if (!fastify.services?.discordClient || !fastify.services?.settingsService) {
+      return reply.code(500).send({
+        statusCode: 500,
+        error: 'Internal Server Error',
+        message: 'Services not available'
+      });
+    }
+
     const { discordClient, settingsService } = fastify.services;
     const botOwnerId = discordClient.appContext?.config?.botOwnerId;
 
     if (userId === botOwnerId) {
+      return;
+    }
+
+    const cached = getCachedAdminAuthorization(guildId, userId);
+    if (cached !== null) {
+      if (!cached) {
+        return reply.code(403).send({
+          statusCode: 403,
+          error: 'Forbidden',
+          message: 'You lack permission to access settings/cases for this guild'
+        });
+      }
       return;
     }
 
@@ -293,6 +337,7 @@ export const sessionPlugin = fp(async (fastify, opts) => {
 
     const member = guild.members.cache.get(userId) ?? await guild.members.fetch(userId).catch(() => null);
     if (!member) {
+      setCachedAdminAuthorization(guildId, userId, false);
       return reply.code(403).send({
         statusCode: 403,
         error: 'Forbidden',
@@ -310,6 +355,8 @@ export const sessionPlugin = fp(async (fastify, opts) => {
       member,
       trustedAdminRoleIds
     });
+
+    setCachedAdminAuthorization(guildId, userId, isAuthorized);
 
     if (!isAuthorized) {
       return reply.code(403).send({
