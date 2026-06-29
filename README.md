@@ -244,38 +244,50 @@ world-tree/
 │       └── fileDiscovery.js              # Recursive .js file finder for loaders
 │
 ├── test/                                 # ── 44 Test Files ──────────────────────────────────
-│   ├── apiServer.test.js                 # Fastify lifecycle, Zod validation, session integration
+│   ├── activityRoleCommand.test.js       # Prefix command routing for activity roles
+│   ├── activityRoleService.test.js       # Presence/voice role assignment behavior
 │   ├── apiRoutes.test.js                 # Route serialization, pagination, field stripping
-│   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
+│   ├── apiServer.test.js                 # Fastify lifecycle, Zod validation, session integration
+│   ├── appContext.test.js                # Shared runtime container creation and lookup
 │   ├── authRoutes.test.js                # OAuth login/callback/me/logout route behavior
-│   ├── discordOAuth.test.js              # PKCE, state, token exchange, identity fetch helpers
+│   ├── automodService.test.js            # Rule matching, punishment, channel ignoring
 │   ├── bootstrap.test.js                 # Startup sequencer integration
-│   ├── env.test.js                       # Environment config profiles, validation, API secrets
+│   ├── commandHelpers.test.js            # Command helper utilities and resolvers
 │   ├── commandLoader.test.js             # Command discovery, contract validation, duplicates
 │   ├── commandRouter.test.js             # Slash command dispatch + unknown command handling
+│   ├── components.test.js                # Button row construction, settings state
+│   ├── dashboardContracts.test.js        # JSON Schema document validation
+│   ├── discordConfigActivityRoles.test.js # Presence intent opt-in — verifies privileged intent is excluded by default
+│   ├── discordOAuth.test.js              # PKCE, state, token exchange, identity fetch helpers
+│   ├── embeds.test.js                    # Embed defaults, colors, field structure
+│   ├── env.test.js                       # Environment config profiles, validation, API secrets
+│   ├── helpCommand.test.js               # Help embed and category menu construction
+│   ├── helpInteractionHandler.test.js    # Help category select menu interaction
+│   ├── logger.test.js                    # Log formatting, levels, environment behavior
 │   ├── messageCommandRouter.test.js      # Prefix routing, no-prefix, admin guards
 │   ├── messageParser.test.js             # Prefix detection, quoted args, edge cases
-│   ├── permissionGuard.test.js           # Admin, moderation, no-prefix permission checks
-│   ├── moderationService.test.js         # Permission enforcement, hierarchy, case lifecycle
 │   ├── moderationRepository.test.js      # Atomic counters, case creation, warning listing
-│   ├── settingsService.test.js           # Settings normalization, cache invalidation
-│   ├── settingsServiceActivityRoles.test.js # Activity role settings persistence
-│   ├── activityRoleService.test.js       # Presence/voice role assignment behavior
-│   ├── discordConfigActivityRoles.test.js # Presence intent configuration
-│   ├── settingsRepository.test.js        # CRUD, mod-log, automod rule updates
-│   ├── noPrefixService.test.js           # Owner override, add/remove, cache behavior
-│   ├── noPrefixRepository.test.js        # Privilege upsert operations
-│   ├── automodService.test.js            # Rule matching, punishment, channel ignoring
+│   ├── moderationService.test.js         # Permission enforcement, hierarchy, case lifecycle
+│   ├── musicChannelService.test.js       # Music-channel auto-play delegation
 │   ├── musicCommands.test.js             # Play/247 voice channel validation
 │   ├── musicComponentRouter.test.js      # Button interaction handling without active session
-│   ├── utilityService.test.js            # Ping, avatar, user/server/bot/role info
-│   ├── helpCommand.test.js               # Help embed and category menu construction
-│   ├── embeds.test.js                    # Embed defaults, colors, field structure
-│   ├── components.test.js                # Button row construction, settings state
-│   ├── responses.test.js                 # Reply/followUp/edit interaction abstraction
-│   ├── logger.test.js                    # Log formatting, levels, environment behavior
+│   ├── musicFilterInteractionHandler.test.js # Audio filter toggle interactions
+│   ├── musicInteractionHandlers.test.js  # General music interaction handler wiring
+│   ├── musicPlaybackInteractionHandler.test.js # Playback control button interactions
+│   ├── noPrefixRepository.test.js        # Privilege upsert operations
+│   ├── noPrefixService.test.js           # Owner override, add/remove, cache behavior
+│   ├── permissionGuard.test.js           # Admin, moderation, no-prefix permission checks
+│   ├── pingInteractionHandler.test.js    # Ping refresh button interaction
+│   ├── playerService.test.js             # Music player factory closure behavior
+│   ├── pm2Config.test.js                 # PM2 process config validation
 │   ├── queryOptions.test.js              # Upsert option configuration
-│   └── dashboardContracts.test.js        # JSON Schema document validation
+│   ├── registry.test.js                  # Interaction handler registry contract
+│   ├── responses.test.js                 # Reply/followUp/edit interaction abstraction
+│   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
+│   ├── settingsRepository.test.js        # CRUD, mod-log, automod rule updates
+│   ├── settingsService.test.js           # Settings normalization, cache invalidation
+│   ├── settingsServiceActivityRoles.test.js # Activity role settings persistence
+│   └── utilityService.test.js            # Ping, avatar, user/server/bot/role info
 │
 ├── scripts/
 │   └── registerCommands.js               # Guild-scoped slash command deployment
@@ -420,8 +432,8 @@ graph LR
     Disp --> H5[help:<br/>help handler]
     Disp --> H6[search_select_<br/>search handler]
     Disp --> H7[music_settings<br/>settings handler]
-    H1 -.appContext.playerService.-> PS[playerService<br/>closure-scoped]
-    H2 -.appContext.playerService.-> PS
+    H1 -.->|appContext.playerService| PS[playerService<br/>closure-scoped]
+    H2 -.->|appContext.playerService| PS
 ```
 
 ### Registry contract
@@ -682,6 +694,12 @@ NODE_ENV=development
 # GUILD_ID: Backward-compatible alias for DEV_GUILD_ID
 # In production (NODE_ENV=production), commands are registered globally — no guild ID needed
 DEV_GUILD_ID=your_test_discord_server_id
+GUILD_ID=your_test_discord_server_id
+
+# ── Optional ─────────────────────────────────
+MONGO_SERVER_SELECTION_TIMEOUT_MS=10000
+TRUSTED_ADMIN_ROLE_IDS=optional_role_id,optional_second_role_id
+DASHBOARD_URL=optional_runtime_url_display
 
 # ── API (required when ENABLE_API=true) ────
 ENABLE_API=true
@@ -761,7 +779,9 @@ In the Developer Portal, enable these gateway intents:
 
 If you want **activity roles** (Spotify auto-role, etc.), also enable:
 
-- `Presence Intent` — Required for detecting user activities like Spotify listening
+- `Presence Intent` in the Developer Portal, then add `GatewayIntentBits.GuildPresences` to `src/config/discord.js`
+
+The bot will start without this intent, but activity roles will not function until both steps are completed.
 
 After changing intents in the Developer Portal, restart the bot. If slash commands changed, run `npm run register:commands` again.
 

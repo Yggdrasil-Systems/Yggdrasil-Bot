@@ -3,16 +3,19 @@ import { GatewayIntentBits } from 'discord.js';
 // Message content powers prefix commands and automod. Guild members supports
 // moderation/userinfo member fetches and role-aware permission checks.
 //
-// GuildPresences powers activity roles (Spotify, streaming, gaming). It must
-// also be enabled in the Discord Developer Portal under Privileged Gateway
-// Intents or Discord will not send presence updates.
+// GuildPresences is NOT included by default because it is a privileged intent.
+// If you want activity roles (Spotify, streaming, gaming), you must:
+//
+//   1. Enable "Presence Intent" in the Discord Developer Portal
+//   2. Add GatewayIntentBits.GuildPresences to this array
+//
+// Without this intent, the bot will start fine but activity roles will not work.
 export const CLIENT_INTENTS = Object.freeze([
   GatewayIntentBits.Guilds,
   GatewayIntentBits.GuildMembers,
   GatewayIntentBits.GuildMessages,
   GatewayIntentBits.MessageContent,
-  GatewayIntentBits.GuildVoiceStates,
-  GatewayIntentBits.GuildPresences
+  GatewayIntentBits.GuildVoiceStates
 ]);
 
 export const CLIENT_PARTIALS = Object.freeze([]);

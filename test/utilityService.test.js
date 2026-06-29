@@ -105,6 +105,21 @@ test('getBotInfoSummary returns runtime details without process coupling', () =>
   assert.equal(summary.websocketLatency, 21);
 });
 
+test('getBotInfoSummary tolerates partially mocked clients', () => {
+  const summary = getBotInfoSummary({
+    client: {
+      user: null
+    },
+    uptimeMs: 500
+  });
+
+  assert.equal(summary.guildCount, 0);
+  assert.equal(summary.channelCount, 0);
+  assert.equal(summary.userCount, 0);
+  assert.equal(summary.websocketLatency, 0);
+  assert.equal(summary.avatarUrl, null);
+});
+
 test('getRoleInfoSummary returns role metadata', () => {
   const createdAt = new Date('2026-01-01T00:00:00.000Z');
   const summary = getRoleInfoSummary({

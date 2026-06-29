@@ -83,16 +83,23 @@ export function getBotInfoSummary({ client, uptimeMs = process.uptime() * 1000 }
   const usedMemMb = (memoryUsage.heapUsed / 1024 / 1024).toFixed(2);
   const cpuLoad = os.loadavg()[0].toFixed(2);
   const cpuModel = os.cpus()[0]?.model || 'Unknown CPU';
+  const botUser = client.user;
+  const guilds = client.guilds?.cache;
+  const channels = client.channels?.cache;
+  const guildCount = guilds?.size ?? 0;
+  const channelCount = channels?.size ?? 0;
+  const userCount = guilds ? [...guilds.values()].reduce((acc, guild) => acc + (guild.memberCount || 0), 0) : 0;
+  const websocketLatency = client.ws?.ping ?? 0;
 
   return {
-    botId: client.user.id,
-    tag: client.user.tag,
-    guildCount: client.guilds.cache.size,
-    channelCount: client.channels.cache.size,
-    userCount: [...client.guilds.cache.values()].reduce((acc, guild) => acc + (guild.memberCount || 0), 0),
-    websocketLatency: Math.round(client.ws.ping),
+    botId: botUser?.id ?? 'unknown',
+    tag: botUser?.tag ?? 'Unknown Bot',
+    guildCount,
+    channelCount,
+    userCount,
+    websocketLatency: Math.round(websocketLatency),
     uptimeMs,
-    avatarUrl: client.user.displayAvatarURL({ size: 256, extension: 'png' }),
+    avatarUrl: botUser?.displayAvatarURL?.({ size: 256, extension: 'png' }) ?? null,
     cpuModel,
     cpuUsage: cpuLoad,
     memoryUsed: usedMemMb,
@@ -104,13 +111,13 @@ export function getBotInfoSummary({ client, uptimeMs = process.uptime() * 1000 }
 }
 
 export function getStatsSummary({ client, uptimeMs = process.uptime() * 1000 }) {
-  const guilds = [...client.guilds.cache.values()];
+  const guilds = [...(client.guilds?.cache?.values?.() ?? [])];
 
   return {
     guildCount: guilds.length,
     memberCount: guilds.reduce((total, guild) => total + (guild.memberCount ?? 0), 0),
     commandCount: client.commands?.size ?? 0,
-    websocketLatency: Math.round(client.ws.ping),
+    websocketLatency: Math.round(client.ws?.ping ?? 0),
     uptimeMs
   };
 }

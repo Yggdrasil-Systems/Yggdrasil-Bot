@@ -3,6 +3,12 @@ import { SlashCommandBuilder } from 'discord.js';
 import { buildOwnerInfoEmbed } from '../../utils/embeds.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
+function getOwnerAvatarUrl(owner) {
+  return owner?.displayAvatarURL?.({ size: 1024, extension: 'png' })
+    ?? owner?.iconURL?.({ size: 1024, extension: 'png' })
+    ?? null;
+}
+
 export const name = 'ownerinfo';
 export const aliases = ['owner'];
 export const allowNoPrefix = true;
@@ -18,7 +24,7 @@ export async function execute(interaction) {
   
   const summary = {
     ownerId: owner.id,
-    ownerAvatarUrl: owner.displayAvatarURL({ size: 1024, extension: 'png' })
+    ownerAvatarUrl: getOwnerAvatarUrl(owner)
   };
 
   await replyToInteraction(interaction, {
@@ -32,7 +38,7 @@ export async function executeMessage(context) {
   
   const summary = {
     ownerId: owner.id,
-    ownerAvatarUrl: owner.displayAvatarURL({ size: 1024, extension: 'png' })
+    ownerAvatarUrl: getOwnerAvatarUrl(owner)
   };
 
   await context.respond({

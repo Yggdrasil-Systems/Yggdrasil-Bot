@@ -62,7 +62,7 @@ None identified. A local `.env` file exists in the workspace but is not tracked 
   - **Recommendation:** Use `git rm --cached .env` and follow history-clean steps below.
 
 - **[src/client.js](src/client.js)** + **[src/config/discord.js](src/config/discord.js)**
-  - **What:** `createClient()` uses intents including `GuildVoiceStates` and `GuildPresences` — these are required for voice and presence-based features.
+  - **What:** `createClient()` uses intents including `GuildVoiceStates` — required for voice features. `GuildPresences` is excluded by default (privileged intent) and must be manually added to `CLIENT_INTENTS` for activity roles.
   - **Notes:** Warnings in tests likely indicate a mismatch in test stubs or multiple discord.js copies. `npm ls discord.js` shows one installed copy, so investigate test mocks.
   - **Recommendation:** Ensure test fixtures create clients with the same intents or stub server-side pieces instead of constructing incompatible client objects.
 
