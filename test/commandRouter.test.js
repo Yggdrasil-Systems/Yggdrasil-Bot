@@ -104,11 +104,12 @@ test('handleChatInputCommand answers unknown commands ephemerally', async () => 
   assert.deepEqual(warnings, ['No command handler found for /missing.']);
 });
 
-test('registry contains all 7 prefixes after registerAllInteractionHandlers', () => {
+test('registry contains all 8 prefixes after registerAllInteractionHandlers', () => {
   registerAllInteractionHandlers();
   assert.deepEqual(getRegisteredPrefixes(), [
     'ping_',
     'queue_',
+    'settings_',
     'music_settings',
     'music_',
     'filter_',

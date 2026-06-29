@@ -5,11 +5,11 @@ function getQueue(interaction) {
   return interaction.appContext?.playerService?.getGuildQueue(interaction.guildId);
 }
 
-function requireQueue(interaction, resolveQueue = getQueue, allowEmptyTrack = false) {
+async function requireQueue(interaction, resolveQueue = getQueue, allowEmptyTrack = false) {
   const queue = resolveQueue(interaction);
 
   if (!queue || (!allowEmptyTrack && !queue.currentTrack)) {
-    interaction.reply({
+    await interaction.reply({
       embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now. Use `tree play` to start.')],
       flags: 64
     });
@@ -38,7 +38,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   const id = interaction.customId;
 
   if (id === 'music_pause') {
-    const queue = requireQueue(interaction, resolveQueue);
+    const queue = await requireQueue(interaction, resolveQueue);
     if (!queue) return true;
 
     if (queue.node.isPaused()) {
@@ -58,7 +58,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   }
 
   if (id === 'music_resume') {
-    const queue = requireQueue(interaction, resolveQueue);
+    const queue = await requireQueue(interaction, resolveQueue);
     if (!queue) return true;
 
     if (!queue.node.isPaused()) {
@@ -78,7 +78,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   }
 
   if (id === 'music_skip') {
-    const queue = requireQueue(interaction, resolveQueue);
+    const queue = await requireQueue(interaction, resolveQueue);
     if (!queue) return true;
 
     const skippedTitle = queue.currentTrack?.title || 'current track';
@@ -91,7 +91,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   }
 
   if (id === 'music_previous') {
-    const queue = requireQueue(interaction, resolveQueue);
+    const queue = await requireQueue(interaction, resolveQueue);
     if (!queue) return true;
 
     try {
@@ -128,7 +128,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   }
 
   if (id === 'music_shuffle') {
-    const queue = requireQueue(interaction, resolveQueue);
+    const queue = await requireQueue(interaction, resolveQueue);
     if (!queue) return true;
 
     if (queue.tracks.data.length === 0) {
@@ -148,7 +148,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   }
 
   if (id === 'music_queue') {
-    const queue = requireQueue(interaction, resolveQueue);
+    const queue = await requireQueue(interaction, resolveQueue);
     if (!queue) return true;
 
     await interaction.reply({
@@ -160,7 +160,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   }
 
   if (id === 'music_volup') {
-    const queue = requireQueue(interaction, resolveQueue);
+    const queue = await requireQueue(interaction, resolveQueue);
     if (!queue) return true;
 
     const newVol = Math.min(100, (queue.node.volume ?? 80) + 10);
@@ -174,7 +174,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   }
 
   if (id === 'music_voldown') {
-    const queue = requireQueue(interaction, resolveQueue);
+    const queue = await requireQueue(interaction, resolveQueue);
     if (!queue) return true;
 
     const newVol = Math.max(0, (queue.node.volume ?? 80) - 10);

@@ -5,11 +5,11 @@ function getQueue(interaction) {
   return interaction.appContext?.playerService?.getGuildQueue(interaction.guildId);
 }
 
-function requireQueue(interaction, resolveQueue = getQueue) {
+async function requireQueue(interaction, resolveQueue = getQueue) {
   const queue = resolveQueue(interaction);
 
   if (!queue || !queue.currentTrack) {
-    interaction.reply({
+    await interaction.reply({
       embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now. Use `tree play` to start.')],
       flags: 64
     });
@@ -44,7 +44,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
     return false;
   }
 
-  const queue = requireQueue(interaction, resolveQueue);
+  const queue = await requireQueue(interaction, resolveQueue);
   if (!queue) {
     return true;
   }
@@ -52,8 +52,9 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   const filterName = interaction.customId.replace('filter_', '');
 
   if (filterName === 'clear') {
+    await interaction.deferUpdate();
     await queue.filters.ffmpeg.setInputArgs([]);
-    await interaction.update({
+    await interaction.editReply({
       embeds: [buildSuccessEmbed('🗑️ Filters Cleared', 'All audio filters have been removed.')],
       components: buildFilterComponents()
     });
@@ -66,8 +67,9 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
     return false;
   }
 
+  await interaction.deferUpdate();
   await queue.filters.ffmpeg.toggle([dpFilterName]);
-  await interaction.update({
+  await interaction.editReply({
     embeds: [buildSuccessEmbed(`🎛️ ${FILTER_LABELS[filterName] ?? dpFilterName}`, `**${FILTER_LABELS[filterName] ?? dpFilterName}** filter has been toggled.`)],
     components: buildFilterComponents()
   });

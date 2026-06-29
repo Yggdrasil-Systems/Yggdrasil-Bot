@@ -29,6 +29,7 @@ import * as musicSettings from './musicSettingsInteractionHandler.js';
 import * as ping from './pingInteractionHandler.js';
 import * as queue from './queueInteractionHandler.js';
 import * as search from './searchInteractionHandler.js';
+import * as settingsButton from './settingsButtonInteractionHandler.js';
 
 /**
  * Register every interaction handler with the registry.
@@ -42,6 +43,7 @@ import * as search from './searchInteractionHandler.js';
 export function registerAllInteractionHandlers() {
   registerHandler(ping);
   registerHandler(queue);
+  registerHandler(settingsButton);
   registerHandler(musicSettings);
   registerHandler(musicPlayback);
   registerHandler(musicFilter);

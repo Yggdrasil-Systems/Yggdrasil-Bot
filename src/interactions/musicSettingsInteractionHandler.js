@@ -5,11 +5,11 @@ function getQueue(interaction) {
   return interaction.appContext?.playerService?.getGuildQueue(interaction.guildId);
 }
 
-function requireQueue(interaction, resolveQueue = getQueue) {
+async function requireQueue(interaction, resolveQueue = getQueue) {
   const queue = resolveQueue(interaction);
 
   if (!queue || !queue.currentTrack) {
-    interaction.reply({
+    await interaction.reply({
       embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now. Use `tree play` to start.')],
       flags: 64
     });
@@ -43,7 +43,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
     return false;
   }
 
-  const queue = requireQueue(interaction, resolveQueue);
+  const queue = await requireQueue(interaction, resolveQueue);
   if (!queue) {
     return true;
   }
