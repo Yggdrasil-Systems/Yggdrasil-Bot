@@ -30,8 +30,6 @@ function requireQueue(interaction, resolveQueue = getQueue) {
   return queue;
 }
 
-const MODE_LABELS = { 0: '➡️ Off', 1: '🔂 Track', 2: '🔁 Queue', 3: '📻 Autoplay' };
-
 export const prefix = 'settings_';
 
 export async function handle(interaction, { resolveQueue = getQueue } = {}) {
@@ -57,7 +55,8 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   // ─── Loop Mode Buttons ──────────────────────────────────────────────────
   if (id === 'settings_loop_off') {
     queue.setRepeatMode(0);
-    await interaction.update({
+    await interaction.deferUpdate();
+    await interaction.editReply({
       embeds: [buildNeutralEmbed('⚙️ Playback Settings', buildSettingsCopy(queue))],
       components: buildSettingsComponents(queue)
     });
@@ -66,7 +65,8 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
 
   if (id === 'settings_loop_track') {
     queue.setRepeatMode(1);
-    await interaction.update({
+    await interaction.deferUpdate();
+    await interaction.editReply({
       embeds: [buildNeutralEmbed('⚙️ Playback Settings', buildSettingsCopy(queue))],
       components: buildSettingsComponents(queue)
     });
@@ -75,7 +75,8 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
 
   if (id === 'settings_loop_queue') {
     queue.setRepeatMode(2);
-    await interaction.update({
+    await interaction.deferUpdate();
+    await interaction.editReply({
       embeds: [buildNeutralEmbed('⚙️ Playback Settings', buildSettingsCopy(queue))],
       components: buildSettingsComponents(queue)
     });
@@ -86,7 +87,8 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   if (id === 'settings_autoplay') {
     const newMode = queue.repeatMode === 3 ? 0 : 3;
     queue.setRepeatMode(newMode);
-    await interaction.update({
+    await interaction.deferUpdate();
+    await interaction.editReply({
       embeds: [buildNeutralEmbed('⚙️ Playback Settings', buildSettingsCopy(queue))],
       components: buildSettingsComponents(queue)
     });

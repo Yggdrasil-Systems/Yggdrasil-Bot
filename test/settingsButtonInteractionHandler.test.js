@@ -21,7 +21,8 @@ test('settings_loop_off sets repeat mode to 0 and updates the message', async ()
     isButton: () => true,
     customId: 'settings_loop_off',
     guildId: 'guild-1',
-    update: async (response) => { payload = response; }
+    deferUpdate: async () => {},
+    editReply: async (response) => { payload = response; }
   }, { resolveQueue: () => queue });
 
   assert.equal(handled, true);
@@ -38,7 +39,8 @@ test('settings_loop_track sets repeat mode to 1', async () => {
     isButton: () => true,
     customId: 'settings_loop_track',
     guildId: 'guild-1',
-    update: async (response) => { payload = response; }
+    deferUpdate: async () => {},
+    editReply: async (response) => { payload = response; }
   }, { resolveQueue: () => queue });
 
   assert.equal(handled, true);
@@ -52,7 +54,8 @@ test('settings_loop_queue sets repeat mode to 2', async () => {
     isButton: () => true,
     customId: 'settings_loop_queue',
     guildId: 'guild-1',
-    update: async () => {}
+    deferUpdate: async () => {},
+    editReply: async () => {}
   }, { resolveQueue: () => queue });
 
   assert.equal(handled, true);
@@ -66,7 +69,8 @@ test('settings_autoplay toggles repeat mode 3 on', async () => {
     isButton: () => true,
     customId: 'settings_autoplay',
     guildId: 'guild-1',
-    update: async () => {}
+    deferUpdate: async () => {},
+    editReply: async () => {}
   }, { resolveQueue: () => queue });
 
   assert.equal(handled, true);
@@ -80,7 +84,8 @@ test('settings_autoplay toggles repeat mode 3 off', async () => {
     isButton: () => true,
     customId: 'settings_autoplay',
     guildId: 'guild-1',
-    update: async () => {}
+    deferUpdate: async () => {},
+    editReply: async () => {}
   }, { resolveQueue: () => queue });
 
   assert.equal(handled, true);
