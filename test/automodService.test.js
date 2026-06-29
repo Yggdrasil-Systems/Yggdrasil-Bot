@@ -140,3 +140,15 @@ test('automod service can punish normal no-prefix lookalikes when routing did no
   assert.equal(punished, true);
 });
 
+
+test('automodState dispose clears interval and state without error', () => {
+  const state = createAutomodState();
+  state.setRepeatedMessages('key', [{ createdAt: Date.now() }]);
+  assert.equal(state.getRepeatedMessages('key').length, 1);
+
+  state.dispose();
+  assert.equal(state.getRepeatedMessages('key').length, 0);
+
+  // Idempotent: calling dispose again should not throw.
+  state.dispose();
+});

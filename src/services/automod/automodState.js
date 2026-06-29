@@ -5,7 +5,7 @@ export function createAutomodState() {
   // We use .unref() so this background timer doesn't keep the process alive.
   const sweepInterval = setInterval(() => {
     const now = Date.now();
-    const maxAgeMs = 60_000;
+    const maxAgeMs = 65_000;
 
     for (const [key, entries] of repeatedMessages.entries()) {
       const activeEntries = entries.filter((entry) => now - entry.createdAt <= maxAgeMs);
@@ -21,6 +21,8 @@ export function createAutomodState() {
     sweepInterval.unref();
   }
 
+  let disposed = false;
+
   return {
     getRepeatedMessages(key) {
       return repeatedMessages.get(key) ?? [];
@@ -31,6 +33,13 @@ export function createAutomodState() {
     },
 
     clear() {
+      repeatedMessages.clear();
+    },
+
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      clearInterval(sweepInterval);
       repeatedMessages.clear();
     }
   };
