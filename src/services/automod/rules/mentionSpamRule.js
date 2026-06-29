@@ -1,7 +1,8 @@
 import { matchRule, noMatch } from './ruleResult.js';
 
 export function evaluateMentionSpam({ mentionCount, rule }) {
-  if (!rule?.enabled || !Number.isInteger(mentionCount) || mentionCount < rule.threshold) {
+  const threshold = rule?.threshold ?? 5;
+  if (!rule?.enabled || !Number.isInteger(mentionCount) || mentionCount < threshold) {
     return noMatch();
   }
 

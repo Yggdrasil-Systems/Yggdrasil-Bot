@@ -9,14 +9,23 @@ export function evaluateBadWords({ content, rule }) {
     return noMatch();
   }
 
-  const matchedWord = rule.words.find((word) => {
-    const pattern = new RegExp(`\\b${escapeRegExp(String(word))}\\b`, 'i');
-    return pattern.test(content);
-  });
+  if (!rule._compiledPatterns) {
+    rule._compiledPatterns = rule.words.map((word) => {
+      try {
+        return new RegExp(`\\b${escapeRegExp(String(word))}\\b`, 'i');
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  }
 
-  if (!matchedWord) {
+  const matchedIndex = rule._compiledPatterns.findIndex((pattern) => pattern.test(content));
+
+  if (matchedIndex === -1) {
     return noMatch();
   }
+
+  const matchedWord = rule.words[matchedIndex];
 
   return matchRule({
     ruleId: 'badWords',

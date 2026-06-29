@@ -20,8 +20,9 @@ export function evaluateRepeatSpam({ guildId, userId, content, now = Date.now(),
   state.setRepeatedMessages(key, entries);
 
   const repeatedCount = entries.filter((entry) => entry.content === normalizedContent).length;
+  const threshold = rule.threshold ?? 4;
 
-  if (repeatedCount < rule.threshold) {
+  if (repeatedCount < threshold) {
     return noMatch();
   }
 

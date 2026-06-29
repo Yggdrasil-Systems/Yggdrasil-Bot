@@ -1,20 +1,23 @@
 import { matchRule, noMatch } from './ruleResult.js';
 
 export function evaluateCapsSpam({ content, rule }) {
-  if (!rule?.enabled || !content || content.length < rule.minLength) {
+  const minLength = rule?.minLength ?? 16;
+  const targetRatio = rule?.ratio ?? 0.75;
+
+  if (!rule?.enabled || !content || content.length < minLength) {
     return noMatch();
   }
 
   const letters = [...content].filter((character) => /[a-z]/i.test(character));
 
-  if (letters.length < rule.minLength) {
+  if (letters.length < minLength) {
     return noMatch();
   }
 
   const upperCount = letters.filter((character) => character === character.toUpperCase()).length;
   const ratio = upperCount / letters.length;
 
-  if (ratio < rule.ratio) {
+  if (ratio < targetRatio) {
     return noMatch();
   }
 
