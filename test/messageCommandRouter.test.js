@@ -248,3 +248,34 @@ test('handleMessageCommand denies admin prefix commands for normal users', async
   assert.equal(replies.length, 1);
   assert.match(replies[0].embeds[0].data.description, /permission/i);
 });
+
+test('handleMessageCommand denies no-prefix admin commands for non-admin users', async () => {
+  let executed = false;
+  const { message, replies } = createMessage({
+    content: 'purge 10',
+    commandName: 'purge',
+    command: {
+      name: 'purge',
+      adminOnly: true,
+      allowNoPrefix: true,
+      executeMessage: async () => {
+        executed = true;
+      }
+    },
+    member: {
+      permissions: new PermissionsBitField([]),
+      roles: { cache: new Map() }
+    }
+  });
+  message.appContext.runtimeConfig = { botOwnerId: 'owner' };
+  message.appContext.noPrefixService = {
+    canUseNoPrefix: async () => true
+  };
+
+  const handled = await handleMessageCommand(message);
+
+  assert.equal(handled, true);
+  assert.equal(executed, false);
+  assert.equal(replies.length, 1);
+  assert.match(replies[0].embeds[0].data.description, /permission/i);
+});

@@ -160,7 +160,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
     return true;
   }
 
-  if (parsedCommand.mode !== 'no-prefix' && command.adminOnly && !canUseAdminCommand(privilegeContext)) {
+  if (command.adminOnly && !canUseAdminCommand(privilegeContext)) {
     await replyWithPermissionError(message);
     return true;
   }
