@@ -25,9 +25,18 @@ export function createPunishmentExecutor({
     async execute({ message, settings, result }) {
       const deleted = await deleteMessage(message);
       const actionType = ACTION_CASE_TYPES[result.action] ?? 'automod_delete';
-      const durationMs = result.action === 'timeout' ? parseDuration(result.timeoutDuration) : null;
+      let durationMs = null;
+      let timeoutDuration = result.timeoutDuration;
 
-      if (result.action === 'timeout' && durationMs && message.member?.timeout) {
+      if (result.action === 'timeout') {
+        durationMs = parseDuration(timeoutDuration);
+        if (!durationMs) {
+          timeoutDuration = '10m';
+          durationMs = 600000;
+        }
+      }
+
+      if (result.action === 'timeout' && message.member?.timeout) {
         await message.member.timeout(durationMs, result.reason);
       }
 
@@ -37,7 +46,7 @@ export function createPunishmentExecutor({
         moderatorId: message.client?.user?.id ?? 'automod',
         actionType,
         reason: result.reason,
-        duration: result.action === 'timeout' ? result.timeoutDuration : null,
+        duration: result.action === 'timeout' ? timeoutDuration : null,
         durationMs,
         expiresAt: durationMs ? new Date(Date.now() + durationMs) : null,
         deletedMessageCount: deleted ? 1 : 0,

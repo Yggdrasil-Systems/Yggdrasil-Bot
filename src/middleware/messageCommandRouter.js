@@ -138,6 +138,21 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
     return false;
   }
 
+  if (typeof command.executeMessage !== 'function') {
+    if (parsedCommand.mode === 'prefix') {
+      await replyToMessage(message, {
+        embeds: [
+          buildErrorEmbed(
+            'Command unavailable',
+            'This command is only available as a slash command.'
+          )
+        ]
+      });
+    }
+
+    return false;
+  }
+
   const privilegeContext = await getPrivilegeContext(message);
 
   if (command.botOwnerOnly && !isBotOwner(message)) {

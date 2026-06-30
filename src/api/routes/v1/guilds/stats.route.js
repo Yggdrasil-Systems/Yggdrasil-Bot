@@ -17,6 +17,7 @@ export const getStatsParamsSchema = z.object({
 
 export async function statsRoutes(fastify, opts) {
   fastify.get('/', {
+    preHandler: fastify.guildAdminGuard,
     schema: {
       params: getStatsParamsSchema,
       response: {

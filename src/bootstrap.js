@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { GatewayIntentBits } from 'discord.js';
 
 import { createClient } from './client.js';
 import { getRuntimeEnv } from './config/env.js';
@@ -52,6 +53,23 @@ export async function bootstrap({
   const eventCount = await loadEventHandlers(client, eventsPath);
 
   log.info(`Loaded ${client.commands.size} command(s) and ${eventCount} event handler(s).`);
+
+  if (!client.options?.intents?.has(GatewayIntentBits.GuildPresences)) {
+    const logWarn = (msg) => {
+      if (typeof log?.warn === 'function') {
+        log.warn(msg);
+      }
+    };
+    logWarn('╔════════════════════════════════════════════════════════════════╗');
+    logWarn('║  Activity roles are disabled because Presence Intent is        ║');
+    logWarn('║  not enabled on the Discord Client.                            ║');
+    logWarn('║  To enable them:                                               ║');
+    logWarn('║  1. Go to https://discord.com/developers/applications          ║');
+    logWarn('║  2. Toggle "PRESENCE INTENT" to ON                             ║');
+    logWarn('║  3. Add GatewayIntentBits.GuildPresences to CLIENT_INTENTS     ║');
+    logWarn('║     in src/config/discord.js                                     ║');
+    logWarn('╚════════════════════════════════════════════════════════════════╝');
+  }
 
   await initializePlayer(client, playerService);
 

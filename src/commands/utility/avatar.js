@@ -27,6 +27,18 @@ export async function execute(interaction) {
 
 export async function executeMessage(context) {
   const user = await resolveUserFromMessage(context.message, context.args);
+
+  if (!user) {
+    return context.respond({
+      embeds: [
+        buildErrorEmbed(
+          'User Not Found',
+          'Could not resolve that user. Please verify the ID or mention.'
+        )
+      ]
+    });
+  }
+
   const summary = getAvatarSummary({ user });
 
   await context.respond({

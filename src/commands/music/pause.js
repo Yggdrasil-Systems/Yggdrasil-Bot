@@ -2,15 +2,14 @@ import { SlashCommandBuilder } from 'discord.js';
 import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
-export const name = 'resume';
-export const aliases = ['togglepause'];
+export const name = 'pause';
 export const allowNoPrefix = true;
 
 export const data = new SlashCommandBuilder()
-  .setName('resume')
-  .setDescription('Resume the current track.');
+  .setName('pause')
+  .setDescription('Pause the current track.');
 
-async function executeResume(guildId, playerService, respond) {
+async function executePause(guildId, playerService, respond) {
   const queue = playerService?.getGuildQueue(guildId);
 
   if (!queue || !queue.currentTrack) {
@@ -19,22 +18,22 @@ async function executeResume(guildId, playerService, respond) {
     });
   }
 
-  if (!queue.node.isPaused()) {
+  if (queue.node.isPaused()) {
     return respond({
-      embeds: [buildSuccessEmbed('▶️ Already Playing', 'Playback is already running.')]
+      embeds: [buildSuccessEmbed('⏸️ Already Paused', 'Playback is already paused.')]
     });
   }
 
-  queue.node.setPaused(false);
+  queue.node.setPaused(true);
   return respond({
-    embeds: [buildSuccessEmbed('▶️ Resumed', `Resumed playing **${queue.currentTrack.title}**.`)]
+    embeds: [buildSuccessEmbed('⏸️ Paused', `Paused **${queue.currentTrack.title}**.`)]
   });
 }
 
 export async function execute(interaction) {
   const appContext = getAppContext(interaction) ?? {};
   const playerService = appContext.playerService ?? null;
-  await executeResume(interaction.guild.id, playerService, async (payload) => {
+  await executePause(interaction.guild.id, playerService, async (payload) => {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload);
     } else {
@@ -45,7 +44,7 @@ export async function execute(interaction) {
 
 export async function executeMessage(context) {
   const playerService = context.appContext?.playerService ?? null;
-  await executeResume(context.guild.id, playerService, async (payload) => {
+  await executePause(context.guild.id, playerService, async (payload) => {
     await context.respond(payload);
   });
 }

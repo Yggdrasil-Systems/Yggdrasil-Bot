@@ -45,6 +45,11 @@ export async function handleMusicChannelMessage(message, {
     return false;
   }
 
+  const prefix = settings.prefix ?? 'tree';
+  if (content.toLowerCase().startsWith(prefix.toLowerCase())) {
+    return false;
+  }
+
   const playCommand = findMessageCommand(commands, 'play');
 
   if (!playCommand) {

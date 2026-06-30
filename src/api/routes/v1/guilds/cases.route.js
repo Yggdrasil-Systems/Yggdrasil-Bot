@@ -37,6 +37,7 @@ export const getCasesQuerySchema = z.object({
 
 export async function casesRoutes(fastify, opts) {
   fastify.get('/', {
+    preHandler: fastify.guildAdminGuard,
     schema: {
       params: getCasesParamsSchema,
       querystring: getCasesQuerySchema,

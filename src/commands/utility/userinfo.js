@@ -29,6 +29,18 @@ export async function execute(interaction) {
 
 export async function executeMessage(context) {
   const user = await resolveUserFromMessage(context.message, context.args);
+
+  if (!user) {
+    return context.respond({
+      embeds: [
+        buildErrorEmbed(
+          'User Not Found',
+          'Could not resolve that user. Please verify the ID or mention.'
+        )
+      ]
+    });
+  }
+
   const member = await resolveMember(context.guild, user.id);
   const summary = getUserInfoSummary({ user, member, guildId: context.guild.id });
 

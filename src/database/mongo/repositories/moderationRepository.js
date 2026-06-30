@@ -92,7 +92,7 @@ export function createModerationRepository(model = ModerationCase, counterModel 
       }
 
       const query = model.find(queryFilter)
-        .sort({ createdAt: -1, caseId: -1 });
+        .sort({ caseId: -1 });
 
       if (typeof query.limit === 'function') {
         query.limit(limit);

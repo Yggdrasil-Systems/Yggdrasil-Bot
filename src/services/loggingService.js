@@ -1,4 +1,5 @@
 import { buildModerationLogEmbed } from '../utils/embeds.js';
+import { logger } from '../utils/logger.js';
 
 export function createLoggingService() {
   return {
@@ -14,17 +15,21 @@ export function createLoggingService() {
         return false;
       }
 
-      await channel.send({
-        embeds: [
-          buildModerationLogEmbed({
-            moderationCase,
-            targetUser,
-            moderatorUser
-          })
-        ]
-      });
-
-      return true;
+      try {
+        await channel.send({
+          embeds: [
+            buildModerationLogEmbed({
+              moderationCase,
+              targetUser,
+              moderatorUser
+            })
+          ]
+        });
+        return true;
+      } catch (error) {
+        logger.error('Failed to write to modlog channel.', error);
+        return false;
+      }
     }
   };
 }

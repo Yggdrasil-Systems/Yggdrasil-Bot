@@ -1,5 +1,6 @@
 import { settingsRepository } from '../database/mongo/repositories/settingsRepository.js';
 import { DEFAULT_AUTOMOD, DEFAULT_MODERATION_SETTINGS, DEFAULT_ACTIVITY_ROLES, ACTIVITY_TYPES } from '../utils/constants.js';
+import ms from 'ms';
 
 const DEFAULT_CACHE_TTL_MS = 30_000;
 const VALID_RULES = new Set(Object.keys(DEFAULT_AUTOMOD.rules));
@@ -29,11 +30,16 @@ export function normalizeGuildSettings(settings = {}) {
 
   automod.enabled = Boolean(settings.automod?.enabled ?? settings.automodEnabled ?? automod.enabled);
 
+  const musicPanel = settings.musicChannelId && settings.musicMessageId
+    ? { channelId: settings.musicChannelId, messageId: settings.musicMessageId }
+    : null;
+
   return {
     ...settings,
     automod,
     moderation,
     activityRoles,
+    musicPanel,
     trustedAdminRoleIds: settings.trustedAdminRoleIds ?? [],
     featureToggles: {
       moderation: true,
@@ -140,6 +146,14 @@ export function createSettingsService(repository = settingsRepository, { cacheTt
     async updateAutomodPunishment(guildId, ruleName, { action, timeoutDuration }) {
       assertRuleName(ruleName);
       assertAction(action);
+
+      if (action === 'timeout') {
+        const parsed = ms(String(timeoutDuration ?? '').trim());
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          throw new Error('Invalid timeout duration. Use formats like "10m", "2h", or "1d".');
+        }
+      }
+
       const settings = normalizeGuildSettings(await repository.updateAutomodPunishment(guildId, ruleName, {
         action,
         timeoutDuration

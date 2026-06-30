@@ -44,8 +44,8 @@ async function shutdown(code) {
   } catch { /* best effort */ }
 
   try {
-    if (mongoose.connection.readyState === 1) {
-      await mongoose.connection.close();
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
       logger.info('MongoDB connection closed.');
     }
   } catch { /* best effort */ }

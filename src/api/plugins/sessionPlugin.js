@@ -7,6 +7,9 @@ import {
 
 import fp from 'fastify-plugin';
 
+import { canUseAdminCommand } from '../../middleware/permissionGuard.js';
+
+
 export const SESSION_COOKIE_NAME = 'wt_session';
 
 const ENCRYPTION_VERSION = 'v1';
@@ -255,6 +258,66 @@ export const sessionPlugin = fp(async (fastify, opts) => {
     }
 
     request.session = result.session;
+  });
+
+  fastify.decorate('guildAdminGuard', async function guildAdminGuard(request, reply) {
+    await fastify.sessionGuard(request, reply);
+    if (reply.sent) return;
+
+    const { guildId } = request.params;
+    const userId = request.session?.discordUserId;
+
+    if (!guildId) {
+      return reply.code(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Missing guildId parameter'
+      });
+    }
+
+    const { discordClient, settingsService } = fastify.services;
+    const botOwnerId = discordClient.appContext?.config?.botOwnerId;
+
+    if (userId === botOwnerId) {
+      return;
+    }
+
+    const guild = discordClient.guilds.cache.get(guildId) ?? await discordClient.guilds.fetch(guildId).catch(() => null);
+    if (!guild) {
+      return reply.code(404).send({
+        statusCode: 404,
+        error: 'Not Found',
+        message: 'Guild not found'
+      });
+    }
+
+    const member = guild.members.cache.get(userId) ?? await guild.members.fetch(userId).catch(() => null);
+    if (!member) {
+      return reply.code(403).send({
+        statusCode: 403,
+        error: 'Forbidden',
+        message: 'You are not a member of this guild'
+      });
+    }
+
+    const settings = await settingsService.getSettings(guildId).catch(() => null);
+    const trustedAdminRoleIds = settings?.trustedAdminRoleIds ?? [];
+
+    const isAuthorized = canUseAdminCommand({
+      userId,
+      guildOwnerId: guild.ownerId,
+      botOwnerId,
+      member,
+      trustedAdminRoleIds
+    });
+
+    if (!isAuthorized) {
+      return reply.code(403).send({
+        statusCode: 403,
+        error: 'Forbidden',
+        message: 'You lack permission to access settings/cases for this guild'
+      });
+    }
   });
 }, {
   name: 'sessionPlugin',

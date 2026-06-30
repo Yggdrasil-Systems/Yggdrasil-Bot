@@ -97,12 +97,15 @@ export async function execute(interaction) {
 
 export async function executeMessage(context) {
   const [subcommand = 'list', idOrUser, ...reasonParts] = context.args;
+  const targetUserId = subcommand === 'list' && idOrUser ? idOrUser.match(/\d{17,20}/)?.[0] : undefined;
+
   const result = await handleCaseAction({
     guildId: context.guild.id,
     userId: context.user.id,
     subcommand,
     values: {
-      caseId: parsePositiveInteger(idOrUser),
+      caseId: subcommand !== 'list' ? parsePositiveInteger(idOrUser) : undefined,
+      targetUserId,
       reason: reasonParts.join(' ').trim() || undefined
     }
   });

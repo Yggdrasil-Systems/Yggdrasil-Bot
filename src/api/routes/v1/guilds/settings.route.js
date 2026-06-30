@@ -50,6 +50,7 @@ export const getSettingsParamsSchema = z.object({
 
 export async function settingsRoutes(fastify, opts) {
   fastify.get('/', {
+    preHandler: fastify.guildAdminGuard,
     schema: {
       params: getSettingsParamsSchema,
       response: {

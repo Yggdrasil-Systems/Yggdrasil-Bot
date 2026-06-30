@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 
 import { moderationService } from '../../services/moderationService.js';
-import { buildWarningsEmbed } from '../../utils/embeds.js';
+import { buildWarningsEmbed, buildErrorEmbed } from '../../utils/embeds.js';
 import { resolveUserFromMessage } from '../../utils/discordResolvers.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
@@ -30,7 +30,14 @@ export async function executeMessage(context) {
   const targetUser = await resolveUserFromMessage(context.message, context.args, { optional: false });
 
   if (!targetUser) {
-    return;
+    return context.respond({
+      embeds: [
+        buildErrorEmbed(
+          'Target Required',
+          'Please specify a valid user to view warnings for.'
+        )
+      ]
+    });
   }
 
   const result = await moderationService.warnings({

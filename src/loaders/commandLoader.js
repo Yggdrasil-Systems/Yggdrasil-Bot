@@ -32,6 +32,7 @@ function normalizeCommand(command) {
 export async function loadCommands(commandsPath) {
   const commands = new Collection();
   const commandFiles = await collectJavaScriptFiles(commandsPath);
+  const registeredNamesAndAliases = new Set();
 
   for (const filePath of commandFiles) {
     const module = await import(pathToFileURL(filePath).href);
@@ -41,6 +42,20 @@ export async function loadCommands(commandsPath) {
 
     if (commands.has(command.name)) {
       throw new Error(`Duplicate command name: ${command.name}`);
+    }
+
+    if (registeredNamesAndAliases.has(command.name)) {
+      throw new Error(`Duplicate command name or alias: ${command.name}`);
+    }
+    registeredNamesAndAliases.add(command.name);
+
+    if (Array.isArray(command.aliases)) {
+      for (const alias of command.aliases) {
+        if (registeredNamesAndAliases.has(alias)) {
+          throw new Error(`Duplicate command name or alias: ${alias}`);
+        }
+        registeredNamesAndAliases.add(alias);
+      }
     }
 
     commands.set(command.name, command);
