@@ -5,6 +5,17 @@ import { logger } from '../utils/logger.js';
 
 export const name = Events.PresenceUpdate;
 
+// Cache the service instance so we don't re-create it on every presence event.
+// Presence updates fire very frequently in large servers (typing, status, games).
+let cachedService = null;
+
+function getService(settingsService) {
+  if (!cachedService) {
+    cachedService = createActivityRoleService({ settingsService, log: logger });
+  }
+  return cachedService;
+}
+
 export async function execute(oldPresence, newPresence, client, appContext = null) {
   if (!client.options.intents.has(GatewayIntentBits.GuildPresences)) {
     logger.warn('╔════════════════════════════════════════════════════════════════╗');
@@ -26,6 +37,6 @@ export async function execute(oldPresence, newPresence, client, appContext = nul
     return;
   }
 
-  const service = createActivityRoleService({ settingsService, log: logger });
+  const service = getService(settingsService);
   await service.handlePresenceUpdate(oldPresence, newPresence);
 }

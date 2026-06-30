@@ -53,7 +53,7 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
 
   if (filterName === 'clear') {
     await interaction.deferUpdate();
-    await queue.filters.ffmpeg.setInputArgs([]);
+    await queue.filters.ffmpeg.setFilters(false);
     await interaction.editReply({
       embeds: [buildSuccessEmbed('🗑️ Filters Cleared', 'All audio filters have been removed.')],
       components: buildFilterComponents()

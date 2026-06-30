@@ -1,7 +1,8 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
-import { getSourceEmoji, getSourceLabel, ytDlpStreamHook } from '../../services/musicService.js';
+import { getSourceEmoji, getSourceLabel } from '../../services/musicService.js';
 import { getAppContext } from '../../context/appContext.js';
+import { QUEUE_DEFAULTS } from '../../config/queueDefaults.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 
@@ -88,18 +89,16 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
   // ─── Enqueue ────────────────────────────────────────────────────────────
   const existingQueue = playerService?.getGuildQueue(voiceChannel.guild.id);
 
+  const is247 = existingQueue?.metadata?.is247 ?? false;
   const queue = musicPlayer.nodes.create(voiceChannel.guild, {
+    ...QUEUE_DEFAULTS,
     metadata: existingQueue?.metadata ?? {
       channel: textChannel,
       is247: false
     },
-    leaveOnEmpty: existingQueue?.metadata?.is247 ? false : true,
-    leaveOnEmptyCooldown: 300000,
-    leaveOnEnd: existingQueue?.metadata?.is247 ? false : true,
-    leaveOnEndCooldown: 300000,
-    selfDeaf: true,
-    volume: existingQueue?.node?.volume ?? 80,
-    onBeforeCreateStream: ytDlpStreamHook,
+    leaveOnEmpty: is247 ? false : QUEUE_DEFAULTS.leaveOnEmpty,
+    leaveOnEnd: is247 ? false : QUEUE_DEFAULTS.leaveOnEnd,
+    volume: existingQueue?.node?.volume ?? QUEUE_DEFAULTS.volume,
   });
 
   // Ensure metadata.channel is always valid

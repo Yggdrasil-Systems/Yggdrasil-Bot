@@ -34,7 +34,7 @@ async function executeLoop(modeName, guildId, playerService, respond) {
   // If no mode specified, cycle through: off → track → queue → off
   if (!modeName) {
     const current = queue.repeatMode;
-    const nextMode = current >= 2 ? 0 : current + 1;
+    const nextMode = current >= 3 ? 0 : current + 1;
     queue.setRepeatMode(nextMode);
     return respond({
       embeds: [buildSuccessEmbed('Loop Updated', `Loop mode set to **${MODE_LABELS[nextMode]}**`)]

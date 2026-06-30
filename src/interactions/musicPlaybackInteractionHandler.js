@@ -120,9 +120,15 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
       return true;
     }
 
+    const was247 = queue.metadata?.is247 ?? false;
     queue.delete();
+
+    const description = was247
+      ? 'Stopped the music, cleared the queue, and **disabled 24/7 mode**. 👋'
+      : 'Stopped the music and cleared the queue.';
+
     await interaction.reply({
-      embeds: [buildSuccessEmbed('⏹️ Stopped', 'Stopped the music and cleared the queue.')]
+      embeds: [buildSuccessEmbed('⏹️ Stopped', description)]
     });
     return true;
   }

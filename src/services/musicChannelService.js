@@ -51,8 +51,6 @@ export async function handleMusicChannelMessage(message, {
     return false;
   }
 
-  scheduleDeletion(message, deleteDelayMs);
-
   try {
     await playCommand.executeMessage({
       mode: 'no-prefix',
@@ -66,6 +64,9 @@ export async function handleMusicChannelMessage(message, {
       member: message.member,
       respond: (payload) => replyToMessage(message, payload)
     });
+    // Delete the user's message AFTER the response has been sent,
+    // otherwise message.reply() fails because the message no longer exists.
+    scheduleDeletion(message, deleteDelayMs);
     return true;
   } catch (error) {
     log.error?.('Music channel play failed', error);

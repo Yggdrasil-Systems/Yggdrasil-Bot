@@ -11,6 +11,7 @@ function createQueue(overrides = {}) {
       ffmpeg: {
         filters: [],
         setInputArgs: async () => {},
+        setFilters: async () => {},
         toggle: async () => {}
       }
     },
@@ -38,7 +39,7 @@ test('music filter interaction clears all filters', async () => {
       filters: {
         ffmpeg: {
           filters: [],
-          setInputArgs: async () => {
+          setFilters: async () => {
             cleared = true;
           },
           toggle: async () => {}

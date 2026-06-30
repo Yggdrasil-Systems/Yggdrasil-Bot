@@ -4,7 +4,6 @@ import { YoutubeiExtractor } from 'discord-player-youtubei';
 import { buildNowPlayingEmbed, buildSuccessEmbed, buildErrorEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildMusicPlayerComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
-import ytDlp from 'yt-dlp-exec';
 
 // ─── Safe channel sender ────────────────────────────────────────────────────
 
@@ -43,12 +42,6 @@ function getSourceLabel(track) {
 
 export { getSourceEmoji, getSourceLabel };
 
-// ─── Stream Interceptor ─────────────────────────────────────────────────────
-
-function isYouTubeUrl(url) {
-  return url && /youtube\.com|youtu\.be/i.test(url);
-}
-
 function formatPlaybackError(error, maxLength = 200) {
   const message = error instanceof Error
     ? error.message
@@ -59,64 +52,6 @@ function formatPlaybackError(error, maxLength = 200) {
   return message.slice(0, maxLength);
 }
 
-// Maximum duration (ms) before force-killing an orphaned yt-dlp process
-const YT_DLP_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-
-export const ytDlpStreamHook = async (track, method, queue) => {
-  let url = track.url;
-  const source = (track.source || track.raw?.source || '').toLowerCase();
-  const needsBridge = ['spotify', 'apple_music', 'apple'].includes(source);
-
-  if (needsBridge) {
-    url = `ytsearch1:${track.title} ${track.author} audio`;
-    logger.info(`[yt-dlp] Bridging ${source} track: ${track.title}`);
-  } else if (!isYouTubeUrl(url)) {
-    return null;
-  }
-
-  try {
-    logger.debug(`[yt-dlp] Starting stream for: ${track.title}`);
-    const subprocess = ytDlp.exec(url, {
-      output: '-',
-      format: 'bestaudio/best',
-      quiet: true,
-      noWarnings: true,
-      callHome: false,
-      preferFreeFormats: true,
-      youtubeSkipDashManifest: true
-    });
-
-    // ── Subprocess lifecycle cleanup ──────────────────────────────────
-    // Kill the yt-dlp process when the consumer (discord-player/FFmpeg)
-    // closes or errors on the stream. This prevents orphaned processes
-    // on skip, stop, or queue clear.
-    function killSubprocess() {
-      try { subprocess.kill('SIGTERM'); } catch { /* already exited */ }
-      clearTimeout(safetyTimer);
-    }
-
-    subprocess.stdout.on('close', killSubprocess);
-    subprocess.stdout.on('error', killSubprocess);
-    subprocess.on('error', (err) => {
-      logger.error('[yt-dlp] Process error.', err);
-    });
-
-    // Safety net: kill if the process somehow outlives any reasonable track
-    const safetyTimer = setTimeout(() => {
-      logger.warn(`[yt-dlp] Safety timeout reached for: ${track.title}`);
-      killSubprocess();
-    }, YT_DLP_TIMEOUT_MS);
-
-    // Don't keep Node alive just for this timer
-    safetyTimer.unref?.();
-
-    logger.debug(`[yt-dlp] Stream pipeline created for: ${track.title}`);
-    return subprocess.stdout;
-  } catch (err) {
-    logger.error(`[yt-dlp] Failed to extract stream for "${track.title}".`, err);
-    return null;
-  }
-};
 
 
 // ─── Player initialization ──────────────────────────────────────────────────

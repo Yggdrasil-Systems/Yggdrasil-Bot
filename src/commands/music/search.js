@@ -18,8 +18,10 @@ export const data = new SlashCommandBuilder()
       .setDescription('Song name or artist')
       .setRequired(true));
 
-// Store search results temporarily for select menu resolution
+// Store search results temporarily for select menu resolution.
+// Keyed by user ID — each user can have at most one pending search.
 const searchCache = new Map();
+const SEARCH_CACHE_TTL_MS = 60_000;
 
 async function executeSearch(query, voiceChannel, user, textChannel, playerService, respond) {
   if (!voiceChannel) {
@@ -58,11 +60,20 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
   const tracks = result.tracks.slice(0, 5);
   const cacheKey = user.id;
 
-  // Cache the tracks for when the user makes a selection
+  // Clear any previous search for this user before caching the new one,
+  // so the old setTimeout cleanup doesn't delete the fresh entry.
+  searchCache.delete(cacheKey);
+
   searchCache.set(cacheKey, { tracks, voiceChannel, textChannel, playerService, timestamp: Date.now() });
 
-  // Auto-clean cache after 60 seconds
-  setTimeout(() => searchCache.delete(cacheKey), 60000);
+  // Auto-clean cache after TTL
+  setTimeout(() => {
+    // Only delete if the entry is still the one we set (timestamp guard)
+    const entry = searchCache.get(cacheKey);
+    if (entry && Date.now() - entry.timestamp >= SEARCH_CACHE_TTL_MS) {
+      searchCache.delete(cacheKey);
+    }
+  }, SEARCH_CACHE_TTL_MS);
 
   const options = tracks.map((track, i) => {
     const src = (track.source || '').toLowerCase();

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { ytDlpStreamHook } from '../../services/musicService.js';
+import { QUEUE_DEFAULTS } from '../../config/queueDefaults.js';
 import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
@@ -30,11 +30,13 @@ async function execute247(voiceChannel, textChannel, playerService, respond) {
 
   if (!queue) {
     queue = musicPlayer.nodes.create(voiceChannel.guild, {
+      ...QUEUE_DEFAULTS,
       metadata: {
         channel: textChannel,
         is247: true
       },
-      onBeforeCreateStream: ytDlpStreamHook
+      leaveOnEmpty: false,
+      leaveOnEnd: false
     });
 
     try {
