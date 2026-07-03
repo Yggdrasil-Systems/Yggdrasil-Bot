@@ -14,6 +14,8 @@ import { healthRoutes } from './routes/v1/health/health.route.js';
 import { settingsRoutes } from './routes/v1/guilds/settings.route.js';
 import { casesRoutes } from './routes/v1/guilds/cases.route.js';
 import { statsRoutes } from './routes/v1/guilds/stats.route.js';
+import swaggerPlugin from '@fastify/swagger';
+import swaggerUiPlugin from '@fastify/swagger-ui';
 
 const AUTH_CALLBACK_PATH = '/v1/auth/callback';
 
@@ -121,6 +123,22 @@ export async function createServer(discordClient, {
 
     app.register(authRoutes, { prefix: '/v1/auth' });
   }
+
+  // Register Swagger
+  app.register(swaggerPlugin, {
+    openapi: {
+      info: {
+        title: 'World Tree API',
+        description: 'Internal API for World Tree Discord Bot dashboard and services',
+        version: '1.0.0'
+      }
+    },
+    transform: jsonSchemaTransform
+  });
+
+  app.register(swaggerUiPlugin, {
+    routePrefix: '/docs'
+  });
 
   // Register Routes
   app.register(healthRoutes, { prefix: '/v1/health', dbConnection });
