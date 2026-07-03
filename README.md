@@ -672,6 +672,9 @@ World Tree uses Pino through a thin local wrapper at `src/utils/logger.js`.
 
 ## API Operations
 
+The Fastify REST API automatically generates OpenAPI documentation using Zod schema inference. You can interactively test and view all endpoint schemas via the Swagger UI panel.
+
+- **Access the API Panel**: With the server running, navigate to `http://localhost:3000/docs`.
 - `GET /v1/health` returns `200` when Discord and MongoDB are healthy.
 - `GET /v1/health` returns `503` with `status: degraded` when either dependency is unhealthy.
 - `API_RATE_LIMIT_MAX`, `AUTH_RATE_LIMIT_MAX`, and `RATE_LIMIT_WINDOW` tune API request limits when `ENABLE_API=true`.
