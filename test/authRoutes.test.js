@@ -160,19 +160,20 @@ describe('auth routes', () => {
     await app.close();
 
     const params = getAuthorizeParams(response);
+    const url = new URL(response.headers.location);
     const stateCookie = findSetCookie(response, OAUTH_STATE_COOKIE_NAME);
     const pkceCookie = findSetCookie(response, OAUTH_PKCE_COOKIE_NAME);
 
     assert.equal(response.statusCode, 302);
-    assert.equal(new URL(response.headers.location).origin, 'https://discord.com');
-    assert.equal(params.get('response_type'), 'code');
-    assert.equal(params.get('client_id'), 'discord-client-id');
-    assert.equal(params.get('redirect_uri'), 'https://api.worldtree.example/v1/auth/callback');
-    assert.equal(params.get('scope'), 'identify');
-    assert.equal(params.get('code_challenge_method'), 'S256');
-    assert.ok(params.get('code_challenge'));
-    assert.ok(params.get('state'));
-    assert.equal(params.has('prompt'), false);
+    assert.equal(url.origin, 'https://discord.com');
+    assert.strictEqual(url.searchParams.get('response_type'), 'code');
+    assert.strictEqual(url.searchParams.get('client_id'), 'discord-client-id');
+    assert.strictEqual(url.searchParams.get('redirect_uri'), 'https://api.worldtree.example/v1/auth/callback');
+    assert.strictEqual(url.searchParams.get('scope'), 'identify guilds');
+    assert.strictEqual(url.searchParams.get('code_challenge_method'), 'S256');
+    assert.ok(url.searchParams.has('state'));
+    assert.ok(url.searchParams.has('code_challenge'));
+    assert.equal(url.searchParams.has('prompt'), false);
 
     for (const cookie of [stateCookie, pkceCookie]) {
       assert.match(cookie, /HttpOnly/);

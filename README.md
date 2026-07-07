@@ -832,7 +832,7 @@ World Tree is transitioning from a Discord bot into a backend platform. Each pha
 | **Phase 3a — Session Infrastructure** | ✅ Complete | AES-256-GCM sessions, HMAC-signed cookies, HKDF key derivation |
 | **Phase 3b — OAuth2 Flow** | ✅ Complete | Discord OAuth2 + PKCE login/callback/me/logout |
 | **Phase 3c — Data & Resource Hardening** | ✅ Complete | Zero-dependency LRU caching, Automod state batch eviction, DB migration runner, and Mongoose connection retries |
-| **Phase 3d — Guild Authorization** | Planned | Protected route scoping, MANAGE_GUILD verification |
+| **Phase 3d — Guild Authorization** | ✅ Complete | Protected route scoping, MANAGE_GUILD verification, Bot Presence check, and Discord OAuth integration |
 | **Phase 4 — Dashboard** | Future | Authenticated web UI integration |
 
 ---

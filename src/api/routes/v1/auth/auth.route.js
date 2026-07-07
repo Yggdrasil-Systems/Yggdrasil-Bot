@@ -12,6 +12,13 @@ const meResponseSchema = z.object({
   avatar: z.string().nullable()
 });
 
+const guildsResponseSchema = z.array(z.object({
+  id: z.string(),
+  name: z.string(),
+  icon: z.string().nullable(),
+  botInGuild: z.boolean()
+}));
+
 const logoutResponseSchema = z.object({
   ok: z.boolean()
 });
@@ -149,6 +156,59 @@ export async function authRoutes(fastify) {
       );
 
       if (error?.statusCode === 401 || error?.code === 'discord_identity_unauthorized') {
+        reply.clearSessionCookie();
+        return invalidSession(reply);
+      }
+
+      return badGateway(reply);
+    }
+  });
+
+  fastify.get('/guilds', {
+    ...authRouteConfig,
+    preHandler: fastify.sessionGuard,
+    schema: {
+      response: {
+        200: guildsResponseSchema
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const rawGuilds = await fastify.discordOAuth.fetchDiscordUserGuilds({
+        accessToken: request.session.accessToken
+      });
+
+      const { discordClient } = fastify.services;
+      const botOwnerId = discordClient.appContext?.config?.botOwnerId;
+
+      const managedGuilds = rawGuilds.filter(guild => {
+        if (request.session.discordUserId === botOwnerId) return true;
+        if (guild.owner) return true;
+        
+        const perms = BigInt(guild.permissions);
+        const MANAGE_GUILD = 1n << 5n;
+        const ADMINISTRATOR = 1n << 3n;
+        
+        return (perms & MANAGE_GUILD) === MANAGE_GUILD || (perms & ADMINISTRATOR) === ADMINISTRATOR;
+      });
+
+      return managedGuilds.map(guild => ({
+        id: guild.id,
+        name: guild.name,
+        icon: guild.icon,
+        botInGuild: discordClient.guilds.cache.has(guild.id)
+      }));
+    } catch (error) {
+      request.log.warn(
+        {
+          authError: getAuthErrorCode(error),
+          statusCode: getAuthErrorStatus(error),
+          discordUserId: request.session.discordUserId
+        },
+        'Discord guilds fetch failed'
+      );
+
+      if (error?.statusCode === 401 || error?.code === 'discord_guilds_unauthorized') {
         reply.clearSessionCookie();
         return invalidSession(reply);
       }

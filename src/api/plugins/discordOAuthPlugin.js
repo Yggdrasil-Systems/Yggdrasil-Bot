@@ -9,13 +9,14 @@ import fp from 'fastify-plugin';
 export const DISCORD_AUTHORIZE_URL = 'https://discord.com/oauth2/authorize';
 export const DISCORD_TOKEN_URL = 'https://discord.com/api/v10/oauth2/token';
 export const DISCORD_USER_URL = 'https://discord.com/api/v10/users/@me';
+export const DISCORD_USER_GUILDS_URL = 'https://discord.com/api/v10/users/@me/guilds';
 
 export const OAUTH_STATE_COOKIE_NAME = 'wt_oauth_state';
 export const OAUTH_PKCE_COOKIE_NAME = 'wt_pkce_verifier';
 
 const OAUTH_COOKIE_PATH = '/v1/auth/callback';
 const OAUTH_COOKIE_MAX_AGE_SECONDS = 300;
-const OAUTH_SCOPE = 'identify';
+const OAUTH_SCOPE = 'identify guilds';
 const DISCORD_REQUEST_TIMEOUT_MS = 10000;
 
 export class DiscordOAuthError extends Error {
@@ -115,6 +116,20 @@ function normalizeDiscordUser(payload) {
     username: payload.username,
     globalName: typeof payload.global_name === 'string' ? payload.global_name : null,
     avatar: typeof payload.avatar === 'string' ? payload.avatar : null
+  };
+}
+
+function normalizeDiscordGuild(payload) {
+  if (!payload || typeof payload.id !== 'string' || typeof payload.name !== 'string') {
+    throw new DiscordOAuthError('discord_guilds_invalid', 502);
+  }
+
+  return {
+    id: payload.id,
+    name: payload.name,
+    icon: typeof payload.icon === 'string' ? payload.icon : null,
+    owner: Boolean(payload.owner),
+    permissions: typeof payload.permissions === 'string' ? payload.permissions : '0'
   };
 }
 
@@ -238,6 +253,35 @@ export async function fetchDiscordUser({
   return normalizeDiscordUser(payload);
 }
 
+export async function fetchDiscordUserGuilds({
+  accessToken,
+  fetchImpl = globalThis.fetch,
+  timeoutMs = DISCORD_REQUEST_TIMEOUT_MS
+}) {
+  const response = await fetchWithTimeout(fetchImpl, DISCORD_USER_GUILDS_URL, {
+    method: 'GET',
+    headers: {
+      authorization: `Bearer ${accessToken}`
+    }
+  }, timeoutMs);
+
+  if (response.status === 401) {
+    throw new DiscordOAuthError('discord_guilds_unauthorized', 401);
+  }
+
+  if (!response.ok) {
+    throw new DiscordOAuthError('discord_guilds_failed', response.status);
+  }
+
+  const payload = await parseJsonResponse(response, 'discord_guilds_invalid');
+
+  if (!Array.isArray(payload)) {
+    throw new DiscordOAuthError('discord_guilds_invalid', 502);
+  }
+
+  return payload.map(normalizeDiscordGuild);
+}
+
 export const discordOAuthPlugin = fp(async (fastify, opts) => {
   const {
     clientId,
@@ -305,6 +349,12 @@ export const discordOAuthPlugin = fp(async (fastify, opts) => {
     },
     fetchDiscordUser({ accessToken }) {
       return fetchDiscordUser({
+        accessToken,
+        fetchImpl
+      });
+    },
+    fetchDiscordUserGuilds({ accessToken }) {
+      return fetchDiscordUserGuilds({
         accessToken,
         fetchImpl
       });

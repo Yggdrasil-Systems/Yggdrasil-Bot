@@ -55,11 +55,11 @@ describe('discordOAuthPlugin helpers', () => {
 
     assert.equal(`${parsedUrl.origin}${parsedUrl.pathname}`, DISCORD_AUTHORIZE_URL);
     assert.equal(parsedUrl.searchParams.get('response_type'), 'code');
-    assert.equal(parsedUrl.searchParams.get('client_id'), 'client-id');
-    assert.equal(parsedUrl.searchParams.get('redirect_uri'), 'https://api.worldtree.example/v1/auth/callback');
-    assert.equal(parsedUrl.searchParams.get('scope'), 'identify');
-    assert.equal(parsedUrl.searchParams.get('state'), 'state-value');
-    assert.equal(parsedUrl.searchParams.get('code_challenge'), 'challenge-value');
+    assert.strictEqual(parsedUrl.searchParams.get('client_id'), 'client-id');
+    assert.strictEqual(parsedUrl.searchParams.get('redirect_uri'), 'https://api.worldtree.example/v1/auth/callback');
+    assert.strictEqual(parsedUrl.searchParams.get('scope'), 'identify guilds');
+    assert.strictEqual(parsedUrl.searchParams.get('state'), 'state-value');
+    assert.strictEqual(parsedUrl.searchParams.get('code_challenge'), 'challenge-value');
     assert.equal(parsedUrl.searchParams.get('code_challenge_method'), 'S256');
     assert.equal(parsedUrl.searchParams.has('prompt'), false);
   });
