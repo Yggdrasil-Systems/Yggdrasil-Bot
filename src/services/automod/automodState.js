@@ -1,4 +1,4 @@
-export function createAutomodState() {
+export function createAutomodState({ maxEntries = 50_000 } = {}) {
   const repeatedMessages = new Map();
 
   // Run a sweep every 60 seconds to prune keys that have no active messages.
@@ -21,6 +21,28 @@ export function createAutomodState() {
     sweepInterval.unref();
   }
 
+  /**
+   * Batch-evicts the oldest 10% of entries when the Map exceeds maxEntries.
+   * Uses Map iteration order (insertion order) so the first keys are the oldest.
+   *
+   * Why 10%? One-at-a-time eviction on every set() adds per-message overhead.
+   * Batch eviction amortizes the cost and prevents immediately re-hitting the cap.
+   */
+  function enforceMaxEntries() {
+    if (repeatedMessages.size <= maxEntries) {
+      return;
+    }
+
+    const evictCount = Math.max(1, Math.ceil(maxEntries * 0.1));
+    const iterator = repeatedMessages.keys();
+
+    for (let i = 0; i < evictCount; i++) {
+      const next = iterator.next();
+      if (next.done) break;
+      repeatedMessages.delete(next.value);
+    }
+  }
+
   let disposed = false;
 
   return {
@@ -30,6 +52,7 @@ export function createAutomodState() {
 
     setRepeatedMessages(key, entries) {
       repeatedMessages.set(key, entries);
+      enforceMaxEntries();
     },
 
     clear() {
@@ -41,6 +64,11 @@ export function createAutomodState() {
       disposed = true;
       clearInterval(sweepInterval);
       repeatedMessages.clear();
+    },
+
+    /** Exposed for monitoring/testing only. */
+    get size() {
+      return repeatedMessages.size;
     }
   };
 }

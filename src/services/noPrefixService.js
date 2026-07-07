@@ -1,4 +1,5 @@
 import { noPrefixRepository } from '../database/mongo/repositories/noPrefixRepository.js';
+import { LruCache } from '../utils/lruCache.js';
 
 const DEFAULT_CACHE_TTL_MS = 30_000;
 
@@ -8,9 +9,10 @@ function normalizeReason(reason) {
 
 export function createNoPrefixService(repository = noPrefixRepository, {
   botOwnerId = null,
-  cacheTtlMs = DEFAULT_CACHE_TTL_MS
+  cacheTtlMs = DEFAULT_CACHE_TTL_MS,
+  maxSize = 10_000
 } = {}) {
-  const cache = new Map();
+  const cache = new LruCache(maxSize);
 
   function clearCache(userId) {
     cache.delete(userId);

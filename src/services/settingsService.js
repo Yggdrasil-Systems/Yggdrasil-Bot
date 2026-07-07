@@ -1,5 +1,6 @@
 import { settingsRepository } from '../database/mongo/repositories/settingsRepository.js';
 import { DEFAULT_AUTOMOD, DEFAULT_MODERATION_SETTINGS, DEFAULT_ACTIVITY_ROLES, ACTIVITY_TYPES } from '../utils/constants.js';
+import { LruCache } from '../utils/lruCache.js';
 import ms from 'ms';
 
 const DEFAULT_CACHE_TTL_MS = 30_000;
@@ -68,8 +69,8 @@ function assertActivityType(activityType) {
   }
 }
 
-export function createSettingsService(repository = settingsRepository, { cacheTtlMs = DEFAULT_CACHE_TTL_MS } = {}) {
-  const cache = new Map();
+export function createSettingsService(repository = settingsRepository, { cacheTtlMs = DEFAULT_CACHE_TTL_MS, maxSize = 1000 } = {}) {
+  const cache = new LruCache(maxSize);
 
   function clearCache(guildId) {
     cache.delete(guildId);
