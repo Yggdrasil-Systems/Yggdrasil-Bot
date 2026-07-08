@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 
 import { getBannerSummary } from '../../services/utilityService.js';
-import { buildBannerEmbed } from '../../utils/embeds.js';
+import { buildBannerEmbed, buildErrorEmbed } from '../../utils/embeds.js';
 import { resolveUserFromMessage } from '../../utils/discordResolvers.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
@@ -10,10 +10,7 @@ export const name = 'banner';
 export const data = new SlashCommandBuilder()
   .setName('banner')
   .setDescription('View a user profile banner.')
-  .addUserOption((option) => option
-    .setName('user')
-    .setDescription('The user to inspect.')
-    .setRequired(false));
+  .addUserOption((option) => option.setName('user').setDescription('The user to inspect.').setRequired(false));
 
 async function fetchFreshUser(client, user) {
   return client.users.fetch(user.id, { force: true }).catch(() => user);
@@ -34,12 +31,7 @@ export async function executeMessage(context) {
 
   if (!user) {
     return context.respond({
-      embeds: [
-        buildErrorEmbed(
-          'User Not Found',
-          'Could not resolve that user. Please verify the ID or mention.'
-        )
-      ]
+      embeds: [buildErrorEmbed('User Not Found', 'Could not resolve that user. Please verify the ID or mention.')]
     });
   }
 

@@ -13,10 +13,9 @@ export const allowNoPrefix = true;
 export const data = new SlashCommandBuilder()
   .setName('play')
   .setDescription('Play a song from Spotify, Apple Music, YouTube, or SoundCloud.')
-  .addStringOption(option => 
-    option.setName('query')
-      .setDescription('Song name, artist, or a direct link')
-      .setRequired(true));
+  .addStringOption((option) =>
+    option.setName('query').setDescription('Song name, artist, or a direct link').setRequired(true)
+  );
 
 // ─── URL Detection ──────────────────────────────────────────────────────────
 
@@ -25,11 +24,7 @@ function isUrl(query) {
 }
 
 export function formatMusicErrorMessage(error, maxLength = 150) {
-  const message = error instanceof Error
-    ? error.message
-    : typeof error === 'string'
-      ? error
-      : 'Unknown error';
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error';
 
   return message.slice(0, maxLength);
 }
@@ -68,7 +63,12 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
   } catch (err) {
     logger.error(`Search failed for "${query}".`, err);
     return respond({
-      embeds: [buildErrorEmbed('Search Failed', `Could not search for that query.\n\`\`\`${formatMusicErrorMessage(err)}\`\`\`\nTry a different search term or paste a direct link.`)]
+      embeds: [
+        buildErrorEmbed(
+          'Search Failed',
+          `Could not search for that query.\n\`\`\`${formatMusicErrorMessage(err)}\`\`\`\nTry a different search term or paste a direct link.`
+        )
+      ]
     });
   }
 
@@ -79,10 +79,12 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
       : 'Try being more specific (include the artist name), or paste a direct link.';
 
     return respond({
-      embeds: [buildErrorEmbed(
-        'No Results Found',
-        `Could not find anything for **${query.length > 80 ? query.slice(0, 80) + '...' : query}**\n\n💡 ${suggestion}`
-      )]
+      embeds: [
+        buildErrorEmbed(
+          'No Results Found',
+          `Could not find anything for **${query.length > 80 ? query.slice(0, 80) + '...' : query}**\n\n💡 ${suggestion}`
+        )
+      ]
     });
   }
 
@@ -98,7 +100,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
     },
     leaveOnEmpty: is247 ? false : QUEUE_DEFAULTS.leaveOnEmpty,
     leaveOnEnd: is247 ? false : QUEUE_DEFAULTS.leaveOnEnd,
-    volume: existingQueue?.node?.volume ?? QUEUE_DEFAULTS.volume,
+    volume: existingQueue?.node?.volume ?? QUEUE_DEFAULTS.volume
   });
 
   // Ensure metadata.channel is always valid
@@ -112,7 +114,12 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
     logger.error('Failed to connect to voice channel.', err);
     queue.delete();
     return respond({
-      embeds: [buildErrorEmbed('Connection Failed', 'Could not join your voice channel.\nCheck that I have **Connect** and **Speak** permissions.')]
+      embeds: [
+        buildErrorEmbed(
+          'Connection Failed',
+          'Could not join your voice channel.\nCheck that I have **Connect** and **Speak** permissions.'
+        )
+      ]
     });
   }
 
@@ -122,10 +129,12 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
     queue.addTrack(result.tracks);
     const emoji = getSourceEmoji(track);
     await respond({
-      embeds: [buildSuccessEmbed(
-        `${emoji} Playlist Queued`,
-        `**${result.playlist.title}**\n${result.tracks.length} tracks added to the queue.`
-      )]
+      embeds: [
+        buildSuccessEmbed(
+          `${emoji} Playlist Queued`,
+          `**${result.playlist.title}**\n${result.tracks.length} tracks added to the queue.`
+        )
+      ]
     });
   } else {
     queue.addTrack(track);
@@ -133,10 +142,12 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
     if (queue.isPlaying()) {
       const emoji = getSourceEmoji(track);
       await respond({
-        embeds: [buildSuccessEmbed(
-          `${emoji} Track Queued`,
-          `**[${track.title}](${track.url})**\nby **${track.author}** · \`${track.duration}\`\n\n📍 Position: **#${queue.tracks.data.length}**`
-        )]
+        embeds: [
+          buildSuccessEmbed(
+            `${emoji} Track Queued`,
+            `**[${track.title}](${track.url})**\nby **${track.author}** · \`${track.duration}\`\n\n📍 Position: **#${queue.tracks.data.length}**`
+          )
+        ]
       });
     }
   }
@@ -147,7 +158,12 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
     } catch (err) {
       logger.error('Failed to start playback.', err);
       return respond({
-        embeds: [buildErrorEmbed('Playback Failed', `Could not start playing.\n\`\`\`${formatMusicErrorMessage(err)}\`\`\`\nTry a different track or source.`)]
+        embeds: [
+          buildErrorEmbed(
+            'Playback Failed',
+            `Could not start playing.\n\`\`\`${formatMusicErrorMessage(err)}\`\`\`\nTry a different track or source.`
+          )
+        ]
       });
     }
   }
@@ -178,10 +194,12 @@ export async function executeMessage(context) {
 
   if (!query) {
     return context.respond({
-      embeds: [buildErrorEmbed(
-        'Missing Query',
-        'Please provide a song name or link.\n\n**Usage:**\n`tree play <song name>`\n`tree play <spotify/youtube/apple/soundcloud link>`\n\n**Examples:**\n`tree play Night Changes One Direction`\n`tree play https://open.spotify.com/track/...`'
-      )]
+      embeds: [
+        buildErrorEmbed(
+          'Missing Query',
+          'Please provide a song name or link.\n\n**Usage:**\n`tree play <song name>`\n`tree play <spotify/youtube/apple/soundcloud link>`\n\n**Examples:**\n`tree play Night Changes One Direction`\n`tree play https://open.spotify.com/track/...`'
+        )
+      ]
     });
   }
 

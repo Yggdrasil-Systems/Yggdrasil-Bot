@@ -1,7 +1,13 @@
 import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 
 import { moderationService } from '../../services/moderationService.js';
-import { buildCaseEmbed, buildCaseListEmbed, buildCaseStatsEmbed, buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
+import {
+  buildCaseEmbed,
+  buildCaseListEmbed,
+  buildCaseStatsEmbed,
+  buildErrorEmbed,
+  buildSuccessEmbed
+} from '../../utils/embeds.js';
 import { parsePositiveInteger } from '../../utils/discordResolvers.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
@@ -14,32 +20,40 @@ export const data = new SlashCommandBuilder()
   .setName('case')
   .setDescription('View and manage moderation cases.')
   .setDefaultMemberPermissions(PermissionsBitField.Flags.ModerateMembers)
-  .addSubcommand((subcommand) => subcommand
-    .setName('view')
-    .setDescription('View a moderation case.')
-    .addIntegerOption((option) => option.setName('id').setDescription('Case ID.').setRequired(true).setMinValue(1)))
-  .addSubcommand((subcommand) => subcommand
-    .setName('list')
-    .setDescription('List recent moderation cases.')
-    .addUserOption((option) => option.setName('user').setDescription('Filter by user.')))
-  .addSubcommand((subcommand) => subcommand
-    .setName('resolve')
-    .setDescription('Mark a moderation case as resolved.')
-    .addIntegerOption((option) => option.setName('id').setDescription('Case ID.').setRequired(true).setMinValue(1))
-    .addStringOption((option) => option.setName('reason').setDescription('Resolution reason.')))
-  .addSubcommand((subcommand) => subcommand
-    .setName('delete')
-    .setDescription('Soft-delete a moderation case.')
-    .addIntegerOption((option) => option.setName('id').setDescription('Case ID.').setRequired(true).setMinValue(1))
-    .addStringOption((option) => option.setName('reason').setDescription('Deletion reason.')))
-  .addSubcommand((subcommand) => subcommand
-    .setName('stats')
-    .setDescription('View moderation case stats.'));
+  .addSubcommand((subcommand) =>
+    subcommand
+      .setName('view')
+      .setDescription('View a moderation case.')
+      .addIntegerOption((option) => option.setName('id').setDescription('Case ID.').setRequired(true).setMinValue(1))
+  )
+  .addSubcommand((subcommand) =>
+    subcommand
+      .setName('list')
+      .setDescription('List recent moderation cases.')
+      .addUserOption((option) => option.setName('user').setDescription('Filter by user.'))
+  )
+  .addSubcommand((subcommand) =>
+    subcommand
+      .setName('resolve')
+      .setDescription('Mark a moderation case as resolved.')
+      .addIntegerOption((option) => option.setName('id').setDescription('Case ID.').setRequired(true).setMinValue(1))
+      .addStringOption((option) => option.setName('reason').setDescription('Resolution reason.'))
+  )
+  .addSubcommand((subcommand) =>
+    subcommand
+      .setName('delete')
+      .setDescription('Soft-delete a moderation case.')
+      .addIntegerOption((option) => option.setName('id').setDescription('Case ID.').setRequired(true).setMinValue(1))
+      .addStringOption((option) => option.setName('reason').setDescription('Deletion reason.'))
+  )
+  .addSubcommand((subcommand) => subcommand.setName('stats').setDescription('View moderation case stats.'));
 
 async function handleCaseAction({ guildId, userId, subcommand, values }) {
   if (subcommand === 'view') {
     const result = await moderationService.getCase({ guildId, caseId: values.caseId });
-    return { embed: result.ok ? buildCaseEmbed(result.moderationCase) : buildErrorEmbed('Case not found', result.reason) };
+    return {
+      embed: result.ok ? buildCaseEmbed(result.moderationCase) : buildErrorEmbed('Case not found', result.reason)
+    };
   }
 
   if (subcommand === 'list') {

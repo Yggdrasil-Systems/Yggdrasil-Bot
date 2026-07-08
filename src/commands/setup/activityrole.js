@@ -25,10 +25,7 @@ function buildActivityRoleEmbed(settings) {
     })
     .join('\n');
 
-  return buildNeutralEmbed(
-    '⚡ Activity Roles',
-    roles || 'No activity roles configured.'
-  );
+  return buildNeutralEmbed('⚡ Activity Roles', roles || 'No activity roles configured.');
 }
 
 export const data = new SlashCommandBuilder()
@@ -44,12 +41,12 @@ export const data = new SlashCommandBuilder()
           .setName('type')
           .setDescription('The activity type to configure.')
           .setRequired(true)
-          .addChoices(...activityTypeChoices))
+          .addChoices(...activityTypeChoices)
+      )
       .addRoleOption((option) =>
-        option
-          .setName('role')
-          .setDescription('The role to assign automatically.')
-          .setRequired(true)))
+        option.setName('role').setDescription('The role to assign automatically.').setRequired(true)
+      )
+  )
   .addSubcommand((subcommand) =>
     subcommand
       .setName('remove')
@@ -59,11 +56,10 @@ export const data = new SlashCommandBuilder()
           .setName('type')
           .setDescription('The activity type to disable.')
           .setRequired(true)
-          .addChoices(...activityTypeChoices)))
-  .addSubcommand((subcommand) =>
-    subcommand
-      .setName('list')
-      .setDescription('Show all configured activity roles.'));
+          .addChoices(...activityTypeChoices)
+      )
+  )
+  .addSubcommand((subcommand) => subcommand.setName('list').setDescription('Show all configured activity roles.'));
 
 export async function execute(interaction) {
   const subcommand = interaction.options.getSubcommand();
@@ -87,7 +83,14 @@ export async function execute(interaction) {
       if (!botMember?.permissions?.has(PermissionFlagsBits.ManageRoles)) {
         await replyToInteraction(
           interaction,
-          { embeds: [buildErrorEmbed('Permission Denied', 'World Tree needs the **Manage Roles** permission to assign activity roles.')] },
+          {
+            embeds: [
+              buildErrorEmbed(
+                'Permission Denied',
+                'World Tree needs the **Manage Roles** permission to assign activity roles.'
+              )
+            ]
+          },
           { ephemeral: true }
         );
         return;
@@ -97,7 +100,14 @@ export async function execute(interaction) {
       if (botHighestRole && role.position >= botHighestRole.position) {
         await replyToInteraction(
           interaction,
-          { embeds: [buildErrorEmbed('Role Hierarchy', 'World Tree cannot manage a role that is equal to or higher than its highest role.')] },
+          {
+            embeds: [
+              buildErrorEmbed(
+                'Role Hierarchy',
+                'World Tree cannot manage a role that is equal to or higher than its highest role.'
+              )
+            ]
+          },
           { ephemeral: true }
         );
         return;
@@ -108,10 +118,12 @@ export async function execute(interaction) {
       await replyToInteraction(
         interaction,
         {
-          embeds: [buildSuccessEmbed(
-            'Activity Role Configured',
-            `${ACTIVITY_TYPE_LABELS[activityType]} is now **enabled**.\nMembers will receive the <@&${role.id}> role when they ${ACTIVITY_TYPE_DESCRIPTIONS[activityType].toLowerCase()}.`
-          )]
+          embeds: [
+            buildSuccessEmbed(
+              'Activity Role Configured',
+              `${ACTIVITY_TYPE_LABELS[activityType]} is now **enabled**.\nMembers will receive the <@&${role.id}> role when they ${ACTIVITY_TYPE_DESCRIPTIONS[activityType].toLowerCase()}.`
+            )
+          ]
         },
         { ephemeral: true }
       );
@@ -125,10 +137,12 @@ export async function execute(interaction) {
       await replyToInteraction(
         interaction,
         {
-          embeds: [buildSuccessEmbed(
-            'Activity Role Removed',
-            `${ACTIVITY_TYPE_LABELS[activityType]} is now **disabled**.\nMembers will no longer receive or lose roles based on this activity.`
-          )]
+          embeds: [
+            buildSuccessEmbed(
+              'Activity Role Removed',
+              `${ACTIVITY_TYPE_LABELS[activityType]} is now **disabled**.\nMembers will no longer receive or lose roles based on this activity.`
+            )
+          ]
         },
         { ephemeral: true }
       );
@@ -138,17 +152,17 @@ export async function execute(interaction) {
     if (subcommand === 'list') {
       const settings = await settingsService.getEffectiveSettings(guildId);
 
-      await replyToInteraction(
-        interaction,
-        { embeds: [buildActivityRoleEmbed(settings)] },
-        { ephemeral: true }
-      );
+      await replyToInteraction(interaction, { embeds: [buildActivityRoleEmbed(settings)] }, { ephemeral: true });
       return;
     }
   } catch (error) {
     await replyToInteraction(
       interaction,
-      { embeds: [buildErrorEmbed('Error', `Failed to configure activity role.\n\`\`\`${error.message.slice(0, 200)}\`\`\``)] },
+      {
+        embeds: [
+          buildErrorEmbed('Error', `Failed to configure activity role.\n\`\`\`${error.message.slice(0, 200)}\`\`\``)
+        ]
+      },
       { ephemeral: true }
     );
   }

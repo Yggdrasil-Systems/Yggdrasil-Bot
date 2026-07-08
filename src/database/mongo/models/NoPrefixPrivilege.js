@@ -36,5 +36,6 @@ const noPrefixPrivilegeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const NoPrefixPrivilege = mongoose.models.NoPrefixPrivilege
-  ?? mongoose.model('NoPrefixPrivilege', noPrefixPrivilegeSchema, 'no_prefix_privileges');
+export const NoPrefixPrivilege =
+  mongoose.models.NoPrefixPrivilege ??
+  mongoose.model('NoPrefixPrivilege', noPrefixPrivilegeSchema, 'no_prefix_privileges');

@@ -2,14 +2,8 @@ import assert from 'node:assert/strict';
 import { test, beforeEach } from 'node:test';
 import { Collection, MessageFlags } from 'discord.js';
 
-import {
-  handleChatInputCommand,
-  handleComponentInteraction
-} from '../src/middleware/commandRouter.js';
-import {
-  getRegisteredPrefixes,
-  _resetRegistryForTesting
-} from '../src/interactions/registry.js';
+import { handleChatInputCommand, handleComponentInteraction } from '../src/middleware/commandRouter.js';
+import { getRegisteredPrefixes, _resetRegistryForTesting } from '../src/interactions/registry.js';
 import { registerAllInteractionHandlers } from '../src/interactions/registerAllHandlers.js';
 import { createPlayerService } from '../src/services/playerService.js';
 
@@ -52,15 +46,27 @@ function createComponentInteraction({
     guild: { id: 'guild-1', ownerId: 'owner-1' },
     member: { voice: { channel: null } },
     channel: { id: 'channel-1', send: async () => {} },
-    client: { user: { id: 'bot-1', tag: 'bot-1#0001', username: 'bot-1', displayName: 'bot-1', displayAvatarURL: () => null } },
+    client: {
+      user: { id: 'bot-1', tag: 'bot-1#0001', username: 'bot-1', displayName: 'bot-1', displayAvatarURL: () => null }
+    },
     replied: false,
     deferred: false,
     appContext: { playerService: createPlayerService(), ...appContext },
-    reply: async (payload) => { calls.push(['reply', payload]); },
-    followUp: async (payload) => { calls.push(['followUp', payload]); },
-    editReply: async (payload) => { calls.push(['editReply', payload]); },
-    update: async (payload) => { calls.push(['update', payload]); },
-    deferReply: async () => { calls.push(['deferReply']); }
+    reply: async (payload) => {
+      calls.push(['reply', payload]);
+    },
+    followUp: async (payload) => {
+      calls.push(['followUp', payload]);
+    },
+    editReply: async (payload) => {
+      calls.push(['editReply', payload]);
+    },
+    update: async (payload) => {
+      calls.push(['update', payload]);
+    },
+    deferReply: async () => {
+      calls.push(['deferReply']);
+    }
   };
 
   return { interaction, calls };
@@ -134,13 +140,13 @@ test('handleComponentInteraction dispatches to each registered handler prefix', 
   registerAllInteractionHandlers();
 
   const cases = [
-    { prefix: 'ping_',           customId: 'ping_refresh',           isButton: true, isStringSelectMenu: false },
-    { prefix: 'queue_',          customId: 'queue_clear',            isButton: true, isStringSelectMenu: false },
-    { prefix: 'music_settings',  customId: 'music_settings_open',    isButton: true, isStringSelectMenu: false },
-    { prefix: 'music_',          customId: 'music_pause',            isButton: true, isStringSelectMenu: false },
-    { prefix: 'filter_',         customId: 'filter_bassboost',       isButton: true, isStringSelectMenu: false },
-    { prefix: 'search_select_',  customId: 'search_select_user-1',   isButton: false, isStringSelectMenu: true },
-    { prefix: 'help:',           customId: 'help:category:user-1',   isButton: false, isStringSelectMenu: true }
+    { prefix: 'ping_', customId: 'ping_refresh', isButton: true, isStringSelectMenu: false },
+    { prefix: 'queue_', customId: 'queue_clear', isButton: true, isStringSelectMenu: false },
+    { prefix: 'music_settings', customId: 'music_settings_open', isButton: true, isStringSelectMenu: false },
+    { prefix: 'music_', customId: 'music_pause', isButton: true, isStringSelectMenu: false },
+    { prefix: 'filter_', customId: 'filter_bassboost', isButton: true, isStringSelectMenu: false },
+    { prefix: 'search_select_', customId: 'search_select_user-1', isButton: false, isStringSelectMenu: true },
+    { prefix: 'help:', customId: 'help:category:user-1', isButton: false, isStringSelectMenu: true }
   ];
 
   for (const { prefix, customId, isButton, isStringSelectMenu } of cases) {

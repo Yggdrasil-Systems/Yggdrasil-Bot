@@ -52,12 +52,17 @@ async function execute247(voiceChannel, textChannel, playerService, respond) {
   // Toggle 24/7 mode
   const currentMode = queue.metadata.is247 || false;
   queue.metadata.is247 = !currentMode;
-  
+
   if (queue.metadata.is247) {
     queue.options.leaveOnEmpty = false;
     queue.options.leaveOnEnd = false;
     return respond({
-      embeds: [buildSuccessEmbed('24/7 Mode Enabled', 'I will now stay in the voice channel 24/7, even when nothing is playing.')]
+      embeds: [
+        buildSuccessEmbed(
+          '24/7 Mode Enabled',
+          'I will now stay in the voice channel 24/7, even when nothing is playing.'
+        )
+      ]
     });
   } else {
     queue.options.leaveOnEmpty = true;

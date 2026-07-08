@@ -8,8 +8,9 @@ export function createLoggingService() {
         return false;
       }
 
-      const channel = guild.channels.cache.get(settings.modLogChannelId)
-        ?? await guild.channels.fetch(settings.modLogChannelId).catch(() => null);
+      const channel =
+        guild.channels.cache.get(settings.modLogChannelId) ??
+        (await guild.channels.fetch(settings.modLogChannelId).catch(() => null));
 
       if (!channel?.send) {
         return false;

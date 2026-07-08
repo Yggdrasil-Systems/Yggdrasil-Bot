@@ -87,7 +87,9 @@ function requireDevGuildIdForRegistration(source, isProduction) {
   const devGuildId = cleanValue(source.DEV_GUILD_ID) || cleanValue(source.GUILD_ID);
 
   if (!devGuildId) {
-    throw new Error('Missing required environment variable: DEV_GUILD_ID (or GUILD_ID for backward compatibility). A development guild ID is required for non-production command registration.');
+    throw new Error(
+      'Missing required environment variable: DEV_GUILD_ID (or GUILD_ID for backward compatibility). A development guild ID is required for non-production command registration.'
+    );
   }
 }
 

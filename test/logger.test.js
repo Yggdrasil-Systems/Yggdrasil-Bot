@@ -103,15 +103,12 @@ describe('Logger', () => {
       stream: capture.stream
     });
 
-    testLogger.info(
-      'Callback /v1/auth/callback?code=secret-code&state=secret-state',
-      { accessToken: 'secret-token', nested: { client_secret: 'secret-client' } }
-    );
+    testLogger.info('Callback /v1/auth/callback?code=secret-code&state=secret-state', {
+      accessToken: 'secret-token',
+      nested: { client_secret: 'secret-client' }
+    });
 
-    assert.equal(
-      capture.entries[0].msg,
-      'Callback /v1/auth/callback?code=[REDACTED]&state=[REDACTED]'
-    );
+    assert.equal(capture.entries[0].msg, 'Callback /v1/auth/callback?code=[REDACTED]&state=[REDACTED]');
     assert.equal(capture.entries[0].details.accessToken, '[REDACTED]');
     assert.equal(capture.entries[0].details.nested.client_secret, '[REDACTED]');
   });

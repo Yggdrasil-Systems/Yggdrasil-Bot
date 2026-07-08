@@ -231,44 +231,23 @@ test('hasHandlerFor returns true for customId that starts with a registered pref
 // ---------------------------------------------------------------------------
 
 test('registerHandler throws when prefix is an empty string', () => {
-  assert.throws(
-    () => registerHandler({ prefix: '', handle: () => true }),
-    /prefix must be a non-empty string/
-  );
+  assert.throws(() => registerHandler({ prefix: '', handle: () => true }), /prefix must be a non-empty string/);
 });
 
 test('registerHandler throws when prefix is not a string', () => {
-  assert.throws(
-    () => registerHandler({ prefix: 123, handle: () => true }),
-    /prefix must be a string/
-  );
+  assert.throws(() => registerHandler({ prefix: 123, handle: () => true }), /prefix must be a string/);
 
-  assert.throws(
-    () => registerHandler({ prefix: null, handle: () => true }),
-    /prefix must be a string/
-  );
+  assert.throws(() => registerHandler({ prefix: null, handle: () => true }), /prefix must be a string/);
 
-  assert.throws(
-    () => registerHandler({ prefix: undefined, handle: () => true }),
-    /prefix must be a string/
-  );
+  assert.throws(() => registerHandler({ prefix: undefined, handle: () => true }), /prefix must be a string/);
 });
 
 test('registerHandler throws when handle is not a function', () => {
-  assert.throws(
-    () => registerHandler({ prefix: 'foo_', handle: 'not a function' }),
-    /handle must be a function/
-  );
+  assert.throws(() => registerHandler({ prefix: 'foo_', handle: 'not a function' }), /handle must be a function/);
 
-  assert.throws(
-    () => registerHandler({ prefix: 'foo_', handle: null }),
-    /handle must be a function/
-  );
+  assert.throws(() => registerHandler({ prefix: 'foo_', handle: null }), /handle must be a function/);
 
-  assert.throws(
-    () => registerHandler({ prefix: 'foo_', handle: 42 }),
-    /handle must be a function/
-  );
+  assert.throws(() => registerHandler({ prefix: 'foo_', handle: 42 }), /handle must be a function/);
 });
 
 test('registerHandler throws when called with no argument', () => {

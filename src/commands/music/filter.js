@@ -10,8 +10,9 @@ export const allowNoPrefix = true;
 export const data = new SlashCommandBuilder()
   .setName('filter')
   .setDescription('Toggle audio filters on the music player.')
-  .addStringOption(option =>
-    option.setName('name')
+  .addStringOption((option) =>
+    option
+      .setName('name')
       .setDescription('Filter to toggle (or "clear" to remove all)')
       .addChoices(
         { name: 'Bass Boost', value: 'bassboost' },
@@ -22,7 +23,8 @@ export const data = new SlashCommandBuilder()
         { name: 'Tremolo', value: 'tremolo' },
         { name: 'Vibrato', value: 'vibrato' },
         { name: 'Clear All', value: 'clear' }
-      ));
+      )
+  );
 
 const FILTER_EMOJIS = {
   bassboost: '🔈',
@@ -46,9 +48,8 @@ async function executeFilter(filterName, guildId, playerService, respond) {
   // Show active filters if no filter specified
   if (!filterName) {
     const active = queue.filters.ffmpeg.getFiltersEnabled();
-    const list = active.length > 0
-      ? active.map(f => `${FILTER_EMOJIS[f] || '🎛️'} **${f}**`).join('\n')
-      : '*No active filters*';
+    const list =
+      active.length > 0 ? active.map((f) => `${FILTER_EMOJIS[f] || '🎛️'} **${f}**`).join('\n') : '*No active filters*';
 
     return respond({
       embeds: [buildSuccessEmbed('🎛️ Active Filters', list)]

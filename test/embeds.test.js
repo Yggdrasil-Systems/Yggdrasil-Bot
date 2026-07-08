@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { buildBaseEmbed, buildErrorEmbed, buildModerationLogEmbed, buildPingEmbed, buildSuccessEmbed } from '../src/utils/embeds.js';
+import {
+  buildBaseEmbed,
+  buildErrorEmbed,
+  buildModerationLogEmbed,
+  buildPingEmbed,
+  buildSuccessEmbed
+} from '../src/utils/embeds.js';
 import { COLORS } from '../src/utils/constants.js';
 
 test('buildBaseEmbed applies World Tree visual defaults', () => {

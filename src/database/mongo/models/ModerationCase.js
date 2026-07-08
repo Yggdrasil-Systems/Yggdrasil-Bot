@@ -83,5 +83,5 @@ const moderationCaseSchema = new mongoose.Schema(
 moderationCaseSchema.index({ guildId: 1, caseId: 1 }, { unique: true });
 moderationCaseSchema.index({ guildId: 1, targetUserId: 1, actionType: 1 });
 
-export const ModerationCase = mongoose.models.ModerationCase
-  ?? mongoose.model('ModerationCase', moderationCaseSchema, 'moderation_cases');
+export const ModerationCase =
+  mongoose.models.ModerationCase ?? mongoose.model('ModerationCase', moderationCaseSchema, 'moderation_cases');

@@ -20,7 +20,9 @@ const TEMP_MIGRATIONS_DIR = path.join(__dirname, '__temp_migrations__');
 async function cleanTempDir() {
   try {
     await rm(TEMP_MIGRATIONS_DIR, { recursive: true, force: true });
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 async function createTempMigration(filename, content) {
@@ -40,25 +42,33 @@ test('migration runner runs pending migrations in version order', async () => {
 
   const executionOrder = [];
 
-  await createTempMigration('001_first.js', `
+  await createTempMigration(
+    '001_first.js',
+    `
     export async function up() {
       globalThis.__migrationOrder = globalThis.__migrationOrder || [];
       globalThis.__migrationOrder.push(1);
     }
-  `);
+  `
+  );
 
-  await createTempMigration('002_second.js', `
+  await createTempMigration(
+    '002_second.js',
+    `
     export async function up() {
       globalThis.__migrationOrder = globalThis.__migrationOrder || [];
       globalThis.__migrationOrder.push(2);
     }
-  `);
+  `
+  );
 
   // Mock the Migration model
   const applied = [];
   const mockMigrationModel = {
     find: () => ({ lean: async () => applied }),
-    create: async (doc) => { applied.push(doc); }
+    create: async (doc) => {
+      applied.push(doc);
+    }
   };
 
   // We need to temporarily replace the import. Since the runner imports
@@ -97,11 +107,14 @@ test('migration runner runs pending migrations in version order', async () => {
 test('migration runner skips already-applied migrations', async () => {
   await cleanTempDir();
 
-  await createTempMigration('001_first.js', `
+  await createTempMigration(
+    '001_first.js',
+    `
     export async function up() {
       globalThis.__migrationRan = true;
     }
-  `);
+  `
+  );
 
   // Simulate that migration 1 is already applied
   const applied = [{ version: 1, name: 'first' }];

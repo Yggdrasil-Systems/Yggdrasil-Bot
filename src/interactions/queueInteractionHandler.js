@@ -37,9 +37,10 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   const clearedCount = queue.tracks.data.length;
   queue.tracks.clear();
 
-  const details = clearedCount > 0
-    ? `Cleared **${clearedCount}** queued track${clearedCount === 1 ? '' : 's'}. The current track will finish playing.`
-    : 'The queue was already empty. The current track will finish playing.';
+  const details =
+    clearedCount > 0
+      ? `Cleared **${clearedCount}** queued track${clearedCount === 1 ? '' : 's'}. The current track will finish playing.`
+      : 'The queue was already empty. The current track will finish playing.';
 
   await interaction.reply({
     embeds: [buildSuccessEmbed('🗑️ Queue Cleared', details)],

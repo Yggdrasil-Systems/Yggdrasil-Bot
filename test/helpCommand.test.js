@@ -26,7 +26,7 @@ test('help service builds category embeds and select menu components', () => {
   assert.match(utility.title, /utility/i);
   assert.match(utilityText, /ownerinfo/i);
   assert.match(utilityText, /dashboard/i);
-  assert.match(settingsText, /setmodlog/i);
+  assert.match(settingsText, /modlog set/i);
   assert.match(settingsText, /trustedrole/i);
   assert.match(settingsText, /activityrole/i);
   assert.match(settingsText, /setup-music/i);

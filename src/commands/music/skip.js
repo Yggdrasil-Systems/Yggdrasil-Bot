@@ -6,9 +6,7 @@ export const name = 'skip';
 export const aliases = ['s', 'next'];
 export const allowNoPrefix = true;
 
-export const data = new SlashCommandBuilder()
-  .setName('skip')
-  .setDescription('Skip the current track.');
+export const data = new SlashCommandBuilder().setName('skip').setDescription('Skip the current track.');
 
 async function executeSkip(guildId, playerService, respond) {
   const queue = playerService?.getGuildQueue(guildId);

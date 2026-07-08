@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import {
-  readCommandRegistrationEnv,
-  readRuntimeEnv
-} from '../src/config/env.js';
+import { readCommandRegistrationEnv, readRuntimeEnv } from '../src/config/env.js';
 
 test('readRuntimeEnv returns trimmed runtime configuration values', () => {
   const env = readRuntimeEnv({
@@ -126,38 +123,41 @@ test('readCommandRegistrationEnv requires DEV_GUILD_ID in non-production', () =>
 
 test('readRuntimeEnv rejects invalid MongoDB timeout values', () => {
   assert.throws(
-    () => readRuntimeEnv({
-      DISCORD_TOKEN: 'token',
-      MONGO_URI: 'mongodb://localhost/world-tree',
-      MONGO_SERVER_SELECTION_TIMEOUT_MS: 'slow'
-    }),
+    () =>
+      readRuntimeEnv({
+        DISCORD_TOKEN: 'token',
+        MONGO_URI: 'mongodb://localhost/world-tree',
+        MONGO_SERVER_SELECTION_TIMEOUT_MS: 'slow'
+      }),
     /MONGO_SERVER_SELECTION_TIMEOUT_MS must be a positive integer/
   );
 });
 
 test('readRuntimeEnv requires dashboard auth secrets when API is enabled', () => {
   assert.throws(
-    () => readRuntimeEnv({
-      DISCORD_TOKEN: 'token',
-      MONGO_URI: 'mongodb://localhost/world-tree',
-      ENABLE_API: 'true'
-    }),
+    () =>
+      readRuntimeEnv({
+        DISCORD_TOKEN: 'token',
+        MONGO_URI: 'mongodb://localhost/world-tree',
+        ENABLE_API: 'true'
+      }),
     /Missing required environment variables: CLIENT_ID, SESSION_SECRET, DISCORD_CLIENT_SECRET, DASHBOARD_ORIGIN, API_ORIGIN/
   );
 });
 
 test('readRuntimeEnv rejects short session secrets', () => {
   assert.throws(
-    () => readRuntimeEnv({
-      DISCORD_TOKEN: 'token',
-      MONGO_URI: 'mongodb://localhost/world-tree',
-      ENABLE_API: 'true',
-      CLIENT_ID: 'discord-client-id',
-      SESSION_SECRET: 'short',
-      DISCORD_CLIENT_SECRET: 'discord-secret',
-      DASHBOARD_ORIGIN: 'http://localhost:5173',
-      API_ORIGIN: 'http://localhost:3000'
-    }),
+    () =>
+      readRuntimeEnv({
+        DISCORD_TOKEN: 'token',
+        MONGO_URI: 'mongodb://localhost/world-tree',
+        ENABLE_API: 'true',
+        CLIENT_ID: 'discord-client-id',
+        SESSION_SECRET: 'short',
+        DISCORD_CLIENT_SECRET: 'discord-secret',
+        DASHBOARD_ORIGIN: 'http://localhost:5173',
+        API_ORIGIN: 'http://localhost:3000'
+      }),
     /SESSION_SECRET must be at least 32 characters/
   );
 });
@@ -199,11 +199,12 @@ test('readRuntimeEnv reads API rate limit configuration', () => {
 
 test('readRuntimeEnv rejects invalid rate limit values', () => {
   assert.throws(
-    () => readRuntimeEnv({
-      DISCORD_TOKEN: 'token',
-      MONGO_URI: 'mongodb://localhost/world-tree',
-      API_RATE_LIMIT_MAX: '0'
-    }),
+    () =>
+      readRuntimeEnv({
+        DISCORD_TOKEN: 'token',
+        MONGO_URI: 'mongodb://localhost/world-tree',
+        API_RATE_LIMIT_MAX: '0'
+      }),
     /API_RATE_LIMIT_MAX must be a positive integer/
   );
 });

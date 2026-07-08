@@ -1,7 +1,10 @@
 import { matchRule, noMatch } from './ruleResult.js';
 
 function normalizeContent(content) {
-  return String(content ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+  return String(content ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
 }
 
 export function evaluateRepeatSpam({ guildId, userId, content, now = Date.now(), rule, state }) {
@@ -13,9 +16,7 @@ export function evaluateRepeatSpam({ guildId, userId, content, now = Date.now(),
 
   const key = `${guildId}:${userId}`;
   const windowMs = Math.max(rule.windowSeconds ?? 12, 1) * 1000;
-  const previousEntries = state
-    .getRepeatedMessages(key)
-    .filter((entry) => now - entry.createdAt <= windowMs);
+  const previousEntries = state.getRepeatedMessages(key).filter((entry) => now - entry.createdAt <= windowMs);
   const entries = [...previousEntries, { content: normalizedContent, createdAt: now }];
   state.setRepeatedMessages(key, entries);
 

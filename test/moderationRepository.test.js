@@ -6,18 +6,21 @@ import { createModerationRepository } from '../src/database/mongo/repositories/m
 test('moderationRepository creates guild cases with an atomic counter', async () => {
   const created = [];
   const counterCalls = [];
-  const repository = createModerationRepository({
-    create: async (payload) => {
-      created.push(payload);
-      return { toObject: () => payload };
+  const repository = createModerationRepository(
+    {
+      create: async (payload) => {
+        created.push(payload);
+        return { toObject: () => payload };
+      },
+      find: () => ({ sort: () => ({ lean: async () => [] }) })
     },
-    find: () => ({ sort: () => ({ lean: async () => [] }) })
-  }, {
-    findOneAndUpdate: (filter, update, options) => {
-      counterCalls.push({ filter, update, options });
-      return { lean: async () => ({ seq: 5 }) };
+    {
+      findOneAndUpdate: (filter, update, options) => {
+        counterCalls.push({ filter, update, options });
+        return { lean: async () => ({ seq: 5 }) };
+      }
     }
-  });
+  );
 
   const moderationCase = await repository.createCase({
     guildId: 'guild-1',

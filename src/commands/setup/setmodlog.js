@@ -1,30 +1,39 @@
-import { ChannelType, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
-
-import { settingsService } from '../../services/settingsService.js';
-import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
+import { SlashCommandBuilder, PermissionsBitField, ChannelType } from 'discord.js';
+import { handleSet } from '../../controllers/modlogController.js';
 import { replyToInteraction } from '../../utils/responses.js';
+import { buildErrorEmbed } from '../../utils/embeds.js';
 
 export const name = 'setmodlog';
-export const aliases = ['modlog'];
+// NOTE: `aliases = ['modlog']` has been REMOVED to prevent duplicate command name collisions
+// now that the `modlog` namespace handles all modlog-related commands.
 export const adminOnly = true;
 
 export const data = new SlashCommandBuilder()
   .setName('setmodlog')
-  .setDescription('Set the channel used for moderation logs.')
+  .setDescription('Set the channel used for moderation logs. (Deprecated)')
   .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild)
-  .addChannelOption((option) => option
-    .setName('channel')
-    .setDescription('The moderation log channel.')
-    .addChannelTypes(ChannelType.GuildText)
-    .setRequired(true));
+  .addChannelOption((option) =>
+    option
+      .setName('channel')
+      .setDescription('The moderation log channel.')
+      .addChannelTypes(ChannelType.GuildText)
+      .setRequired(true)
+  );
 
 export async function execute(interaction) {
   const channel = interaction.options.getChannel('channel', true);
-  await settingsService.setModLogChannel(interaction.guild.id, channel.id);
 
-  await replyToInteraction(interaction, {
-    embeds: [buildSuccessEmbed('Mod log configured', `Moderation logs will be sent to ${channel}.`)]
-  }, { ephemeral: true });
+  // Show deprecation warning via a normal reply
+  await interaction.reply({
+    content: '⚠ **Deprecation Warning:** `/setmodlog` is deprecated. Please use `/modlog set` instead.',
+    ephemeral: true
+  });
+
+  // Delegate to the shared controller
+  const payload = await handleSet(interaction.guildId, channel.id);
+
+  // Since we already replied, `replyToInteraction` will automatically use `followUp`
+  await replyToInteraction(interaction, payload, { ephemeral: true });
 }
 
 export async function executeMessage(context) {
@@ -32,14 +41,17 @@ export async function executeMessage(context) {
 
   if (!channel) {
     await context.respond({
+      content: '⚠ **Deprecation Warning:** `tree setmodlog` is deprecated. Please use `tree modlog set` instead.',
       embeds: [buildErrorEmbed('Channel required', 'Mention the channel to use for moderation logs.')]
     });
     return;
   }
 
-  await settingsService.setModLogChannel(context.guild.id, channel.id);
+  // Delegate to the shared controller
+  const payload = await handleSet(context.guild.id, channel.id);
 
   await context.respond({
-    embeds: [buildSuccessEmbed('Mod log configured', `Moderation logs will be sent to ${channel}.`)]
+    content: '⚠ **Deprecation Warning:** `tree setmodlog` is deprecated. Please use `tree modlog set` instead.',
+    embeds: payload.embeds
   });
 }

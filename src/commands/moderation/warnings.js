@@ -21,9 +21,13 @@ export async function execute(interaction) {
     targetUserId: targetUser.id
   });
 
-  await replyToInteraction(interaction, {
-    embeds: [buildWarningsEmbed({ targetUser, warnings: result.warnings })]
-  }, { ephemeral: true });
+  await replyToInteraction(
+    interaction,
+    {
+      embeds: [buildWarningsEmbed({ targetUser, warnings: result.warnings })]
+    },
+    { ephemeral: true }
+  );
 }
 
 export async function executeMessage(context) {
@@ -31,12 +35,7 @@ export async function executeMessage(context) {
 
   if (!targetUser) {
     return context.respond({
-      embeds: [
-        buildErrorEmbed(
-          'Target Required',
-          'Please specify a valid user to view warnings for.'
-        )
-      ]
+      embeds: [buildErrorEmbed('Target Required', 'Please specify a valid user to view warnings for.')]
     });
   }
 

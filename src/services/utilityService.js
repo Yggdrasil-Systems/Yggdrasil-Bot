@@ -89,9 +89,9 @@ export function getBotInfoSummary({ client, uptimeMs = process.uptime() * 1000 }
   const guildCount = guilds?.size ?? 0;
   const channelCount = channels?.size ?? 0;
   const userCount = guilds
-    ? (typeof guilds.reduce === 'function'
+    ? typeof guilds.reduce === 'function'
       ? guilds.reduce((acc, guild) => acc + (guild.memberCount || 0), 0)
-      : [...guilds.values()].reduce((acc, guild) => acc + (guild.memberCount || 0), 0))
+      : [...guilds.values()].reduce((acc, guild) => acc + (guild.memberCount || 0), 0)
     : 0;
   const websocketLatency = client.ws?.ping ?? 0;
 
@@ -117,9 +117,9 @@ export function getBotInfoSummary({ client, uptimeMs = process.uptime() * 1000 }
 export function getStatsSummary({ client, uptimeMs = process.uptime() * 1000 }) {
   const cache = client.guilds?.cache;
   const memberCount = cache
-    ? (typeof cache.reduce === 'function'
+    ? typeof cache.reduce === 'function'
       ? cache.reduce((total, guild) => total + (guild.memberCount ?? 0), 0)
-      : [...cache.values()].reduce((total, guild) => total + (guild.memberCount ?? 0), 0))
+      : [...cache.values()].reduce((total, guild) => total + (guild.memberCount ?? 0), 0)
     : 0;
 
   return {

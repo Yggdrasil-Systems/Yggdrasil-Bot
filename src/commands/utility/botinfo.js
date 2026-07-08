@@ -7,9 +7,7 @@ import { replyToInteraction } from '../../utils/responses.js';
 export const name = 'botinfo';
 export const aliases = ['bot'];
 
-export const data = new SlashCommandBuilder()
-  .setName('botinfo')
-  .setDescription('View World Tree runtime details.');
+export const data = new SlashCommandBuilder().setName('botinfo').setDescription('View World Tree runtime details.');
 
 export async function execute(interaction) {
   const summary = getBotInfoSummary({ client: interaction.client });
@@ -19,7 +17,11 @@ export async function execute(interaction) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setLabel('Invite Me')
-      .setURL('https://discord.com/api/oauth2/authorize?client_id=' + interaction.client.user.id + '&permissions=8&scope=bot%20applications.commands')
+      .setURL(
+        'https://discord.com/api/oauth2/authorize?client_id=' +
+          interaction.client.user.id +
+          '&permissions=8&scope=bot%20applications.commands'
+      )
       .setStyle(ButtonStyle.Link),
     new ButtonBuilder()
       .setLabel('Support Server')
@@ -41,7 +43,11 @@ export async function executeMessage(context) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setLabel('Invite Me')
-      .setURL('https://discord.com/api/oauth2/authorize?client_id=' + context.client.user.id + '&permissions=8&scope=bot%20applications.commands')
+      .setURL(
+        'https://discord.com/api/oauth2/authorize?client_id=' +
+          context.client.user.id +
+          '&permissions=8&scope=bot%20applications.commands'
+      )
       .setStyle(ButtonStyle.Link),
     new ButtonBuilder()
       .setLabel('Support Server')

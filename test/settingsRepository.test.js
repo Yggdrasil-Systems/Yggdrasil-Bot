@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import {
-  createSettingsRepository
-} from '../src/database/mongo/repositories/settingsRepository.js';
+import { createSettingsRepository } from '../src/database/mongo/repositories/settingsRepository.js';
 
 test('settingsRepository gets or creates default guild settings', async () => {
   const calls = [];

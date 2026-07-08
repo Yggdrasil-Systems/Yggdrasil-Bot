@@ -8,7 +8,8 @@ function getCommandModule(module) {
 }
 
 function assertCommandContract(command, filePath) {
-  const hasSlashData = command?.data && typeof command.data.name === 'string' && typeof command.data.toJSON === 'function';
+  const hasSlashData =
+    command?.data && typeof command.data.name === 'string' && typeof command.data.toJSON === 'function';
   const hasSlashExecute = typeof command?.execute === 'function';
   const hasMessageExecute = typeof command?.executeMessage === 'function';
   const hasExplicitName = typeof command?.name === 'string' && command.name.length > 0;

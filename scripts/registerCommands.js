@@ -13,19 +13,14 @@ const commandsPath = path.join(projectRoot, 'src', 'commands');
 async function registerCommands() {
   const env = getCommandRegistrationEnv();
   const commands = await loadCommands(commandsPath);
-  const commandPayload = commands
-    .filter((command) => command.data)
-    .map((command) => command.data.toJSON());
+  const commandPayload = commands.filter((command) => command.data).map((command) => command.data.toJSON());
   const rest = new REST({ version: '10' }).setToken(env.discordToken);
 
   if (env.isProduction) {
     logger.info(`Registering ${commandPayload.length} global slash command(s).`);
     logger.info('This will make commands available in all servers. Propagation may take up to 1 hour.');
 
-    await rest.put(
-      Routes.applicationCommands(env.clientId),
-      { body: commandPayload }
-    );
+    await rest.put(Routes.applicationCommands(env.clientId), { body: commandPayload });
 
     logger.info('Global slash commands registered successfully.');
   } else {
@@ -34,10 +29,7 @@ async function registerCommands() {
     logger.info(`Registering ${commandPayload.length} guild slash command(s) for development guild ${targetGuildId}.`);
     logger.info('Guild commands update instantly — no propagation delay.');
 
-    await rest.put(
-      Routes.applicationGuildCommands(env.clientId, targetGuildId),
-      { body: commandPayload }
-    );
+    await rest.put(Routes.applicationGuildCommands(env.clientId, targetGuildId), { body: commandPayload });
 
     logger.info('Guild slash commands registered successfully.');
   }

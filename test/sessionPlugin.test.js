@@ -88,11 +88,14 @@ describe('sessionPlugin', () => {
 
   it('serializes and deserializes valid sessions', () => {
     const expiresAt = Math.floor(Date.now() / 1000) + 60;
-    const serialized = serializeSession({
-      discordUserId: '123456789',
-      accessToken: 'discord-access-token',
-      expiresAt
-    }, SESSION_SECRET);
+    const serialized = serializeSession(
+      {
+        discordUserId: '123456789',
+        accessToken: 'discord-access-token',
+        expiresAt
+      },
+      SESSION_SECRET
+    );
 
     assert.equal(serialized.includes('discord-access-token'), false);
 

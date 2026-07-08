@@ -9,26 +9,10 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder }
 
 export function buildMusicPlayerComponents() {
   const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('music_previous')
-      .setLabel('Prev')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('⏮️'),
-    new ButtonBuilder()
-      .setCustomId('music_pause')
-      .setLabel('Pause')
-      .setStyle(ButtonStyle.Primary)
-      .setEmoji('⏸️'),
-    new ButtonBuilder()
-      .setCustomId('music_resume')
-      .setLabel('Resume')
-      .setStyle(ButtonStyle.Success)
-      .setEmoji('▶️'),
-    new ButtonBuilder()
-      .setCustomId('music_skip')
-      .setLabel('Skip')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('⏭️'),
+    new ButtonBuilder().setCustomId('music_previous').setLabel('Prev').setStyle(ButtonStyle.Secondary).setEmoji('⏮️'),
+    new ButtonBuilder().setCustomId('music_pause').setLabel('Pause').setStyle(ButtonStyle.Primary).setEmoji('⏸️'),
+    new ButtonBuilder().setCustomId('music_resume').setLabel('Resume').setStyle(ButtonStyle.Success).setEmoji('▶️'),
+    new ButtonBuilder().setCustomId('music_skip').setLabel('Skip').setStyle(ButtonStyle.Secondary).setEmoji('⏭️'),
     new ButtonBuilder()
       .setCustomId('music_settings')
       .setLabel('Settings')
@@ -37,31 +21,11 @@ export function buildMusicPlayerComponents() {
   );
 
   const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('music_shuffle')
-      .setLabel('Shuffle')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('🔀'),
-    new ButtonBuilder()
-      .setCustomId('music_queue')
-      .setLabel('Queue')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('📜'),
-    new ButtonBuilder()
-      .setCustomId('music_volup')
-      .setLabel('Vol+')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('🔊'),
-    new ButtonBuilder()
-      .setCustomId('music_voldown')
-      .setLabel('Vol-')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('🔉'),
-    new ButtonBuilder()
-      .setCustomId('music_stop')
-      .setLabel('Stop')
-      .setStyle(ButtonStyle.Danger)
-      .setEmoji('⏹️')
+    new ButtonBuilder().setCustomId('music_shuffle').setLabel('Shuffle').setStyle(ButtonStyle.Secondary).setEmoji('🔀'),
+    new ButtonBuilder().setCustomId('music_queue').setLabel('Queue').setStyle(ButtonStyle.Secondary).setEmoji('📜'),
+    new ButtonBuilder().setCustomId('music_volup').setLabel('Vol+').setStyle(ButtonStyle.Secondary).setEmoji('🔊'),
+    new ButtonBuilder().setCustomId('music_voldown').setLabel('Vol-').setStyle(ButtonStyle.Secondary).setEmoji('🔉'),
+    new ButtonBuilder().setCustomId('music_stop').setLabel('Stop').setStyle(ButtonStyle.Danger).setEmoji('⏹️')
   );
 
   return [row1, row2];
@@ -123,16 +87,8 @@ export function buildFilterComponents() {
       .setLabel('Vaporwave')
       .setStyle(ButtonStyle.Secondary)
       .setEmoji('🌊'),
-    new ButtonBuilder()
-      .setCustomId('filter_8d')
-      .setLabel('8D Audio')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('🎧'),
-    new ButtonBuilder()
-      .setCustomId('filter_clear')
-      .setLabel('Clear All')
-      .setStyle(ButtonStyle.Danger)
-      .setEmoji('🗑️')
+    new ButtonBuilder().setCustomId('filter_8d').setLabel('8D Audio').setStyle(ButtonStyle.Secondary).setEmoji('🎧'),
+    new ButtonBuilder().setCustomId('filter_clear').setLabel('Clear All').setStyle(ButtonStyle.Danger).setEmoji('🗑️')
   );
 
   return [row];
@@ -142,16 +98,8 @@ export function buildFilterComponents() {
 
 export function buildQueueComponents() {
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('music_shuffle')
-      .setLabel('Shuffle')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('🔀'),
-    new ButtonBuilder()
-      .setCustomId('queue_clear')
-      .setLabel('Clear Queue')
-      .setStyle(ButtonStyle.Danger)
-      .setEmoji('🗑️')
+    new ButtonBuilder().setCustomId('music_shuffle').setLabel('Shuffle').setStyle(ButtonStyle.Secondary).setEmoji('🔀'),
+    new ButtonBuilder().setCustomId('queue_clear').setLabel('Clear Queue').setStyle(ButtonStyle.Danger).setEmoji('🗑️')
   );
   return [row];
 }

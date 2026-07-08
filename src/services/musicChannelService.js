@@ -8,27 +8,32 @@ function getCommandAliases(command) {
 function findMessageCommand(commands, commandName) {
   const normalizedCommandName = commandName.toLowerCase();
 
-  return [...commands.values()].find((command) => {
-    if (typeof command.executeMessage !== 'function') {
-      return false;
-    }
+  return (
+    [...commands.values()].find((command) => {
+      if (typeof command.executeMessage !== 'function') {
+        return false;
+      }
 
-    return getCommandAliases(command).includes(normalizedCommandName);
-  }) ?? null;
+      return getCommandAliases(command).includes(normalizedCommandName);
+    }) ?? null
+  );
 }
 
 function scheduleMessageDeletion(message, delayMs = 1000) {
   setTimeout(() => message.delete().catch(() => null), delayMs);
 }
 
-export async function handleMusicChannelMessage(message, {
-  commands = message.appContext?.commands ?? new Map(),
-  settingsService = message.appContext?.settingsService ?? null,
-  appContext = message.appContext ?? null,
-  log = logger,
-  deleteDelayMs = 1000,
-  scheduleDeletion = scheduleMessageDeletion
-} = {}) {
+export async function handleMusicChannelMessage(
+  message,
+  {
+    commands = message.appContext?.commands ?? new Map(),
+    settingsService = message.appContext?.settingsService ?? null,
+    appContext = message.appContext ?? null,
+    log = logger,
+    deleteDelayMs = 1000,
+    scheduleDeletion = scheduleMessageDeletion
+  } = {}
+) {
   if (!message?.guild || !settingsService || !commands) {
     return false;
   }

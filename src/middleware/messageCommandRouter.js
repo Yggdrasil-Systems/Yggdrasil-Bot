@@ -23,43 +23,38 @@ function getNoPrefixCommandNames(commands) {
 function findMessageCommand(commands, commandName) {
   const normalizedCommandName = commandName.toLowerCase();
 
-  return [...commands.values()].find((command) => {
-    if (typeof command.executeMessage !== 'function') {
-      return false;
-    }
+  return (
+    [...commands.values()].find((command) => {
+      if (typeof command.executeMessage !== 'function') {
+        return false;
+      }
 
-    return getCommandAliases(command).includes(normalizedCommandName);
-  }) ?? null;
+      return getCommandAliases(command).includes(normalizedCommandName);
+    }) ?? null
+  );
 }
 
 async function getPrivilegeContext(message) {
   const appContext = getAppContext(message) ?? {};
   const runtimeConfig = appContext.runtimeConfig ?? {};
   const settingsService = appContext.settingsService ?? null;
-  const settings = settingsService && message.guild?.id
-    ? await settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
-    : null;
+  const settings =
+    settingsService && message.guild?.id
+      ? await settingsService.getEffectiveSettings(message.guild.id).catch(() => null)
+      : null;
 
   return {
     userId: message.author.id,
     guildOwnerId: message.guild?.ownerId ?? null,
     botOwnerId: runtimeConfig.botOwnerId ?? null,
     member: message.member ?? null,
-    trustedAdminRoleIds: [
-      ...(runtimeConfig.trustedAdminRoleIds ?? []),
-      ...(settings?.trustedAdminRoleIds ?? [])
-    ]
+    trustedAdminRoleIds: [...(runtimeConfig.trustedAdminRoleIds ?? []), ...(settings?.trustedAdminRoleIds ?? [])]
   };
 }
 
 async function replyWithPermissionError(message) {
   await replyToMessage(message, {
-    embeds: [
-      buildErrorEmbed(
-        'Permission required',
-        'You do not have permission to use that command.'
-      )
-    ]
+    embeds: [buildErrorEmbed('Permission required', 'You do not have permission to use that command.')]
   });
 }
 
@@ -106,7 +101,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
   let parsedCommand = prefixedCommand;
 
   if (!parsedCommand) {
-    if (noPrefixCommandNames.size === 0 || !await canUseNoPrefix(message)) {
+    if (noPrefixCommandNames.size === 0 || !(await canUseNoPrefix(message))) {
       return false;
     }
 
@@ -126,12 +121,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
   if (!command) {
     if (parsedCommand.mode === 'prefix') {
       await replyToMessage(message, {
-        embeds: [
-          buildErrorEmbed(
-            'Command unavailable',
-            'That command is not available right now.'
-          )
-        ]
+        embeds: [buildErrorEmbed('Command unavailable', 'That command is not available right now.')]
       });
     }
 
@@ -141,12 +131,7 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
   if (typeof command.executeMessage !== 'function') {
     if (parsedCommand.mode === 'prefix') {
       await replyToMessage(message, {
-        embeds: [
-          buildErrorEmbed(
-            'Command unavailable',
-            'This command is only available as a slash command.'
-          )
-        ]
+        embeds: [buildErrorEmbed('Command unavailable', 'This command is only available as a slash command.')]
       });
     }
 

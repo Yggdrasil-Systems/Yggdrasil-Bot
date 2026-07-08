@@ -12,7 +12,10 @@ let client = null;
 let apiServer = null;
 
 process.on('unhandledRejection', (reason) => {
-  logger.error('Unhandled promise rejection — shutting down.', reason instanceof Error ? reason : new Error(String(reason)));
+  logger.error(
+    'Unhandled promise rejection — shutting down.',
+    reason instanceof Error ? reason : new Error(String(reason))
+  );
   shutdown(1);
 });
 
@@ -34,21 +37,27 @@ async function shutdown(code) {
       client.destroy();
       logger.info('Discord client destroyed.');
     }
-  } catch { /* best effort */ }
+  } catch {
+    /* best effort */
+  }
 
   try {
     if (apiServer) {
       await apiServer.close();
       logger.info('API Server closed.');
     }
-  } catch { /* best effort */ }
+  } catch {
+    /* best effort */
+  }
 
   try {
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
       logger.info('MongoDB connection closed.');
     }
-  } catch { /* best effort */ }
+  } catch {
+    /* best effort */
+  }
 
   process.exit(code);
 }

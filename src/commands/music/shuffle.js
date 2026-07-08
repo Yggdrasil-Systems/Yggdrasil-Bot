@@ -6,9 +6,7 @@ export const name = 'shuffle';
 export const aliases = ['mix'];
 export const allowNoPrefix = true;
 
-export const data = new SlashCommandBuilder()
-  .setName('shuffle')
-  .setDescription('Shuffles the current music queue.');
+export const data = new SlashCommandBuilder().setName('shuffle').setDescription('Shuffles the current music queue.');
 
 async function executeShuffle(guildId, playerService, respond) {
   const queue = playerService?.getGuildQueue(guildId);

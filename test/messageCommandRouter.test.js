@@ -5,14 +5,7 @@ import { test } from 'node:test';
 import { handleMessageCommand } from '../src/middleware/messageCommandRouter.js';
 import * as activityRoleCommand from '../src/commands/setup/activityrole.js';
 
-function createMessage({
-  content,
-  command,
-  commandName = 'ping',
-  member,
-  guildOwnerId = 'owner',
-  appContext = {}
-}) {
+function createMessage({ content, command, commandName = 'ping', member, guildOwnerId = 'owner', appContext = {} }) {
   const replies = [];
   const commands = new Collection();
 

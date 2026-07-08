@@ -7,11 +7,10 @@ function normalizeReason(reason) {
   return String(reason ?? '').trim() || null;
 }
 
-export function createNoPrefixService(repository = noPrefixRepository, {
-  botOwnerId = null,
-  cacheTtlMs = DEFAULT_CACHE_TTL_MS,
-  maxSize = 10_000
-} = {}) {
+export function createNoPrefixService(
+  repository = noPrefixRepository,
+  { botOwnerId = null, cacheTtlMs = DEFAULT_CACHE_TTL_MS, maxSize = 10_000 } = {}
+) {
   const cache = new LruCache(maxSize);
 
   function clearCache(userId) {

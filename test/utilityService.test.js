@@ -77,8 +77,18 @@ test('getServerInfoSummary includes stable guild counts', () => {
       memberCount: 42,
       createdAt,
       iconURL: () => 'icon',
-      channels: { cache: new Map([['a', {}], ['b', {}]]) },
-      roles: { cache: new Map([['everyone', {}], ['admin', {}]]) }
+      channels: {
+        cache: new Map([
+          ['a', {}],
+          ['b', {}]
+        ])
+      },
+      roles: {
+        cache: new Map([
+          ['everyone', {}],
+          ['admin', {}]
+        ])
+      }
     }
   });
 

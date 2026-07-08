@@ -7,8 +7,7 @@ export const aliases = ['no-prefix'];
 export const botOwnerOnly = true;
 
 export function getService(context) {
-  return context.appContext?.noPrefixService
-    ?? defaultNoPrefixService;
+  return context.appContext?.noPrefixService ?? defaultNoPrefixService;
 }
 
 function formatUserList(users) {
@@ -57,7 +56,9 @@ export async function executeMessage(context) {
       reason: args.slice(1).join(' ')
     });
     await context.respond({
-      embeds: [buildSuccessEmbed('No-prefix access added', `<@${targetUser.id}> can now use approved no-prefix shortcuts.`)]
+      embeds: [
+        buildSuccessEmbed('No-prefix access added', `<@${targetUser.id}> can now use approved no-prefix shortcuts.`)
+      ]
     });
     return;
   }
@@ -68,6 +69,8 @@ export async function executeMessage(context) {
     reason: args.slice(1).join(' ')
   });
   await context.respond({
-    embeds: [buildSuccessEmbed('No-prefix access removed', `<@${targetUser.id}> can no longer use no-prefix shortcuts.`)]
+    embeds: [
+      buildSuccessEmbed('No-prefix access removed', `<@${targetUser.id}> can no longer use no-prefix shortcuts.`)
+    ]
   });
 }

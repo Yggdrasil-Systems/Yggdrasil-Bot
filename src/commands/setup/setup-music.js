@@ -27,7 +27,8 @@ export async function execute(interaction) {
 
   const bannerEmbed = buildBaseEmbed({
     title: '🎵 World Tree Music',
-    description: 'Send a song name or link in this channel to automatically play it!\n\nUse the buttons below to control playback when a session is active.',
+    description:
+      'Send a song name or link in this channel to automatically play it!\n\nUse the buttons below to control playback when a session is active.'
   }).setImage('https://i.imgur.com/Kz9rS72.png'); // Placeholder aesthetic image
 
   // Using the existing music player components

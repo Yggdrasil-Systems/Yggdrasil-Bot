@@ -8,15 +8,17 @@ function createMockContext({ isPaused, hasQueue, currentTrack } = {}) {
   let paused = isPaused;
   let payload = null;
 
-  const queue = hasQueue ? {
-    currentTrack: currentTrack ?? { title: 'Test Song' },
-    node: {
-      isPaused: () => paused,
-      setPaused: (value) => {
-        paused = value;
+  const queue = hasQueue
+    ? {
+        currentTrack: currentTrack ?? { title: 'Test Song' },
+        node: {
+          isPaused: () => paused,
+          setPaused: (value) => {
+            paused = value;
+          }
+        }
       }
-    }
-  } : null;
+    : null;
 
   return {
     guild: { id: 'guild-1' },

@@ -30,13 +30,15 @@ function evaluateRules({ message, settings, state }) {
     state
   };
 
-  return [
-    evaluateBadWords({ content: context.content, rule: rules.badWords }),
-    evaluateMentionSpam({ mentionCount: context.mentionCount, rule: rules.mentionSpam }),
-    evaluateRepeatSpam({ ...context, rule: rules.repeatSpam }),
-    evaluateLinkSpam({ content: context.content, rule: rules.linkSpam }),
-    evaluateCapsSpam({ content: context.content, rule: rules.capsSpam })
-  ].find((result) => result.matched) ?? { matched: false };
+  return (
+    [
+      evaluateBadWords({ content: context.content, rule: rules.badWords }),
+      evaluateMentionSpam({ mentionCount: context.mentionCount, rule: rules.mentionSpam }),
+      evaluateRepeatSpam({ ...context, rule: rules.repeatSpam }),
+      evaluateLinkSpam({ content: context.content, rule: rules.linkSpam }),
+      evaluateCapsSpam({ content: context.content, rule: rules.capsSpam })
+    ].find((result) => result.matched) ?? { matched: false }
+  );
 }
 
 export function createAutomodService({

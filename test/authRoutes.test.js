@@ -3,10 +3,7 @@ import { describe, it } from 'node:test';
 
 import { createServer } from '../src/api/server.js';
 import { SESSION_COOKIE_NAME } from '../src/api/plugins/sessionPlugin.js';
-import {
-  OAUTH_PKCE_COOKIE_NAME,
-  OAUTH_STATE_COOKIE_NAME
-} from '../src/api/plugins/discordOAuthPlugin.js';
+import { OAUTH_PKCE_COOKIE_NAME, OAUTH_STATE_COOKIE_NAME } from '../src/api/plugins/discordOAuthPlugin.js';
 
 const AUTH_ENV = Object.freeze({
   clientId: 'discord-client-id',
@@ -485,7 +482,7 @@ describe('auth routes', () => {
 
     assert.equal(response.statusCode, 200);
     const guilds = JSON.parse(response.payload);
-    
+
     // Only owner, admin, and manage should be returned. 'Normal Guild' is filtered out.
     assert.equal(guilds.length, 3);
     assert.deepEqual(guilds, [
@@ -512,7 +509,7 @@ describe('auth routes', () => {
 
     assert.equal(response.statusCode, 200);
     const guilds = JSON.parse(response.payload);
-    
+
     // Bot owner gets all 4 guilds
     assert.equal(guilds.length, 4);
   });

@@ -69,18 +69,9 @@ function createInteraction(customId, queue, extras = {}) {
 
 test('music playback interaction pauses active queues', async () => {
   let paused = false;
-  const { interaction, replies } = createInteraction('music_pause', createQueue({
-    node: {
-      volume: 80,
-      isPaused: () => false,
-      setPaused: (value) => {
-        paused = value;
-      }
-    }
-  }));
-
-  const handled = await handleMusicPlaybackInteraction(interaction, {
-    resolveQueue: () => createQueue({
+  const { interaction, replies } = createInteraction(
+    'music_pause',
+    createQueue({
       node: {
         volume: 80,
         isPaused: () => false,
@@ -89,6 +80,19 @@ test('music playback interaction pauses active queues', async () => {
         }
       }
     })
+  );
+
+  const handled = await handleMusicPlaybackInteraction(interaction, {
+    resolveQueue: () =>
+      createQueue({
+        node: {
+          volume: 80,
+          isPaused: () => false,
+          setPaused: (value) => {
+            paused = value;
+          }
+        }
+      })
   });
 
   assert.equal(handled, true);
@@ -98,18 +102,9 @@ test('music playback interaction pauses active queues', async () => {
 
 test('music playback interaction resumes paused queues', async () => {
   let paused = true;
-  const { interaction, replies } = createInteraction('music_resume', createQueue({
-    node: {
-      volume: 80,
-      isPaused: () => true,
-      setPaused: (value) => {
-        paused = value;
-      }
-    }
-  }));
-
-  const handled = await handleMusicPlaybackInteraction(interaction, {
-    resolveQueue: () => createQueue({
+  const { interaction, replies } = createInteraction(
+    'music_resume',
+    createQueue({
       node: {
         volume: 80,
         isPaused: () => true,
@@ -118,6 +113,19 @@ test('music playback interaction resumes paused queues', async () => {
         }
       }
     })
+  );
+
+  const handled = await handleMusicPlaybackInteraction(interaction, {
+    resolveQueue: () =>
+      createQueue({
+        node: {
+          volume: 80,
+          isPaused: () => true,
+          setPaused: (value) => {
+            paused = value;
+          }
+        }
+      })
   });
 
   assert.equal(handled, true);
@@ -127,19 +135,9 @@ test('music playback interaction resumes paused queues', async () => {
 
 test('music playback interaction skips the current track', async () => {
   let skipped = false;
-  const { interaction, replies } = createInteraction('music_skip', createQueue({
-    node: {
-      volume: 80,
-      isPaused: () => false,
-      setPaused: () => {},
-      skip: () => {
-        skipped = true;
-      }
-    }
-  }));
-
-  const handled = await handleMusicPlaybackInteraction(interaction, {
-    resolveQueue: () => createQueue({
+  const { interaction, replies } = createInteraction(
+    'music_skip',
+    createQueue({
       node: {
         volume: 80,
         isPaused: () => false,
@@ -149,6 +147,20 @@ test('music playback interaction skips the current track', async () => {
         }
       }
     })
+  );
+
+  const handled = await handleMusicPlaybackInteraction(interaction, {
+    resolveQueue: () =>
+      createQueue({
+        node: {
+          volume: 80,
+          isPaused: () => false,
+          setPaused: () => {},
+          skip: () => {
+            skipped = true;
+          }
+        }
+      })
   });
 
   assert.equal(handled, true);
@@ -159,16 +171,19 @@ test('music playback interaction skips the current track', async () => {
 test('music playback interaction shows the queue view', async () => {
   let payload;
 
-  const handled = await handleMusicPlaybackInteraction({
-    isButton: () => true,
-    customId: 'music_queue',
-    guildId: 'guild-1',
-    reply: async (response) => {
-      payload = response;
+  const handled = await handleMusicPlaybackInteraction(
+    {
+      isButton: () => true,
+      customId: 'music_queue',
+      guildId: 'guild-1',
+      reply: async (response) => {
+        payload = response;
+      }
+    },
+    {
+      resolveQueue: () => createQueue()
     }
-  }, {
-    resolveQueue: () => createQueue()
-  });
+  );
 
   assert.equal(handled, true);
   assert.match(payload.embeds[0].data.title, /Music Queue/i);
@@ -177,34 +192,41 @@ test('music playback interaction shows the queue view', async () => {
 
 test('music playback interaction updates volume up and down', async () => {
   const volumes = [];
-  const makeQueue = (volume) => createQueue({
-    node: {
-      volume,
-      isPaused: () => false,
-      setPaused: () => {},
-      setVolume: (nextVolume) => {
-        volumes.push(nextVolume);
+  const makeQueue = (volume) =>
+    createQueue({
+      node: {
+        volume,
+        isPaused: () => false,
+        setPaused: () => {},
+        setVolume: (nextVolume) => {
+          volumes.push(nextVolume);
+        }
       }
+    });
+
+  const up = await handleMusicPlaybackInteraction(
+    {
+      isButton: () => true,
+      customId: 'music_volup',
+      guildId: 'guild-1',
+      reply: async () => {}
+    },
+    {
+      resolveQueue: () => makeQueue(80)
     }
-  });
+  );
 
-  const up = await handleMusicPlaybackInteraction({
-    isButton: () => true,
-    customId: 'music_volup',
-    guildId: 'guild-1',
-    reply: async () => {}
-  }, {
-    resolveQueue: () => makeQueue(80)
-  });
-
-  const down = await handleMusicPlaybackInteraction({
-    isButton: () => true,
-    customId: 'music_voldown',
-    guildId: 'guild-1',
-    reply: async () => {}
-  }, {
-    resolveQueue: () => makeQueue(80)
-  });
+  const down = await handleMusicPlaybackInteraction(
+    {
+      isButton: () => true,
+      customId: 'music_voldown',
+      guildId: 'guild-1',
+      reply: async () => {}
+    },
+    {
+      resolveQueue: () => makeQueue(80)
+    }
+  );
 
   assert.equal(up, true);
   assert.equal(down, true);
@@ -215,20 +237,24 @@ test('music playback interaction stops playback and clears the queue', async () 
   let deleted = false;
   let payload;
 
-  const handled = await handleMusicPlaybackInteraction({
-    isButton: () => true,
-    customId: 'music_stop',
-    guildId: 'guild-1',
-    reply: async (response) => {
-      payload = response;
-    }
-  }, {
-    resolveQueue: () => createQueue({
-      delete: () => {
-        deleted = true;
+  const handled = await handleMusicPlaybackInteraction(
+    {
+      isButton: () => true,
+      customId: 'music_stop',
+      guildId: 'guild-1',
+      reply: async (response) => {
+        payload = response;
       }
-    })
-  });
+    },
+    {
+      resolveQueue: () =>
+        createQueue({
+          delete: () => {
+            deleted = true;
+          }
+        })
+    }
+  );
 
   assert.equal(handled, true);
   assert.equal(deleted, true);
@@ -238,22 +264,26 @@ test('music playback interaction stops playback and clears the queue', async () 
 test('music playback interaction handles previous track failures', async () => {
   let payload;
 
-  const handled = await handleMusicPlaybackInteraction({
-    isButton: () => true,
-    customId: 'music_previous',
-    guildId: 'guild-1',
-    reply: async (response) => {
-      payload = response;
-    }
-  }, {
-    resolveQueue: () => createQueue({
-      history: {
-        previous: async () => {
-          throw new Error('No previous');
-        }
+  const handled = await handleMusicPlaybackInteraction(
+    {
+      isButton: () => true,
+      customId: 'music_previous',
+      guildId: 'guild-1',
+      reply: async (response) => {
+        payload = response;
       }
-    })
-  });
+    },
+    {
+      resolveQueue: () =>
+        createQueue({
+          history: {
+            previous: async () => {
+              throw new Error('No previous');
+            }
+          }
+        })
+    }
+  );
 
   assert.equal(handled, true);
   assert.match(payload.embeds[0].data.title, /No Previous Track/i);

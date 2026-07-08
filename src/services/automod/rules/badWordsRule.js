@@ -10,13 +10,15 @@ export function evaluateBadWords({ content, rule }) {
   }
 
   if (!rule._compiledPatterns) {
-    rule._compiledPatterns = rule.words.map((word) => {
-      try {
-        return new RegExp(`\\b${escapeRegExp(String(word))}\\b`, 'i');
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
+    rule._compiledPatterns = rule.words
+      .map((word) => {
+        try {
+          return new RegExp(`\\b${escapeRegExp(String(word))}\\b`, 'i');
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
   }
 
   const matchedIndex = rule._compiledPatterns.findIndex((pattern) => pattern.test(content));

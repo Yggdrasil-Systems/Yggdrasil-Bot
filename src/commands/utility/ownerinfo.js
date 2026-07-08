@@ -4,9 +4,11 @@ import { buildOwnerInfoEmbed } from '../../utils/embeds.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
 function getOwnerAvatarUrl(owner) {
-  return owner?.displayAvatarURL?.({ size: 1024, extension: 'png' })
-    ?? owner?.iconURL?.({ size: 1024, extension: 'png' })
-    ?? null;
+  return (
+    owner?.displayAvatarURL?.({ size: 1024, extension: 'png' }) ??
+    owner?.iconURL?.({ size: 1024, extension: 'png' }) ??
+    null
+  );
 }
 
 export const name = 'ownerinfo';
@@ -21,7 +23,7 @@ export async function execute(interaction) {
   // We can fetch the application owner dynamically or use a configured ID.
   const appInfo = await interaction.client.application.fetch();
   const owner = appInfo.owner;
-  
+
   const summary = {
     ownerId: owner.id,
     ownerAvatarUrl: getOwnerAvatarUrl(owner)
@@ -35,7 +37,7 @@ export async function execute(interaction) {
 export async function executeMessage(context) {
   const appInfo = await context.client.application.fetch();
   const owner = appInfo.owner;
-  
+
   const summary = {
     ownerId: owner.id,
     ownerAvatarUrl: getOwnerAvatarUrl(owner)

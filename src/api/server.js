@@ -39,12 +39,15 @@ export function sanitizeRequestUrl(url) {
 /**
  * Creates and configures the Fastify server instance.
  */
-export async function createServer(discordClient, {
-  env = discordClient?.appContext?.config ?? discordClient?.appContext?.runtimeConfig ?? {},
-  fetchImpl = globalThis.fetch,
-  rateLimit = {},
-  dbConnection
-} = {}) {
+export async function createServer(
+  discordClient,
+  {
+    env = discordClient?.appContext?.config ?? discordClient?.appContext?.runtimeConfig ?? {},
+    fetchImpl = globalThis.fetch,
+    rateLimit = {},
+    dbConnection
+  } = {}
+) {
   // We use Fastify's native Pino logger, but we adapt it so it doesn't
   // clash too heavily with the bot's console output.
   const app = fastify({
@@ -56,7 +59,7 @@ export async function createServer(discordClient, {
             method: request.method,
             url: sanitizeRequestUrl(request.url),
             hostname: request.hostname,
-            remoteAddress: request.ip,
+            remoteAddress: request.ip
           };
         }
       }
@@ -105,13 +108,7 @@ export async function createServer(discordClient, {
     });
   }
 
-  if (
-    env.sessionSecret &&
-    env.clientId &&
-    env.discordClientSecret &&
-    env.dashboardOrigin &&
-    env.apiOrigin
-  ) {
+  if (env.sessionSecret && env.clientId && env.discordClientSecret && env.dashboardOrigin && env.apiOrigin) {
     app.register(discordOAuthPlugin, {
       clientId: env.clientId,
       clientSecret: env.discordClientSecret,

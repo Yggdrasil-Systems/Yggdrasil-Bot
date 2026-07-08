@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ButtonStyle } from 'discord.js';
 
-import { buildMusicPlayerComponents, buildQueueComponents, buildSettingsComponents, buildFilterComponents } from '../src/utils/components.js';
+import {
+  buildMusicPlayerComponents,
+  buildQueueComponents,
+  buildSettingsComponents,
+  buildFilterComponents
+} from '../src/utils/components.js';
 
 test('buildMusicPlayerComponents creates 2 rows of buttons', () => {
   const components = buildMusicPlayerComponents();

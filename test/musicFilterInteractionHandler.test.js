@@ -24,29 +24,33 @@ test('music filter interaction clears all filters', async () => {
   let cleared = false;
   let deferred = false;
 
-  const handled = await handleMusicFilterInteraction({
-    isButton: () => true,
-    customId: 'filter_clear',
-    guildId: 'guild-1',
-    deferUpdate: async () => {
-      deferred = true;
-    },
-    editReply: async (response) => {
-      payload = response;
-    }
-  }, {
-    resolveQueue: () => createQueue({
-      filters: {
-        ffmpeg: {
-          filters: [],
-          setFilters: async () => {
-            cleared = true;
-          },
-          toggle: async () => {}
-        }
+  const handled = await handleMusicFilterInteraction(
+    {
+      isButton: () => true,
+      customId: 'filter_clear',
+      guildId: 'guild-1',
+      deferUpdate: async () => {
+        deferred = true;
+      },
+      editReply: async (response) => {
+        payload = response;
       }
-    })
-  });
+    },
+    {
+      resolveQueue: () =>
+        createQueue({
+          filters: {
+            ffmpeg: {
+              filters: [],
+              setFilters: async () => {
+                cleared = true;
+              },
+              toggle: async () => {}
+            }
+          }
+        })
+    }
+  );
 
   assert.equal(handled, true);
   assert.equal(deferred, true);
@@ -59,29 +63,33 @@ test('music filter interaction toggles supported filters', async () => {
   let payload;
   let deferred = false;
 
-  const handled = await handleMusicFilterInteraction({
-    isButton: () => true,
-    customId: 'filter_bassboost',
-    guildId: 'guild-1',
-    deferUpdate: async () => {
-      deferred = true;
-    },
-    editReply: async (response) => {
-      payload = response;
-    }
-  }, {
-    resolveQueue: () => createQueue({
-      filters: {
-        ffmpeg: {
-          filters: [],
-          setInputArgs: async () => {},
-          toggle: async ([name]) => {
-            toggled = name;
-          }
-        }
+  const handled = await handleMusicFilterInteraction(
+    {
+      isButton: () => true,
+      customId: 'filter_bassboost',
+      guildId: 'guild-1',
+      deferUpdate: async () => {
+        deferred = true;
+      },
+      editReply: async (response) => {
+        payload = response;
       }
-    })
-  });
+    },
+    {
+      resolveQueue: () =>
+        createQueue({
+          filters: {
+            ffmpeg: {
+              filters: [],
+              setInputArgs: async () => {},
+              toggle: async ([name]) => {
+                toggled = name;
+              }
+            }
+          }
+        })
+    }
+  );
 
   assert.equal(handled, true);
   assert.equal(deferred, true);
@@ -90,22 +98,25 @@ test('music filter interaction toggles supported filters', async () => {
 });
 
 test('music filter interaction ignores unsupported filter ids', async () => {
-  const handled = await handleMusicFilterInteraction({
-    isButton: () => true,
-    customId: 'filter_unknown',
-    guildId: 'guild-1',
-    reply: async () => {
-      throw new Error('should not reply');
+  const handled = await handleMusicFilterInteraction(
+    {
+      isButton: () => true,
+      customId: 'filter_unknown',
+      guildId: 'guild-1',
+      reply: async () => {
+        throw new Error('should not reply');
+      },
+      deferUpdate: async () => {
+        throw new Error('should not defer');
+      },
+      editReply: async () => {
+        throw new Error('should not editReply');
+      }
     },
-    deferUpdate: async () => {
-      throw new Error('should not defer');
-    },
-    editReply: async () => {
-      throw new Error('should not editReply');
+    {
+      resolveQueue: () => createQueue()
     }
-  }, {
-    resolveQueue: () => createQueue()
-  });
+  );
 
   assert.equal(handled, false);
 });
@@ -113,16 +124,19 @@ test('music filter interaction ignores unsupported filter ids', async () => {
 test('music filter interaction replies with error when no queue', async () => {
   let errorPayload;
 
-  const handled = await handleMusicFilterInteraction({
-    isButton: () => true,
-    customId: 'filter_bassboost',
-    guildId: 'guild-1',
-    reply: async (response) => {
-      errorPayload = response;
+  const handled = await handleMusicFilterInteraction(
+    {
+      isButton: () => true,
+      customId: 'filter_bassboost',
+      guildId: 'guild-1',
+      reply: async (response) => {
+        errorPayload = response;
+      }
+    },
+    {
+      resolveQueue: () => null
     }
-  }, {
-    resolveQueue: () => null
-  });
+  );
 
   assert.equal(handled, true);
   assert.match(errorPayload.embeds[0].data.title, /No Active Session/i);

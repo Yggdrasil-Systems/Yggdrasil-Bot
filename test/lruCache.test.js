@@ -30,8 +30,8 @@ test('LruCache.get promotes the entry so it is not evicted next', () => {
   // Insert a 4th entry — 'b' is now the oldest (least recently used)
   cache.set('d', 4);
 
-  assert.equal(cache.get('a'), 1);         // still present — was promoted
-  assert.equal(cache.get('b'), undefined);  // evicted — was the oldest
+  assert.equal(cache.get('a'), 1); // still present — was promoted
+  assert.equal(cache.get('b'), undefined); // evicted — was the oldest
   assert.equal(cache.get('c'), 3);
   assert.equal(cache.get('d'), 4);
 });

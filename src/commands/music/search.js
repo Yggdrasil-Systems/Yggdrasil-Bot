@@ -13,10 +13,7 @@ export const allowNoPrefix = true;
 export const data = new SlashCommandBuilder()
   .setName('search')
   .setDescription('Search for a song and pick from results.')
-  .addStringOption(option =>
-    option.setName('query')
-      .setDescription('Song name or artist')
-      .setRequired(true));
+  .addStringOption((option) => option.setName('query').setDescription('Song name or artist').setRequired(true));
 
 // Store search results temporarily for select menu resolution.
 // Keyed by user ID — each user can have at most one pending search.
@@ -47,13 +44,23 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
   } catch (err) {
     logger.error('Search failed.', err);
     return respond({
-      embeds: [buildErrorEmbed('Search Failed', `Could not search for that query.\n\`\`\`${formatMusicErrorMessage(err)}\`\`\``)]
+      embeds: [
+        buildErrorEmbed(
+          'Search Failed',
+          `Could not search for that query.\n\`\`\`${formatMusicErrorMessage(err)}\`\`\``
+        )
+      ]
     });
   }
 
   if (!result || !result.hasTracks()) {
     return respond({
-      embeds: [buildErrorEmbed('No Results', `No results found for **${query}**.\nTry a different search term or paste a direct link.`)]
+      embeds: [
+        buildErrorEmbed(
+          'No Results',
+          `No results found for **${query}**.\nTry a different search term or paste a direct link.`
+        )
+      ]
     });
   }
 
@@ -77,7 +84,13 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
 
   const options = tracks.map((track, i) => {
     const src = (track.source || '').toLowerCase();
-    const emoji = src.includes('spotify') ? '🟢' : src.includes('youtube') ? '🔴' : src.includes('soundcloud') ? '🟠' : '🎵';
+    const emoji = src.includes('spotify')
+      ? '🟢'
+      : src.includes('youtube')
+        ? '🔴'
+        : src.includes('soundcloud')
+          ? '🟠'
+          : '🎵';
     return {
       label: `${track.title}`.slice(0, 100),
       description: `${track.author} · ${track.duration}`.slice(0, 100),
@@ -93,16 +106,18 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
 
   const row = new ActionRowBuilder().addComponents(menu);
 
-  const description = tracks.map((t, i) =>
-    `**${i + 1}.** [${t.title}](${t.url})\nby **${t.author}** · \`${t.duration}\``
-  ).join('\n\n');
+  const description = tracks
+    .map((t, i) => `**${i + 1}.** [${t.title}](${t.url})\nby **${t.author}** · \`${t.duration}\``)
+    .join('\n\n');
 
   await respond({
-    embeds: [buildBaseEmbed({
-      title: `🔍 Search Results for "${query.slice(0, 50)}"`,
-      description,
-      color: COLORS.brand
-    })],
+    embeds: [
+      buildBaseEmbed({
+        title: `🔍 Search Results for "${query.slice(0, 50)}"`,
+        description,
+        color: COLORS.brand
+      })
+    ],
     components: [row]
   });
 }
@@ -132,9 +147,16 @@ export async function handleSearchSelect(interaction) {
   searchCache.delete(cacheKey);
 
   // Play the selected track using its URL for exact match
-  await executePlay(track.url, cached.voiceChannel, interaction.user, cached.textChannel, cached.playerService, async (payload) => {
-    await interaction.followUp(payload);
-  });
+  await executePlay(
+    track.url,
+    cached.voiceChannel,
+    interaction.user,
+    cached.textChannel,
+    cached.playerService,
+    async (payload) => {
+      await interaction.followUp(payload);
+    }
+  );
 }
 
 export async function execute(interaction) {

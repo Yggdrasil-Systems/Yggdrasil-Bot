@@ -12,22 +12,18 @@ export function hasTrustedAdminRole(member, trustedAdminRoleIds = []) {
   return trustedAdminRoleIds.some((roleId) => member.roles.cache.has(roleId));
 }
 
-export function canUseAdminCommand({
-  userId,
-  guildOwnerId,
-  botOwnerId,
-  member,
-  trustedAdminRoleIds = []
-}) {
+export function canUseAdminCommand({ userId, guildOwnerId, botOwnerId, member, trustedAdminRoleIds = [] }) {
   if (!userId) {
     return false;
   }
 
-  return userId === guildOwnerId
-    || userId === botOwnerId
-    || hasPermission(member, PermissionsBitField.Flags.Administrator)
-    || hasPermission(member, PermissionsBitField.Flags.ManageGuild)
-    || hasTrustedAdminRole(member, trustedAdminRoleIds);
+  return (
+    userId === guildOwnerId ||
+    userId === botOwnerId ||
+    hasPermission(member, PermissionsBitField.Flags.Administrator) ||
+    hasPermission(member, PermissionsBitField.Flags.ManageGuild) ||
+    hasTrustedAdminRole(member, trustedAdminRoleIds)
+  );
 }
 
 export function canUseNoPrefixShortcuts(context) {

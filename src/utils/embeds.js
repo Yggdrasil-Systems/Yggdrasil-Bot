@@ -100,13 +100,14 @@ export function buildNowPlayingEmbed(track, queue) {
     return buildErrorEmbed('Nothing Playing', 'There is no track currently playing.');
   }
 
-  const progress = queue.node.createProgressBar?.({
-    timecodes: true,
-    length: 14,
-    indicator: '🔘',
-    leftChar: '▬',
-    rightChar: '▬'
-  }) || '';
+  const progress =
+    queue.node.createProgressBar?.({
+      timecodes: true,
+      length: 14,
+      indicator: '🔘',
+      leftChar: '▬',
+      rightChar: '▬'
+    }) || '';
 
   const source = getSourceBadge(track);
   const loopLabel = getLoopLabel(queue.repeatMode);
@@ -131,7 +132,11 @@ export function buildNowPlayingEmbed(track, queue) {
     );
 
   if (nextTrack) {
-    embed.addFields({ name: '⏭️ Up Next', value: `[${nextTrack.title}](${nextTrack.url}) — \`${nextTrack.duration}\``, inline: false });
+    embed.addFields({
+      name: '⏭️ Up Next',
+      value: `[${nextTrack.title}](${nextTrack.url}) — \`${nextTrack.duration}\``,
+      inline: false
+    });
   }
 
   if (track.thumbnail) {
@@ -160,9 +165,9 @@ export function buildQueueEmbed(queue) {
 
   if (tracks.length > 0) {
     description += '**📜 Up Next:**\n';
-    description += tracks.map((t, i) =>
-      `\`${i + 1}.\` **${t.title}** — \`${t.duration}\` · <@${t.requestedBy?.id || '0'}>`
-    ).join('\n');
+    description += tracks
+      .map((t, i) => `\`${i + 1}.\` **${t.title}** — \`${t.duration}\` · <@${t.requestedBy?.id || '0'}>`)
+      .join('\n');
 
     if (queue.tracks.data.length > 10) {
       description += `\n\n*... and **${queue.tracks.data.length - 10}** more track(s)*`;
@@ -197,10 +202,7 @@ export function buildAvatarEmbed(summary) {
 
 export function buildBannerEmbed(summary) {
   if (!summary.imageUrl) {
-    return buildNeutralEmbed(
-      `${summary.displayName}'s Banner`,
-      'No profile banner is available for this user.'
-    );
+    return buildNeutralEmbed(`${summary.displayName}'s Banner`, 'No profile banner is available for this user.');
   }
 
   return buildBaseEmbed({
@@ -299,7 +301,11 @@ export function buildOwnerInfoEmbed(summary) {
     .setThumbnail(summary.ownerAvatarUrl)
     .addFields(
       { name: '👨‍💻 Developer', value: `<@${summary.ownerId}>`, inline: true },
-      { name: '🌟 Vision', value: 'Crafting premium Discord experiences with fast, robust logic and dynamic UI.', inline: false }
+      {
+        name: '🌟 Vision',
+        value: 'Crafting premium Discord experiences with fast, robust logic and dynamic UI.',
+        inline: false
+      }
     );
 }
 
@@ -347,19 +353,17 @@ export function buildRoleInfoEmbed(summary) {
 // ─── Moderation Embeds ────────────────────────────────────────────────────────
 
 export function buildModerationResultEmbed(title, moderationCase) {
-  return buildSuccessEmbed(
-    title,
-    `Case #${moderationCase.caseId} recorded for <@${moderationCase.targetUserId}>.`
-  );
+  return buildSuccessEmbed(title, `Case #${moderationCase.caseId} recorded for <@${moderationCase.targetUserId}>.`);
 }
 
 export function buildWarningsEmbed({ targetUser, warnings }) {
-  const description = warnings.length === 0
-    ? 'No warnings are recorded for this user.'
-    : warnings
-      .slice(0, 8)
-      .map((warning) => `**#${warning.caseId}** — ${warning.reason}`)
-      .join('\n');
+  const description =
+    warnings.length === 0
+      ? 'No warnings are recorded for this user.'
+      : warnings
+          .slice(0, 8)
+          .map((warning) => `**#${warning.caseId}** — ${warning.reason}`)
+          .join('\n');
 
   return buildBaseEmbed({
     title: `⚠️ Warnings for ${targetUser.tag ?? targetUser.username}`,
@@ -368,9 +372,10 @@ export function buildWarningsEmbed({ targetUser, warnings }) {
 }
 
 export function buildModerationLogEmbed({ moderationCase, targetUser, moderatorUser }) {
-  const targetValue = moderationCase.metadata?.targetType === 'channel'
-    ? `<#${moderationCase.metadata.channelId ?? moderationCase.targetUserId}>\n\`${moderationCase.targetUserId}\``
-    : `${targetUser.tag ?? targetUser.username}\n\`${moderationCase.targetUserId}\``;
+  const targetValue =
+    moderationCase.metadata?.targetType === 'channel'
+      ? `<#${moderationCase.metadata.channelId ?? moderationCase.targetUserId}>\n\`${moderationCase.targetUserId}\``
+      : `${targetUser.tag ?? targetUser.username}\n\`${moderationCase.targetUserId}\``;
 
   const embed = buildBaseEmbed({
     title: `⚖️ Moderation Case #${moderationCase.caseId}`,
@@ -378,7 +383,11 @@ export function buildModerationLogEmbed({ moderationCase, targetUser, moderatorU
     color: COLORS.warning
   }).addFields(
     { name: '🎯 Target', value: targetValue, inline: true },
-    { name: '🛡️ Moderator', value: `${moderatorUser.tag ?? moderatorUser.username}\n\`${moderationCase.moderatorId}\``, inline: true },
+    {
+      name: '🛡️ Moderator',
+      value: `${moderatorUser.tag ?? moderatorUser.username}\n\`${moderationCase.moderatorId}\``,
+      inline: true
+    },
     { name: '📝 Reason', value: moderationCase.reason, inline: false }
   );
 
@@ -400,19 +409,24 @@ export function buildSettingsEmbed(settings) {
     ? settings.trustedAdminRoleIds.map((roleId) => `<@&${roleId}>`).join(', ')
     : 'None configured';
 
-  const activityRoles = Object.entries(settings.activityRoles ?? {})
-    .filter(([, config]) => config?.enabled && config?.roleId)
-    .map(([type, config]) => {
-      const labels = { spotify: '🟢', streaming: '🔴', gaming: '🎮', voice: '🔊' };
-      return `${labels[type] ?? '⚡'} <@&${config.roleId}>`;
-    })
-    .join('\n') || 'None configured';
+  const activityRoles =
+    Object.entries(settings.activityRoles ?? {})
+      .filter(([, config]) => config?.enabled && config?.roleId)
+      .map(([type, config]) => {
+        const labels = { spotify: '🟢', streaming: '🔴', gaming: '🎮', voice: '🔊' };
+        return `${labels[type] ?? '⚡'} <@&${config.roleId}>`;
+      })
+      .join('\n') || 'None configured';
 
   return buildBaseEmbed({
     title: `⚙️ ${BOT.name} Settings`,
     description: `Server ID: \`${settings.guildId}\``
   }).addFields(
-    { name: '📝 Mod Log', value: settings.modLogChannelId ? `<#${settings.modLogChannelId}>` : 'Not configured', inline: true },
+    {
+      name: '📝 Mod Log',
+      value: settings.modLogChannelId ? `<#${settings.modLogChannelId}>` : 'Not configured',
+      inline: true
+    },
     { name: '🛡️ Automod', value: formatBoolean(settings.automod.enabled), inline: true },
     { name: '🎭 Trusted Admin Roles', value: trustedRoles.slice(0, 1024), inline: false },
     { name: '⚡ Activity Roles', value: activityRoles.slice(0, 1024), inline: false }
@@ -457,7 +471,13 @@ export function buildCaseEmbed(moderationCase) {
 
 export function buildCaseListEmbed(cases) {
   const description = cases.length
-    ? cases.map((moderationCase) => `**#${moderationCase.caseId}** \`${moderationCase.actionType}\` <@${moderationCase.targetUserId}> — ${moderationCase.reason}`).join('\n').slice(0, 4096)
+    ? cases
+        .map(
+          (moderationCase) =>
+            `**#${moderationCase.caseId}** \`${moderationCase.actionType}\` <@${moderationCase.targetUserId}> — ${moderationCase.reason}`
+        )
+        .join('\n')
+        .slice(0, 4096)
     : 'No moderation cases found.';
 
   return buildBaseEmbed({
@@ -467,13 +487,15 @@ export function buildCaseListEmbed(cases) {
 }
 
 export function buildCaseStatsEmbed(stats) {
-  const byAction = Object.entries(stats.byAction)
-    .map(([action, count]) => `\`${action}\`: ${count}`)
-    .join('\n') || 'None';
+  const byAction =
+    Object.entries(stats.byAction)
+      .map(([action, count]) => `\`${action}\`: ${count}`)
+      .join('\n') || 'None';
 
-  const byStatus = Object.entries(stats.byStatus)
-    .map(([status, count]) => `\`${status}\`: ${count}`)
-    .join('\n') || 'None';
+  const byStatus =
+    Object.entries(stats.byStatus)
+      .map(([status, count]) => `\`${status}\`: ${count}`)
+      .join('\n') || 'None';
 
   return buildBaseEmbed({
     title: '📊 Moderation Case Stats',
@@ -492,7 +514,8 @@ export function buildDashboardEmbed({ dashboardUrl }) {
     description: dashboardUrl
       ? `Dashboard foundation is available at ${dashboardUrl}.`
       : 'Dashboard contracts and planning are scaffolded. A production web dashboard is not enabled yet.'
-  }).addFields(
-    { name: '📋 Current Scope', value: 'Settings, automod, moderation cases, and API contracts are prepared for a future web surface.' }
-  );
+  }).addFields({
+    name: '📋 Current Scope',
+    value: 'Settings, automod, moderation cases, and API contracts are prepared for a future web surface.'
+  });
 }

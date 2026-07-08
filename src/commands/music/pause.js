@@ -5,9 +5,7 @@ import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 export const name = 'pause';
 export const allowNoPrefix = true;
 
-export const data = new SlashCommandBuilder()
-  .setName('pause')
-  .setDescription('Pause the current track.');
+export const data = new SlashCommandBuilder().setName('pause').setDescription('Pause the current track.');
 
 async function executePause(guildId, playerService, respond) {
   const queue = playerService?.getGuildQueue(guildId);

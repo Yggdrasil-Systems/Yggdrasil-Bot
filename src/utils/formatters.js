@@ -11,7 +11,9 @@ export function formatBoolean(value) {
 }
 
 export function formatHexColor(color) {
-  return `#${Number(color ?? 0).toString(16).padStart(6, '0')}`;
+  return `#${Number(color ?? 0)
+    .toString(16)
+    .padStart(6, '0')}`;
 }
 
 export function formatDuration(ms) {

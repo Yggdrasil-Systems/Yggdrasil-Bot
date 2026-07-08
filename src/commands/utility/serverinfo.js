@@ -7,9 +7,7 @@ import { replyToInteraction } from '../../utils/responses.js';
 export const name = 'serverinfo';
 export const aliases = ['server'];
 
-export const data = new SlashCommandBuilder()
-  .setName('serverinfo')
-  .setDescription('View server details.');
+export const data = new SlashCommandBuilder().setName('serverinfo').setDescription('View server details.');
 
 export async function execute(interaction) {
   const summary = getServerInfoSummary({ guild: interaction.guild });

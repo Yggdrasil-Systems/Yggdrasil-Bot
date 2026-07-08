@@ -116,10 +116,7 @@ export function createLogger({
   stream
 } = {}) {
   const loggerBindings = component ? { ...bindings, component } : bindings;
-  const pinoLogger = pino(
-    buildPinoOptions({ scope, level, bindings: loggerBindings, isProduction, stream }),
-    stream
-  );
+  const pinoLogger = pino(buildPinoOptions({ scope, level, bindings: loggerBindings, isProduction, stream }), stream);
 
   return createLoggerAdapter(pinoLogger);
 }

@@ -2,7 +2,12 @@ import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 
 import { moderationService } from '../../services/moderationService.js';
 import { buildErrorEmbed, buildModerationResultEmbed } from '../../utils/embeds.js';
-import { getInteractionModerator, getInteractionTarget, getMessageTarget, getReasonFromArgs } from '../../utils/moderationInputs.js';
+import {
+  getInteractionModerator,
+  getInteractionTarget,
+  getMessageTarget,
+  getReasonFromArgs
+} from '../../utils/moderationInputs.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
 export const name = 'timeout';
@@ -13,8 +18,12 @@ export const data = new SlashCommandBuilder()
   .setDescription('Timeout a user and record a moderation case.')
   .setDefaultMemberPermissions(PermissionsBitField.Flags.ModerateMembers)
   .addUserOption((option) => option.setName('user').setDescription('The user to timeout.').setRequired(true))
-  .addStringOption((option) => option.setName('duration').setDescription('Duration such as 10m, 2h, or 1d.').setRequired(true))
-  .addStringOption((option) => option.setName('reason').setDescription('Why this timeout is being issued.').setRequired(true));
+  .addStringOption((option) =>
+    option.setName('duration').setDescription('Duration such as 10m, 2h, or 1d.').setRequired(true)
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Why this timeout is being issued.').setRequired(true)
+  );
 
 export async function execute(interaction) {
   const { targetMember } = await getInteractionTarget(interaction);
@@ -27,13 +36,17 @@ export async function execute(interaction) {
     reason: interaction.options.getString('reason', true)
   });
 
-  await replyToInteraction(interaction, {
-    embeds: [
-      result.ok
-        ? buildModerationResultEmbed('Timeout applied', result.moderationCase)
-        : buildErrorEmbed('Timeout failed', result.reason)
-    ]
-  }, { ephemeral: !result.ok });
+  await replyToInteraction(
+    interaction,
+    {
+      embeds: [
+        result.ok
+          ? buildModerationResultEmbed('Timeout applied', result.moderationCase)
+          : buildErrorEmbed('Timeout failed', result.reason)
+      ]
+    },
+    { ephemeral: !result.ok }
+  );
 }
 
 export async function executeMessage(context) {

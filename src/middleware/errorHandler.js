@@ -6,12 +6,7 @@ export async function handleInteractionError(interaction, error) {
   logger.error(`Command failed: ${interaction.commandName}`, error);
 
   const payload = {
-    embeds: [
-      buildErrorEmbed(
-        'Something went wrong',
-        'The command could not be completed. Please try again later.'
-      )
-    ]
+    embeds: [buildErrorEmbed('Something went wrong', 'The command could not be completed. Please try again later.')]
   };
 
   try {
@@ -25,12 +20,7 @@ export async function handleMessageCommandError(message, error) {
   logger.error('Message command failed.', error);
 
   await replyToMessage(message, {
-    embeds: [
-      buildErrorEmbed(
-        'Something went wrong',
-        'The command could not be completed. Please try again later.'
-      )
-    ]
+    embeds: [buildErrorEmbed('Something went wrong', 'The command could not be completed. Please try again later.')]
   }).catch((responseError) => {
     logger.error('Failed to send message command error response.', responseError);
   });

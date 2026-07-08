@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 describe('API Server', () => {
   let app;
-  
+
   // Create a mock discord client
   const mockDiscordClient = {
     isReady: () => true,
@@ -31,26 +31,29 @@ describe('API Server', () => {
     });
 
     assert.strictEqual(response.statusCode, 200);
-    
+
     const payload = JSON.parse(response.payload);
     assert.strictEqual(payload.status, 'ok');
     assert.strictEqual(typeof payload.uptime, 'number');
-    
+
     assert.strictEqual(payload.discord.status, 'ready');
     assert.strictEqual(payload.discord.ping, 42);
-    
+
     assert.strictEqual(payload.database.status, 'connected');
     assert.strictEqual(payload.database.readyState, 1);
     assert.strictEqual(typeof payload.memory.heapUsed, 'number');
   });
 
   it('returns 503 from /v1/health when Discord is disconnected', async () => {
-    const unhealthyApp = await createServer({
-      isReady: () => false,
-      ws: { ping: null }
-    }, {
-      dbConnection: { readyState: 1 }
-    });
+    const unhealthyApp = await createServer(
+      {
+        isReady: () => false,
+        ws: { ping: null }
+      },
+      {
+        dbConnection: { readyState: 1 }
+      }
+    );
 
     const response = await unhealthyApp.inject({
       method: 'GET',
@@ -154,17 +157,21 @@ describe('API Server', () => {
 
   it('formats zod validation errors cleanly via errorHandler', async () => {
     const validationApp = await createServer(mockDiscordClient);
-    
+
     // Add a dummy route to test validation
-    validationApp.post('/v1/test-validation', {
-      schema: {
-        body: z.object({
-          name: z.string()
-        })
+    validationApp.post(
+      '/v1/test-validation',
+      {
+        schema: {
+          body: z.object({
+            name: z.string()
+          })
+        }
+      },
+      async (request, reply) => {
+        return { success: true };
       }
-    }, async (request, reply) => {
-      return { success: true };
-    });
+    );
 
     const response = await validationApp.inject({
       method: 'POST',
@@ -175,7 +182,7 @@ describe('API Server', () => {
     await validationApp.close();
 
     assert.strictEqual(response.statusCode, 400);
-    
+
     const payload = JSON.parse(response.payload);
     // Standard fastify error format for validation unless overriden, but our errorHandler catches `error.validation`.
     // Wait, our errorHandler only kicks in for zod validation if it has `error.validation`. Fastify's default compiler sets `error.validation`.
@@ -216,9 +223,6 @@ describe('API Server', () => {
       '/v1/auth/callback'
     );
 
-    assert.strictEqual(
-      sanitizeRequestUrl('/v1/guilds/123/cases?limit=2'),
-      '/v1/guilds/123/cases?limit=2'
-    );
+    assert.strictEqual(sanitizeRequestUrl('/v1/guilds/123/cases?limit=2'), '/v1/guilds/123/cases?limit=2');
   });
 });

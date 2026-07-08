@@ -17,7 +17,9 @@ const ACTION_PERMISSIONS = Object.freeze({
 });
 
 function hasPermission(member, permission) {
-  return Boolean(member?.permissions?.has(permission) || member?.permissions?.has(PermissionsBitField.Flags.Administrator));
+  return Boolean(
+    member?.permissions?.has(permission) || member?.permissions?.has(PermissionsBitField.Flags.Administrator)
+  );
 }
 
 function normalizeReason(reason) {
@@ -55,7 +57,15 @@ function canBotActOnTarget(targetMember, capability) {
   return targetMember[capability] !== false;
 }
 
-function validateModerationRequest({ actionType, guild, moderatorMember, targetMember, reason, targetCapability, settings }) {
+function validateModerationRequest({
+  actionType,
+  guild,
+  moderatorMember,
+  targetMember,
+  reason,
+  targetCapability,
+  settings
+}) {
   if (!guild) {
     return 'This command can only be used in a server.';
   }
@@ -99,15 +109,7 @@ async function getGuildSettings(guild, dependencies) {
   return normalizeGuildSettings(await dependencies.settingsRepository.getOrCreate(guild.id));
 }
 
-async function createAndLogCase({
-  actionType,
-  guild,
-  targetUser,
-  moderatorUser,
-  payload,
-  settings,
-  dependencies
-}) {
+async function createAndLogCase({ actionType, guild, targetUser, moderatorUser, payload, settings, dependencies }) {
   const moderationCase = await dependencies.moderationRepository.createCase({
     guildId: guild.id,
     targetUserId: targetUser.id,
@@ -152,9 +154,7 @@ export function parseDuration(duration) {
 
 export function canBotManageMessages(message) {
   return Boolean(
-    message.guild?.members?.me
-      ?.permissionsIn(message.channel)
-      ?.has(PermissionsBitField.Flags.ManageMessages)
+    message.guild?.members?.me?.permissionsIn(message.channel)?.has(PermissionsBitField.Flags.ManageMessages)
   );
 }
 
@@ -205,9 +205,7 @@ export function createModerationService({
 
     async getCase({ guildId, caseId }) {
       const moderationCase = await dependencies.moderationRepository.getCaseById(guildId, caseId);
-      return moderationCase
-        ? { ok: true, moderationCase }
-        : fail('No matching moderation case was found.');
+      return moderationCase ? { ok: true, moderationCase } : fail('No matching moderation case was found.');
     },
 
     async listCases({ guildId, targetUserId = null, limit = 10, filters = {} }) {
@@ -223,9 +221,7 @@ export function createModerationService({
         resolutionReason: normalizeReason(resolutionReason) || 'Resolved'
       });
 
-      return moderationCase
-        ? { ok: true, moderationCase }
-        : fail('No matching moderation case was found.');
+      return moderationCase ? { ok: true, moderationCase } : fail('No matching moderation case was found.');
     },
 
     async deleteCase({ guildId, caseId, resolvedBy, resolutionReason = 'Deleted' }) {
@@ -236,9 +232,7 @@ export function createModerationService({
         resolutionReason: normalizeReason(resolutionReason) || 'Deleted'
       });
 
-      return moderationCase
-        ? { ok: true, moderationCase }
-        : fail('No matching moderation case was found.');
+      return moderationCase ? { ok: true, moderationCase } : fail('No matching moderation case was found.');
     },
 
     async getCaseStats({ guildId }) {

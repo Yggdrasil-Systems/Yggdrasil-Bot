@@ -2,7 +2,12 @@ import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 
 import { moderationService } from '../../services/moderationService.js';
 import { buildErrorEmbed, buildModerationResultEmbed } from '../../utils/embeds.js';
-import { getInteractionModerator, getInteractionTarget, getMessageTarget, getReasonFromArgs } from '../../utils/moderationInputs.js';
+import {
+  getInteractionModerator,
+  getInteractionTarget,
+  getMessageTarget,
+  getReasonFromArgs
+} from '../../utils/moderationInputs.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
 export const name = 'ban';
@@ -13,7 +18,9 @@ export const data = new SlashCommandBuilder()
   .setDescription('Ban a user and record a moderation case.')
   .setDefaultMemberPermissions(PermissionsBitField.Flags.BanMembers)
   .addUserOption((option) => option.setName('user').setDescription('The user to ban.').setRequired(true))
-  .addStringOption((option) => option.setName('reason').setDescription('Why this ban is being issued.').setRequired(true));
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Why this ban is being issued.').setRequired(true)
+  );
 
 export async function execute(interaction) {
   const { targetUser, targetMember } = await getInteractionTarget(interaction);
@@ -26,13 +33,17 @@ export async function execute(interaction) {
     reason: interaction.options.getString('reason', true)
   });
 
-  await replyToInteraction(interaction, {
-    embeds: [
-      result.ok
-        ? buildModerationResultEmbed('Member banned', result.moderationCase)
-        : buildErrorEmbed('Ban failed', result.reason)
-    ]
-  }, { ephemeral: !result.ok });
+  await replyToInteraction(
+    interaction,
+    {
+      embeds: [
+        result.ok
+          ? buildModerationResultEmbed('Member banned', result.moderationCase)
+          : buildErrorEmbed('Ban failed', result.reason)
+      ]
+    },
+    { ephemeral: !result.ok }
+  );
 }
 
 export async function executeMessage(context) {

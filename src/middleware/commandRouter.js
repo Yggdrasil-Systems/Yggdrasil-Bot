@@ -57,9 +57,14 @@ export async function handleComponentInteraction(interaction) {
     logger.error('Component interaction error.', error);
     try {
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ embeds: [buildErrorEmbed('Error', 'Something went wrong. Please try again.')], flags: 64 });
+        await interaction.reply({
+          embeds: [buildErrorEmbed('Error', 'Something went wrong. Please try again.')],
+          flags: 64
+        });
       }
-    } catch { /* interaction expired */ }
+    } catch {
+      /* interaction expired */
+    }
   }
 }
 
@@ -77,9 +82,10 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
     return;
   }
 
-  const settings = settingsService && interaction.guild?.id
-    ? await settingsService.getEffectiveSettings(interaction.guild.id).catch(() => null)
-    : null;
+  const settings =
+    settingsService && interaction.guild?.id
+      ? await settingsService.getEffectiveSettings(interaction.guild.id).catch(() => null)
+      : null;
 
   if (command.botOwnerOnly && interaction.user.id !== runtimeConfig.botOwnerId) {
     await replyToInteraction(
@@ -90,16 +96,16 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
     return;
   }
 
-  if (command.adminOnly && !canUseAdminCommand({
-    userId: interaction.user.id,
-    guildOwnerId: interaction.guild?.ownerId ?? null,
-    botOwnerId: runtimeConfig.botOwnerId ?? null,
-    member: interaction.member,
-    trustedAdminRoleIds: [
-      ...(runtimeConfig.trustedAdminRoleIds ?? []),
-      ...(settings?.trustedAdminRoleIds ?? [])
-    ]
-  })) {
+  if (
+    command.adminOnly &&
+    !canUseAdminCommand({
+      userId: interaction.user.id,
+      guildOwnerId: interaction.guild?.ownerId ?? null,
+      botOwnerId: runtimeConfig.botOwnerId ?? null,
+      member: interaction.member,
+      trustedAdminRoleIds: [...(runtimeConfig.trustedAdminRoleIds ?? []), ...(settings?.trustedAdminRoleIds ?? [])]
+    })
+  ) {
     await replyToInteraction(
       interaction,
       { embeds: [buildErrorEmbed('Permission required', 'You do not have permission to use that command.')] },

@@ -1,9 +1,4 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  hkdfSync,
-  randomBytes
-} from 'node:crypto';
+import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:crypto';
 
 import fp from 'fastify-plugin';
 
@@ -136,10 +131,7 @@ export function encryptAccessToken(accessToken, sessionSecret) {
     authTagLength: AUTH_TAG_BYTES
   });
 
-  const ciphertext = Buffer.concat([
-    cipher.update(accessToken, 'utf8'),
-    cipher.final()
-  ]);
+  const ciphertext = Buffer.concat([cipher.update(accessToken, 'utf8'), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
   return [
@@ -174,10 +166,7 @@ export function decryptAccessToken(encryptedAccessToken, sessionSecret) {
   });
   decipher.setAuthTag(authTag);
 
-  return Buffer.concat([
-    decipher.update(ciphertext),
-    decipher.final()
-  ]).toString('utf8');
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
 }
 
 export function serializeSession(session, sessionSecret) {
@@ -226,145 +215,149 @@ export function deserializeSession(serializedSession, sessionSecret) {
   }
 }
 
-export const sessionPlugin = fp(async (fastify, opts) => {
-  const { sessionSecret, isProduction = false } = opts;
+export const sessionPlugin = fp(
+  async (fastify, opts) => {
+    const { sessionSecret, isProduction = false } = opts;
 
-  assertSessionSecret(sessionSecret);
+    assertSessionSecret(sessionSecret);
 
-  fastify.decorateRequest('session', null);
+    fastify.decorateRequest('session', null);
 
-  fastify.decorateReply('setSessionCookie', function setSessionCookie(session) {
-    const serializedSession = serializeSession(session, sessionSecret);
+    fastify.decorateReply('setSessionCookie', function setSessionCookie(session) {
+      const serializedSession = serializeSession(session, sessionSecret);
 
-    return this.setCookie(
-      SESSION_COOKIE_NAME,
-      serializedSession,
-      buildCookieOptions({ expiresAt: session.expiresAt, isProduction })
-    );
-  });
-
-  fastify.decorateReply('clearSessionCookie', function clearSessionCookie() {
-    return this.clearCookie(SESSION_COOKIE_NAME, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: Boolean(isProduction),
-      path: '/'
+      return this.setCookie(
+        SESSION_COOKIE_NAME,
+        serializedSession,
+        buildCookieOptions({ expiresAt: session.expiresAt, isProduction })
+      );
     });
-  });
 
-  fastify.decorate('sessionDecorator', async function sessionDecorator(request, reply) {
-    request.session = null;
-
-    const result = readSessionFromCookie(request, sessionSecret);
-
-    if (!result.ok) {
-      if (result.reason !== 'missing') {
-        reply.clearSessionCookie();
-      }
-      return;
-    }
-
-    request.session = result.session;
-  });
-
-  fastify.decorate('sessionGuard', async function sessionGuard(request, reply) {
-    request.session = null;
-
-    const result = readSessionFromCookie(request, sessionSecret);
-
-    if (!result.ok) {
-      if (result.reason !== 'missing') {
-        reply.clearSessionCookie();
-      }
-      return unauthorized(reply);
-    }
-
-    request.session = result.session;
-  });
-
-  fastify.decorate('guildAdminGuard', async function guildAdminGuard(request, reply) {
-    await fastify.sessionGuard(request, reply);
-    if (reply.sent) return;
-
-    const { guildId } = request.params;
-    const userId = request.session?.discordUserId;
-
-    if (!guildId) {
-      return reply.code(400).send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: 'Missing guildId parameter'
+    fastify.decorateReply('clearSessionCookie', function clearSessionCookie() {
+      return this.clearCookie(SESSION_COOKIE_NAME, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: Boolean(isProduction),
+        path: '/'
       });
-    }
+    });
 
-    if (!fastify.services?.discordClient || !fastify.services?.settingsService) {
-      return reply.code(500).send({
-        statusCode: 500,
-        error: 'Internal Server Error',
-        message: 'Services not available'
+    fastify.decorate('sessionDecorator', async function sessionDecorator(request, reply) {
+      request.session = null;
+
+      const result = readSessionFromCookie(request, sessionSecret);
+
+      if (!result.ok) {
+        if (result.reason !== 'missing') {
+          reply.clearSessionCookie();
+        }
+        return;
+      }
+
+      request.session = result.session;
+    });
+
+    fastify.decorate('sessionGuard', async function sessionGuard(request, reply) {
+      request.session = null;
+
+      const result = readSessionFromCookie(request, sessionSecret);
+
+      if (!result.ok) {
+        if (result.reason !== 'missing') {
+          reply.clearSessionCookie();
+        }
+        return unauthorized(reply);
+      }
+
+      request.session = result.session;
+    });
+
+    fastify.decorate('guildAdminGuard', async function guildAdminGuard(request, reply) {
+      await fastify.sessionGuard(request, reply);
+      if (reply.sent) return;
+
+      const { guildId } = request.params;
+      const userId = request.session?.discordUserId;
+
+      if (!guildId) {
+        return reply.code(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'Missing guildId parameter'
+        });
+      }
+
+      if (!fastify.services?.discordClient || !fastify.services?.settingsService) {
+        return reply.code(500).send({
+          statusCode: 500,
+          error: 'Internal Server Error',
+          message: 'Services not available'
+        });
+      }
+
+      const { discordClient, settingsService } = fastify.services;
+      const botOwnerId = discordClient.appContext?.config?.botOwnerId;
+
+      if (userId === botOwnerId) {
+        return;
+      }
+
+      const cached = getCachedAdminAuthorization(guildId, userId);
+      if (cached !== null) {
+        if (!cached) {
+          return reply.code(403).send({
+            statusCode: 403,
+            error: 'Forbidden',
+            message: 'You lack permission to access settings/cases for this guild'
+          });
+        }
+        return;
+      }
+
+      const guild =
+        discordClient.guilds.cache.get(guildId) ?? (await discordClient.guilds.fetch(guildId).catch(() => null));
+      if (!guild) {
+        return reply.code(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Guild not found'
+        });
+      }
+
+      const member = guild.members.cache.get(userId) ?? (await guild.members.fetch(userId).catch(() => null));
+      if (!member) {
+        setCachedAdminAuthorization(guildId, userId, false);
+        return reply.code(403).send({
+          statusCode: 403,
+          error: 'Forbidden',
+          message: 'You are not a member of this guild'
+        });
+      }
+
+      const settings = await settingsService.getSettings(guildId).catch(() => null);
+      const trustedAdminRoleIds = settings?.trustedAdminRoleIds ?? [];
+
+      const isAuthorized = canUseAdminCommand({
+        userId,
+        guildOwnerId: guild.ownerId,
+        botOwnerId,
+        member,
+        trustedAdminRoleIds
       });
-    }
 
-    const { discordClient, settingsService } = fastify.services;
-    const botOwnerId = discordClient.appContext?.config?.botOwnerId;
+      setCachedAdminAuthorization(guildId, userId, isAuthorized);
 
-    if (userId === botOwnerId) {
-      return;
-    }
-
-    const cached = getCachedAdminAuthorization(guildId, userId);
-    if (cached !== null) {
-      if (!cached) {
+      if (!isAuthorized) {
         return reply.code(403).send({
           statusCode: 403,
           error: 'Forbidden',
           message: 'You lack permission to access settings/cases for this guild'
         });
       }
-      return;
-    }
-
-    const guild = discordClient.guilds.cache.get(guildId) ?? await discordClient.guilds.fetch(guildId).catch(() => null);
-    if (!guild) {
-      return reply.code(404).send({
-        statusCode: 404,
-        error: 'Not Found',
-        message: 'Guild not found'
-      });
-    }
-
-    const member = guild.members.cache.get(userId) ?? await guild.members.fetch(userId).catch(() => null);
-    if (!member) {
-      setCachedAdminAuthorization(guildId, userId, false);
-      return reply.code(403).send({
-        statusCode: 403,
-        error: 'Forbidden',
-        message: 'You are not a member of this guild'
-      });
-    }
-
-    const settings = await settingsService.getSettings(guildId).catch(() => null);
-    const trustedAdminRoleIds = settings?.trustedAdminRoleIds ?? [];
-
-    const isAuthorized = canUseAdminCommand({
-      userId,
-      guildOwnerId: guild.ownerId,
-      botOwnerId,
-      member,
-      trustedAdminRoleIds
     });
-
-    setCachedAdminAuthorization(guildId, userId, isAuthorized);
-
-    if (!isAuthorized) {
-      return reply.code(403).send({
-        statusCode: 403,
-        error: 'Forbidden',
-        message: 'You lack permission to access settings/cases for this guild'
-      });
-    }
-  });
-}, {
-  name: 'sessionPlugin',
-  dependencies: ['cookiePlugin']
-});
+  },
+  {
+    name: 'sessionPlugin',
+    dependencies: ['cookiePlugin']
+  }
+);

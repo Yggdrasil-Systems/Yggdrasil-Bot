@@ -9,17 +9,11 @@ export const name = 'ping';
 export const aliases = [];
 export const allowNoPrefix = true;
 
-export const data = new SlashCommandBuilder()
-  .setName('ping')
-  .setDescription('Check whether World Tree is responsive.');
+export const data = new SlashCommandBuilder().setName('ping').setDescription('Check whether World Tree is responsive.');
 
 function buildRefreshRow() {
   return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setLabel('Refresh')
-      .setCustomId('ping_refresh')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('🔄')
+    new ButtonBuilder().setLabel('Refresh').setCustomId('ping_refresh').setStyle(ButtonStyle.Secondary).setEmoji('🔄')
   );
 }
 
@@ -42,10 +36,12 @@ export async function execute(interaction) {
 
   // Send initial response to measure round-trip time
   const reply = await interaction.reply({
-    embeds: [buildPingEmbed({
-      ...buildFullPingSummary(interaction.client, displayName),
-      responseLatency: 0
-    })],
+    embeds: [
+      buildPingEmbed({
+        ...buildFullPingSummary(interaction.client, displayName),
+        responseLatency: 0
+      })
+    ],
     components: [buildRefreshRow()],
     fetchReply: true
   });
@@ -67,10 +63,12 @@ export async function executeMessage(context) {
 
   // Send initial response
   const reply = await context.respond({
-    embeds: [buildPingEmbed({
-      ...buildFullPingSummary(context.client, displayName),
-      responseLatency: 0
-    })],
+    embeds: [
+      buildPingEmbed({
+        ...buildFullPingSummary(context.client, displayName),
+        responseLatency: 0
+      })
+    ],
     components: [buildRefreshRow()]
   });
 
@@ -81,9 +79,11 @@ export async function executeMessage(context) {
 
   // Edit the reply with actual latency
   if (reply?.edit) {
-    await reply.edit({
-      embeds: [buildPingEmbed(summary)],
-      components: [buildRefreshRow()]
-    }).catch(() => null);
+    await reply
+      .edit({
+        embeds: [buildPingEmbed(summary)],
+        components: [buildRefreshRow()]
+      })
+      .catch(() => null);
   }
 }

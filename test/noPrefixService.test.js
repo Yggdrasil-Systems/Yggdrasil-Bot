@@ -4,27 +4,33 @@ import { test } from 'node:test';
 import { createNoPrefixService } from '../src/services/noPrefixService.js';
 
 test('noPrefixService always allows the bot owner', async () => {
-  const service = createNoPrefixService({
-    findActiveByUserId: async () => null
-  }, { botOwnerId: 'owner' });
+  const service = createNoPrefixService(
+    {
+      findActiveByUserId: async () => null
+    },
+    { botOwnerId: 'owner' }
+  );
 
   assert.equal(await service.canUseNoPrefix('owner'), true);
 });
 
 test('noPrefixService persists add, remove, and list operations', async () => {
   const calls = [];
-  const service = createNoPrefixService({
-    upsertUser: async (payload) => {
-      calls.push(['upsert', payload]);
-      return { userId: payload.userId, active: true };
+  const service = createNoPrefixService(
+    {
+      upsertUser: async (payload) => {
+        calls.push(['upsert', payload]);
+        return { userId: payload.userId, active: true };
+      },
+      deactivateUser: async (payload) => {
+        calls.push(['deactivate', payload]);
+        return { userId: payload.userId, active: false };
+      },
+      listActiveUsers: async () => [{ userId: 'user-1', active: true }],
+      findActiveByUserId: async () => ({ userId: 'user-1', active: true })
     },
-    deactivateUser: async (payload) => {
-      calls.push(['deactivate', payload]);
-      return { userId: payload.userId, active: false };
-    },
-    listActiveUsers: async () => [{ userId: 'user-1', active: true }],
-    findActiveByUserId: async () => ({ userId: 'user-1', active: true })
-  }, { botOwnerId: 'owner' });
+    { botOwnerId: 'owner' }
+  );
 
   await service.addUser({ userId: 'user-1', addedBy: 'owner', reason: 'trusted' });
   await service.removeUser({ userId: 'user-1', removedBy: 'owner', reason: 'cleanup' });
@@ -38,15 +44,18 @@ test('noPrefixService persists add, remove, and list operations', async () => {
 
 test('noPrefixService caches no-prefix lookups and invalidates on updates', async () => {
   let lookups = 0;
-  const service = createNoPrefixService({
-    findActiveByUserId: async () => {
-      lookups += 1;
-      return null;
+  const service = createNoPrefixService(
+    {
+      findActiveByUserId: async () => {
+        lookups += 1;
+        return null;
+      },
+      upsertUser: async (payload) => ({ userId: payload.userId, active: true }),
+      deactivateUser: async () => null,
+      listActiveUsers: async () => []
     },
-    upsertUser: async (payload) => ({ userId: payload.userId, active: true }),
-    deactivateUser: async () => null,
-    listActiveUsers: async () => []
-  }, { cacheTtlMs: 10_000 });
+    { cacheTtlMs: 10_000 }
+  );
 
   assert.equal(await service.canUseNoPrefix('user-1'), false);
   assert.equal(await service.canUseNoPrefix('user-1'), false);

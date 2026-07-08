@@ -43,23 +43,19 @@ function getSourceLabel(track) {
 export { getSourceEmoji, getSourceLabel };
 
 function formatPlaybackError(error, maxLength = 200) {
-  const message = error instanceof Error
-    ? error.message
-    : typeof error === 'string'
-      ? error
-      : 'Unknown error';
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error';
 
   return message.slice(0, maxLength);
 }
 
-
-
 // ─── Player initialization ──────────────────────────────────────────────────
 
 export async function initializePlayer(client, playerService) {
-  const player = playerService.setPlayer(new Player(client, {
-    skipFFmpeg: false
-  }));
+  const player = playerService.setPlayer(
+    new Player(client, {
+      skipFFmpeg: false
+    })
+  );
 
   // 1. Load default extractors (SoundCloud, Spotify metadata, Apple metadata, etc.)
   await player.extractors.loadMulti(DefaultExtractors);
@@ -91,30 +87,31 @@ export async function initializePlayer(client, playerService) {
     if (queue.isPlaying()) {
       const emoji = getSourceEmoji(track);
       safeSend(queue, {
-        embeds: [buildSuccessEmbed(
-          `${emoji} Track Queued`,
-          `**[${track.title}](${track.url})**\nby **${track.author}** · \`${track.duration}\`\n\n📍 Position in queue: **#${queue.tracks.data.length}**`
-        )]
+        embeds: [
+          buildSuccessEmbed(
+            `${emoji} Track Queued`,
+            `**[${track.title}](${track.url})**\nby **${track.author}** · \`${track.duration}\`\n\n📍 Position in queue: **#${queue.tracks.data.length}**`
+          )
+        ]
       });
     }
   });
 
   player.events.on('audioTracksAdd', (queue, tracks) => {
     safeSend(queue, {
-      embeds: [buildSuccessEmbed(
-        '📋 Tracks Queued',
-        `Added **${tracks.length}** tracks to the queue.`
-      )]
+      embeds: [buildSuccessEmbed('📋 Tracks Queued', `Added **${tracks.length}** tracks to the queue.`)]
     });
   });
 
   player.events.on('playerSkip', (queue, track) => {
     logger.warn(`Skipped unplayable track: ${track.title} — ${track.author}`);
     safeSend(queue, {
-      embeds: [buildErrorEmbed(
-        'Track Skipped',
-        `Could not play **${track.title}**. Skipping to next track.\nThis can happen with age-restricted or region-locked content.`
-      )]
+      embeds: [
+        buildErrorEmbed(
+          'Track Skipped',
+          `Could not play **${track.title}**. Skipping to next track.\nThis can happen with age-restricted or region-locked content.`
+        )
+      ]
     });
   });
 
@@ -143,10 +140,12 @@ export async function initializePlayer(client, playerService) {
   player.events.on('error', (queue, error) => {
     logger.error('Player error.', error);
     safeSend(queue, {
-      embeds: [buildErrorEmbed(
-        'Playback Error',
-        `Something went wrong during playback.\n\`\`\`${formatPlaybackError(error)}\`\`\``
-      )]
+      embeds: [
+        buildErrorEmbed(
+          'Playback Error',
+          `Something went wrong during playback.\n\`\`\`${formatPlaybackError(error)}\`\`\``
+        )
+      ]
     });
   });
 
@@ -154,10 +153,12 @@ export async function initializePlayer(client, playerService) {
     const trackInfo = track ? `**${track.title}**` : 'the current track';
     logger.error(`Player track error on ${trackInfo}.`, error);
     safeSend(queue, {
-      embeds: [buildErrorEmbed(
-        'Track Error',
-        `Failed to stream ${trackInfo}.\n\`\`\`${formatPlaybackError(error)}\`\`\`\nTry playing it again or use a different source.`
-      )]
+      embeds: [
+        buildErrorEmbed(
+          'Track Error',
+          `Failed to stream ${trackInfo}.\n\`\`\`${formatPlaybackError(error)}\`\`\`\nTry playing it again or use a different source.`
+        )
+      ]
     });
   });
 

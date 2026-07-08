@@ -13,14 +13,14 @@ async function deleteMessage(message) {
     return false;
   }
 
-  const deleted = await message.delete().then(() => true).catch(() => false);
+  const deleted = await message
+    .delete()
+    .then(() => true)
+    .catch(() => false);
   return deleted;
 }
 
-export function createPunishmentExecutor({
-  moderationRepo = moderationRepository,
-  logService = loggingService
-} = {}) {
+export function createPunishmentExecutor({ moderationRepo = moderationRepository, logService = loggingService } = {}) {
   return {
     async execute({ message, settings, result }) {
       const deleted = await deleteMessage(message);

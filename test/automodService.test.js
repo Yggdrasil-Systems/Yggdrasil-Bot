@@ -90,13 +90,16 @@ test('automod service skips commands and ignored channels before punishing', asy
     }
   });
 
-  await service.handleMessage({
-    content: 'blocked',
-    guild: { id: 'guild' },
-    channel: { id: 'channel' },
-    author: { id: 'user', bot: false },
-    member: { roles: { cache: new Map() } }
-  }, { isCommand: false });
+  await service.handleMessage(
+    {
+      content: 'blocked',
+      guild: { id: 'guild' },
+      channel: { id: 'channel' },
+      author: { id: 'user', bot: false },
+      member: { roles: { cache: new Map() } }
+    },
+    { isCommand: false }
+  );
 
   assert.equal(punished, false);
 });
@@ -128,18 +131,20 @@ test('automod service can punish normal no-prefix lookalikes when routing did no
     }
   });
 
-  await service.handleMessage({
-    content: 'ping',
-    guild: { id: 'guild' },
-    channel: { id: 'channel' },
-    author: { id: 'user', bot: false },
-    member: { roles: { cache: new Map() } },
-    mentions: { users: { size: 0 }, roles: { size: 0 } }
-  }, { isCommand: false });
+  await service.handleMessage(
+    {
+      content: 'ping',
+      guild: { id: 'guild' },
+      channel: { id: 'channel' },
+      author: { id: 'user', bot: false },
+      member: { roles: { cache: new Map() } },
+      mentions: { users: { size: 0 }, roles: { size: 0 } }
+    },
+    { isCommand: false }
+  );
 
   assert.equal(punished, true);
 });
-
 
 test('automodState dispose clears interval and state without error', () => {
   const state = createAutomodState();
@@ -160,20 +165,20 @@ test('automodState enforces maxEntries with batch eviction', () => {
   for (let i = 0; i < maxEntries; i++) {
     state.setRepeatedMessages(`key-${i}`, [{ createdAt: Date.now() }]);
   }
-  
+
   assert.equal(state.size, maxEntries);
 
   // Setting the 11th entry should trigger eviction of the oldest 10% (1 entry)
   state.setRepeatedMessages('key-10', [{ createdAt: Date.now() }]);
-  
+
   // size should be 10 again (11 added, 1 evicted)
   assert.equal(state.size, maxEntries);
-  
+
   // 'key-0' should be the one evicted as it was the oldest
   assert.equal(state.getRepeatedMessages('key-0').length, 0);
   assert.equal(state.getRepeatedMessages('key-1').length, 1);
   assert.equal(state.getRepeatedMessages('key-10').length, 1);
-  
+
   state.dispose();
 });
 

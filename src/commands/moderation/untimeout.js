@@ -2,7 +2,12 @@ import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 
 import { moderationService } from '../../services/moderationService.js';
 import { buildErrorEmbed, buildModerationResultEmbed } from '../../utils/embeds.js';
-import { getInteractionModerator, getInteractionTarget, getMessageTarget, getReasonFromArgs } from '../../utils/moderationInputs.js';
+import {
+  getInteractionModerator,
+  getInteractionTarget,
+  getMessageTarget,
+  getReasonFromArgs
+} from '../../utils/moderationInputs.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
 export const name = 'untimeout';
@@ -14,7 +19,9 @@ export const data = new SlashCommandBuilder()
   .setDescription('Remove a user timeout and record a moderation case.')
   .setDefaultMemberPermissions(PermissionsBitField.Flags.ModerateMembers)
   .addUserOption((option) => option.setName('user').setDescription('The user to restore.').setRequired(true))
-  .addStringOption((option) => option.setName('reason').setDescription('Why this timeout is being removed.').setRequired(false));
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Why this timeout is being removed.').setRequired(false)
+  );
 
 export async function execute(interaction) {
   const { targetMember } = await getInteractionTarget(interaction);
@@ -26,13 +33,17 @@ export async function execute(interaction) {
     reason: interaction.options.getString('reason') ?? 'Timeout removed'
   });
 
-  await replyToInteraction(interaction, {
-    embeds: [
-      result.ok
-        ? buildModerationResultEmbed('Timeout removed', result.moderationCase)
-        : buildErrorEmbed('Untimeout failed', result.reason)
-    ]
-  }, { ephemeral: !result.ok });
+  await replyToInteraction(
+    interaction,
+    {
+      embeds: [
+        result.ok
+          ? buildModerationResultEmbed('Timeout removed', result.moderationCase)
+          : buildErrorEmbed('Untimeout failed', result.reason)
+      ]
+    },
+    { ephemeral: !result.ok }
+  );
 }
 
 export async function executeMessage(context) {

@@ -36,41 +36,45 @@ export const getCasesQuerySchema = z.object({
 });
 
 export async function casesRoutes(fastify, opts) {
-  fastify.get('/', {
-    preHandler: fastify.guildAdminGuard,
-    schema: {
-      params: getCasesParamsSchema,
-      querystring: getCasesQuerySchema,
-      response: {
-        200: casesResponseSchema
+  fastify.get(
+    '/',
+    {
+      preHandler: fastify.guildAdminGuard,
+      schema: {
+        params: getCasesParamsSchema,
+        querystring: getCasesQuerySchema,
+        response: {
+          200: casesResponseSchema
+        }
       }
+    },
+    async (request, reply) => {
+      const { guildId } = request.params;
+      const { limit, cursor, targetUserId } = request.query;
+      const { moderationService } = fastify.services;
+
+      const result = await moderationService.listCases({
+        guildId,
+        targetUserId,
+        limit,
+        filters: { cursor }
+      });
+
+      if (!result.ok) {
+        throw fastify.httpErrors.internalServerError(result.reason);
+      }
+
+      const cases = result.cases;
+      let nextCursor = null;
+
+      if (cases.length === limit) {
+        nextCursor = cases[cases.length - 1].caseId;
+      }
+
+      return {
+        data: cases,
+        nextCursor
+      };
     }
-  }, async (request, reply) => {
-    const { guildId } = request.params;
-    const { limit, cursor, targetUserId } = request.query;
-    const { moderationService } = fastify.services;
-
-    const result = await moderationService.listCases({
-      guildId,
-      targetUserId,
-      limit,
-      filters: { cursor }
-    });
-
-    if (!result.ok) {
-      throw fastify.httpErrors.internalServerError(result.reason);
-    }
-
-    const cases = result.cases;
-    let nextCursor = null;
-
-    if (cases.length === limit) {
-      nextCursor = cases[cases.length - 1].caseId;
-    }
-
-    return {
-      data: cases,
-      nextCursor
-    };
-  });
+  );
 }

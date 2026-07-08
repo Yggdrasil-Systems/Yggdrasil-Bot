@@ -143,7 +143,7 @@ world-tree/
 │   │   │   ├── settings.js             # Guild settings viewer + nested subcommand router
 │   │   │   ├── automod.js              # Automod configuration entry point
 │   │   │   ├── modlog.js               # Mod-log channel shortcut
-│   │   │   ├── setmodlog.js            # Set mod-log channel (prefix variant)
+│   │   │   ├── setmodlog.js            # Deprecated compatibility wrapper for modlog setter
 │   │   │   ├── noprefix.js             # No-prefix allowlist management (add/remove/list)
 │   │   │   ├── trustedrole.js          # Trusted admin role management entry point
 │   │   │   ├── activityrole.js         # Activity role shortcut command
@@ -477,7 +477,7 @@ export function dispatch(interaction) {
 2. Add one line to `src/interactions/registerAllHandlers.js`:
 
    ```js
-   registerHandler({ prefix: '<unique_prefix>', handle: handle<Name>Interaction });
+   registerHandler({ prefix: '<unique_prefix>', handle: handle < Name > Interaction });
    ```
 
 No edits to `commandRouter.js` are required.
@@ -490,9 +490,16 @@ The music player is no longer a module-level global. Instead, `src/services/play
 export function createPlayerService() {
   let player = null;
   return {
-    setPlayer(nextPlayer) { player = nextPlayer; return player; },
-    getPlayer()          { return player; },
-    getGuildQueue(guildId) { return player?.nodes?.get(guildId) ?? null; }
+    setPlayer(nextPlayer) {
+      player = nextPlayer;
+      return player;
+    },
+    getPlayer() {
+      return player;
+    },
+    getGuildQueue(guildId) {
+      return player?.nodes?.get(guildId) ?? null;
+    }
   };
 }
 ```
@@ -531,24 +538,24 @@ graph LR
     Cookie --> Unsign --> Decrypt --> Expiry --> Attach
 ```
 
-| Property | Value |
-|---|---|
-| Encryption | AES-256-GCM with 12-byte random IV |
-| Key Derivation | HKDF-SHA256 from `SESSION_SECRET` |
-| Cookie Signing | HMAC-SHA256 via `@fastify/cookie` (timing-safe) |
-| Cookie Flags | `HttpOnly`, `SameSite=Lax`, `Secure` (prod), `Path=/` |
-| Token Storage | Encrypted inside cookie — no server-side session state |
+| Property       | Value                                                  |
+| -------------- | ------------------------------------------------------ |
+| Encryption     | AES-256-GCM with 12-byte random IV                     |
+| Key Derivation | HKDF-SHA256 from `SESSION_SECRET`                      |
+| Cookie Signing | HMAC-SHA256 via `@fastify/cookie` (timing-safe)        |
+| Cookie Flags   | `HttpOnly`, `SameSite=Lax`, `Secure` (prod), `Path=/`  |
+| Token Storage  | Encrypted inside cookie — no server-side session state |
 
 ### OAuth2 + PKCE Flow
 
 Discord is the only identity provider. The API implements the Authorization Code flow with PKCE and issues the existing encrypted session cookie after Discord identity is verified.
 
-| Route | Behavior |
-|---|---|
-| `GET /v1/auth/login` | Generates state + PKCE verifier cookies and redirects to Discord |
-| `GET /v1/auth/callback` | Validates state/verifier, exchanges code, fetches `/users/@me`, issues session |
-| `GET /v1/auth/me` | Requires `sessionGuard`, fetches live Discord identity, returns safe profile fields |
-| `POST /v1/auth/logout` | Requires `sessionGuard`, clears the session cookie |
+| Route                   | Behavior                                                                            |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| `GET /v1/auth/login`    | Generates state + PKCE verifier cookies and redirects to Discord                    |
+| `GET /v1/auth/callback` | Validates state/verifier, exchanges code, fetches `/users/@me`, issues session      |
+| `GET /v1/auth/me`       | Requires `sessionGuard`, fetches live Discord identity, returns safe profile fields |
+| `POST /v1/auth/logout`  | Requires `sessionGuard`, clears the session cookie                                  |
 
 Redirect URIs are built only from explicit config: `${API_ORIGIN}/v1/auth/callback`. Dashboard redirects always use `DASHBOARD_ORIGIN`; request headers are never trusted for redirect targets.
 
@@ -560,32 +567,32 @@ World Tree routes all input types into the same command architecture.
 
 ### Three Input Modes
 
-| Mode | Format | Example |
-|---|---|---|
-| **Slash** | Discord slash commands | `/warn user:@user reason:Spam` |
-| **Prefix** | `tree` prefix (case-insensitive) | `tree warn @user "Spam"` |
-| **No-Prefix** | Allowlisted users only | `warn @user "Spam"` |
+| Mode          | Format                           | Example                        |
+| ------------- | -------------------------------- | ------------------------------ |
+| **Slash**     | Discord slash commands           | `/warn user:@user reason:Spam` |
+| **Prefix**    | `tree` prefix (case-insensitive) | `tree warn @user "Spam"`       |
+| **No-Prefix** | Allowlisted users only           | `warn @user "Spam"`            |
 
 No-prefix access is **global and bot-managed** — not inherited from Discord server permissions. Only the bot owner can manage the allowlist via `tree noprefix add/remove/list`.
 
 ### Playback Commands
 
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `play` | `p` | Play a song by name or link |
-| `search` | `find` | Search and pick from top 5 results |
-| `nowplaying` | `np` | Current track with interactive controls |
-| `skip` | `s`, `next` | Skip the current track |
-| `stop` | `dc`, `disconnect`, `leave` | Stop playback and clear queue |
-| `resume` | `pause`, `togglepause` | Toggle pause/resume |
-| `volume` | `vol` | Set volume (0–100) |
-| `queue` | `q` | View the current queue |
-| `shuffle` | `mix` | Shuffle the queue |
-| `loop` | `repeat` | Cycle: off → track → queue |
-| `autoplay` | `ap` | Auto-queue related songs |
-| `filter` | `fx`, `filters` | Toggle audio effects |
-| `join` | `connect`, `summon` | Join voice channel |
-| `247` | `stay`, `24/7` | Toggle 24/7 mode |
+| Command      | Aliases                     | Description                             |
+| ------------ | --------------------------- | --------------------------------------- |
+| `play`       | `p`                         | Play a song by name or link             |
+| `search`     | `find`                      | Search and pick from top 5 results      |
+| `nowplaying` | `np`                        | Current track with interactive controls |
+| `skip`       | `s`, `next`                 | Skip the current track                  |
+| `stop`       | `dc`, `disconnect`, `leave` | Stop playback and clear queue           |
+| `resume`     | `pause`, `togglepause`      | Toggle pause/resume                     |
+| `volume`     | `vol`                       | Set volume (0–100)                      |
+| `queue`      | `q`                         | View the current queue                  |
+| `shuffle`    | `mix`                       | Shuffle the queue                       |
+| `loop`       | `repeat`                    | Cycle: off → track → queue              |
+| `autoplay`   | `ap`                        | Auto-queue related songs                |
+| `filter`     | `fx`, `filters`             | Toggle audio effects                    |
+| `join`       | `connect`, `summon`         | Join voice channel                      |
+| `247`        | `stay`, `24/7`              | Toggle 24/7 mode                        |
 
 ### Moderation Commands
 
@@ -610,12 +617,12 @@ Settings-driven, in-memory rolling windows. No Redis.
 
 Activity roles assign or remove configured roles when a member starts or stops a tracked activity.
 
-| Type | Trigger |
-|---|---|
-| `spotify` | Listening to Spotify |
-| `streaming` | Streaming activity |
-| `gaming` | Playing a game |
-| `voice` | Joining or leaving a voice channel |
+| Type        | Trigger                            |
+| ----------- | ---------------------------------- |
+| `spotify`   | Listening to Spotify               |
+| `streaming` | Streaming activity                 |
+| `gaming`    | Playing a game                     |
+| `voice`     | Joining or leaving a voice channel |
 
 Slash command:
 
@@ -765,10 +772,10 @@ NODE_ENV=production npm run register:commands
 
 ### Why Two Modes?
 
-| Mode | Scope | Speed | Use Case |
-|------|-------|-------|----------|
-| Guild | Single server | Instant | Development, testing |
-| Global | All servers | Up to 1 hour | Production deployments |
+| Mode   | Scope         | Speed        | Use Case               |
+| ------ | ------------- | ------------ | ---------------------- |
+| Guild  | Single server | Instant      | Development, testing   |
+| Global | All servers   | Up to 1 hour | Production deployments |
 
 ---
 
@@ -818,16 +825,18 @@ The PM2 process uses fork mode with bounded restarts and separate stdout/stderr 
 
 ### MongoDB Collections
 
-| Collection | Purpose |
-|---|---|
-| `guild_settings` | Per-guild configuration: automod rules, moderation settings, trusted/activity roles |
-| `moderation_cases` | Case records with atomic auto-increment IDs |
-| `counters` | Atomic counter sequences for case ID generation |
-| `no_prefix_privileges` | Global no-prefix user grants |
-| `migrations` | Tracks applied database migrations |
+| Collection             | Purpose                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `guild_settings`       | Per-guild configuration: automod rules, moderation settings, trusted/activity roles |
+| `moderation_cases`     | Case records with atomic auto-increment IDs                                         |
+| `counters`             | Atomic counter sequences for case ID generation                                     |
+| `no_prefix_privileges` | Global no-prefix user grants                                                        |
+| `migrations`           | Tracks applied database migrations                                                  |
 
 ### Database Migrations
+
 A custom, zero-dependency migration system ensures MongoDB schemas stay consistent as fields are added or modified.
+
 - Migrations live in `src/database/mongo/migrations/`.
 - They automatically run sequentially on bot startup after connecting to MongoDB.
 - A standalone CLI runner is available via `npm run migrate` or `node scripts/migrate.js`.
@@ -838,17 +847,17 @@ A custom, zero-dependency migration system ensures MongoDB schemas stay consiste
 
 World Tree is transitioning from a Discord bot into a backend platform. Each phase is deliberate.
 
-| Phase | Status | Focus |
-|---|---|---|
-| **Stabilization** | ✅ Complete | Architecture freeze, lifecycle hardening, test coverage |
-| **Phase 1 — API Foundation** | ✅ Complete | Fastify bootstrap, Zod integration, plugin architecture |
-| **Phase 2 — Read-Only Endpoints** | ✅ Complete | Settings, cases, stats endpoints with strict response schemas |
-| **Structural Architecture Cleanup** | ✅ Complete | Prefix-keyed interaction handler registry, playerService factory injection via AppContext, commandRouter as thin dispatcher (see `PHASE_2_VERIFICATION.md`) |
-| **Phase 3a — Session Infrastructure** | ✅ Complete | AES-256-GCM sessions, HMAC-signed cookies, HKDF key derivation |
-| **Phase 3b — OAuth2 Flow** | ✅ Complete | Discord OAuth2 + PKCE login/callback/me/logout |
-| **Phase 3c — Data & Resource Hardening** | ✅ Complete | Zero-dependency LRU caching, Automod state batch eviction, DB migration runner, and Mongoose connection retries |
-| **Phase 3d — Guild Authorization** | ✅ Complete | Protected route scoping, MANAGE_GUILD verification, Bot Presence check, and Discord OAuth integration |
-| **Phase 4 — Dashboard** | Future | Authenticated web UI integration |
+| Phase                                    | Status      | Focus                                                                                                                                                       |
+| ---------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stabilization**                        | ✅ Complete | Architecture freeze, lifecycle hardening, test coverage                                                                                                     |
+| **Phase 1 — API Foundation**             | ✅ Complete | Fastify bootstrap, Zod integration, plugin architecture                                                                                                     |
+| **Phase 2 — Read-Only Endpoints**        | ✅ Complete | Settings, cases, stats endpoints with strict response schemas                                                                                               |
+| **Structural Architecture Cleanup**      | ✅ Complete | Prefix-keyed interaction handler registry, playerService factory injection via AppContext, commandRouter as thin dispatcher (see `PHASE_2_VERIFICATION.md`) |
+| **Phase 3a — Session Infrastructure**    | ✅ Complete | AES-256-GCM sessions, HMAC-signed cookies, HKDF key derivation                                                                                              |
+| **Phase 3b — OAuth2 Flow**               | ✅ Complete | Discord OAuth2 + PKCE login/callback/me/logout                                                                                                              |
+| **Phase 3c — Data & Resource Hardening** | ✅ Complete | Zero-dependency LRU caching, Automod state batch eviction, DB migration runner, and Mongoose connection retries                                             |
+| **Phase 3d — Guild Authorization**       | ✅ Complete | Protected route scoping, MANAGE_GUILD verification, Bot Presence check, and Discord OAuth integration                                                       |
+| **Phase 4 — Dashboard**                  | Future      | Authenticated web UI integration                                                                                                                            |
 
 ---
 
@@ -865,7 +874,7 @@ World Tree is published under the MIT License. Contribution and security policie
 
 <div align="center">
 
-*Designed for low-overhead self-hosted infrastructure.*
-*Built with intentional architecture, not accidental complexity.*
-*Crafted with passion and dedication by Harshit*
+_Designed for low-overhead self-hosted infrastructure._
+_Built with intentional architecture, not accidental complexity._
+_Crafted with passion and dedication by Harshit_
 </div>

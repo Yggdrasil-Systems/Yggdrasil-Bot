@@ -33,41 +33,45 @@ function getDatabaseStatus(readyState) {
 }
 
 export async function healthRoutes(fastify, opts = {}) {
-  fastify.get('/', {
-    schema: {
-      response: {
-        200: healthResponseSchema,
-        503: healthResponseSchema
+  fastify.get(
+    '/',
+    {
+      schema: {
+        response: {
+          200: healthResponseSchema,
+          503: healthResponseSchema
+        }
       }
+    },
+    async (request, reply) => {
+      const discordClient = fastify.services.discordClient;
+      const dbConnection = opts.dbConnection ?? mongoose.connection;
+      const dbState = dbConnection.readyState;
+      const discordStatus = discordClient?.isReady() ? 'ready' : 'disconnected';
+      const databaseStatus = getDatabaseStatus(dbState);
+      const isHealthy = discordStatus === 'ready' && databaseStatus === 'connected';
+      const memoryUsage = process.memoryUsage();
+
+      const payload = {
+        status: isHealthy ? 'ok' : 'degraded',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        discord: {
+          status: discordStatus,
+          ping: discordClient?.ws?.ping ?? null
+        },
+        database: {
+          status: databaseStatus,
+          readyState: dbState
+        },
+        memory: {
+          rss: memoryUsage.rss,
+          heapUsed: memoryUsage.heapUsed,
+          heapTotal: memoryUsage.heapTotal
+        }
+      };
+
+      return reply.code(isHealthy ? 200 : 503).send(payload);
     }
-  }, async (request, reply) => {
-    const discordClient = fastify.services.discordClient;
-    const dbConnection = opts.dbConnection ?? mongoose.connection;
-    const dbState = dbConnection.readyState;
-    const discordStatus = discordClient?.isReady() ? 'ready' : 'disconnected';
-    const databaseStatus = getDatabaseStatus(dbState);
-    const isHealthy = discordStatus === 'ready' && databaseStatus === 'connected';
-    const memoryUsage = process.memoryUsage();
-
-    const payload = {
-      status: isHealthy ? 'ok' : 'degraded',
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString(),
-      discord: {
-        status: discordStatus,
-        ping: discordClient?.ws?.ping ?? null
-      },
-      database: {
-        status: databaseStatus,
-        readyState: dbState
-      },
-      memory: {
-        rss: memoryUsage.rss,
-        heapUsed: memoryUsage.heapUsed,
-        heapTotal: memoryUsage.heapTotal
-      }
-    };
-
-    return reply.code(isHealthy ? 200 : 503).send(payload);
-  });
+  );
 }

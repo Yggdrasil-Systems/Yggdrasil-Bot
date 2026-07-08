@@ -109,5 +109,5 @@ const guildSettingsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const GuildSettings = mongoose.models.GuildSettings
-  ?? mongoose.model('GuildSettings', guildSettingsSchema, 'guild_settings');
+export const GuildSettings =
+  mongoose.models.GuildSettings ?? mongoose.model('GuildSettings', guildSettingsSchema, 'guild_settings');

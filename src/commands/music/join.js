@@ -7,9 +7,7 @@ export const name = 'join';
 export const aliases = ['connect', 'summon'];
 export const allowNoPrefix = true;
 
-export const data = new SlashCommandBuilder()
-  .setName('join')
-  .setDescription('Makes the bot join your voice channel.');
+export const data = new SlashCommandBuilder().setName('join').setDescription('Makes the bot join your voice channel.');
 
 async function executeJoin(voiceChannel, textChannel, playerService, respond) {
   if (!voiceChannel) {

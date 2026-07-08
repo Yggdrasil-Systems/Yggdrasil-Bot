@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 
 import { getAvatarSummary } from '../../services/utilityService.js';
-import { buildAvatarEmbed } from '../../utils/embeds.js';
+import { buildAvatarEmbed, buildErrorEmbed } from '../../utils/embeds.js';
 import { resolveUserFromMessage } from '../../utils/discordResolvers.js';
 import { replyToInteraction } from '../../utils/responses.js';
 
@@ -11,10 +11,7 @@ export const aliases = ['av'];
 export const data = new SlashCommandBuilder()
   .setName('avatar')
   .setDescription('View a user avatar.')
-  .addUserOption((option) => option
-    .setName('user')
-    .setDescription('The user to inspect.')
-    .setRequired(false));
+  .addUserOption((option) => option.setName('user').setDescription('The user to inspect.').setRequired(false));
 
 export async function execute(interaction) {
   const user = interaction.options.getUser('user') ?? interaction.user;
@@ -30,12 +27,7 @@ export async function executeMessage(context) {
 
   if (!user) {
     return context.respond({
-      embeds: [
-        buildErrorEmbed(
-          'User Not Found',
-          'Could not resolve that user. Please verify the ID or mention.'
-        )
-      ]
+      embeds: [buildErrorEmbed('User Not Found', 'Could not resolve that user. Please verify the ID or mention.')]
     });
   }
 

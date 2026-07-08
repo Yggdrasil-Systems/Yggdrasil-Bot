@@ -20,9 +20,12 @@ test('dashboard command resolves runtime URL from app context first', () => {
 test('noprefix command resolves the no-prefix service from app context first', () => {
   const appContextService = { id: 'app-context' };
 
-  assert.equal(getService({
-    appContext: { noPrefixService: appContextService },
-  }), appContextService);
+  assert.equal(
+    getService({
+      appContext: { noPrefixService: appContextService }
+    }),
+    appContextService
+  );
 
   assert.equal(getService({}), defaultNoPrefixService);
 });

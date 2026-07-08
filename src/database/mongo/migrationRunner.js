@@ -69,10 +69,7 @@ async function discoverMigrations(migrationsDir) {
  * @param {object} [options.log] - Logger with .info() and .warn() methods.
  * @returns {{ applied: number, skipped: number }} Result summary.
  */
-export async function runPendingMigrations({
-  migrationsDir = DEFAULT_MIGRATIONS_DIR,
-  log = console
-} = {}) {
+export async function runPendingMigrations({ migrationsDir = DEFAULT_MIGRATIONS_DIR, log = console } = {}) {
   const migrations = await discoverMigrations(migrationsDir);
 
   if (migrations.length === 0) {
@@ -99,9 +96,7 @@ export async function runPendingMigrations({
     const migrationModule = await import(pathToFileURL(migration.filePath).href);
 
     if (typeof migrationModule.up !== 'function') {
-      throw new Error(
-        `Migration ${migration.version}_${migration.name}.js does not export an up() function.`
-      );
+      throw new Error(`Migration ${migration.version}_${migration.name}.js does not export an up() function.`);
     }
 
     await migrationModule.up();

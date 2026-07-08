@@ -24,8 +24,5 @@ export async function up() {
   const collection = mongoose.connection.collection('guild_settings');
 
   // Only update documents that lack the activityRoles field
-  await collection.updateMany(
-    { activityRoles: { $exists: false } },
-    { $set: { activityRoles: defaults } }
-  );
+  await collection.updateMany({ activityRoles: { $exists: false } }, { $set: { activityRoles: defaults } });
 }

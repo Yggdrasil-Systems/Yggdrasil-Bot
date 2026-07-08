@@ -110,14 +110,15 @@ describe('discordOAuthPlugin helpers', () => {
 
   it('rejects failed token exchanges without exposing token details', async () => {
     await assert.rejects(
-      () => exchangeDiscordCode({
-        code: 'authorization-code',
-        codeVerifier: 'pkce-verifier',
-        clientId: 'client-id',
-        clientSecret: 'client-secret',
-        redirectUri: 'https://api.worldtree.example/v1/auth/callback',
-        fetchImpl: async () => jsonResponse({ error: 'invalid_grant' }, 400)
-      }),
+      () =>
+        exchangeDiscordCode({
+          code: 'authorization-code',
+          codeVerifier: 'pkce-verifier',
+          clientId: 'client-id',
+          clientSecret: 'client-secret',
+          redirectUri: 'https://api.worldtree.example/v1/auth/callback',
+          fetchImpl: async () => jsonResponse({ error: 'invalid_grant' }, 400)
+        }),
       /token_exchange_failed/
     );
   });
@@ -184,10 +185,11 @@ describe('discordOAuthPlugin helpers', () => {
 
   it('rejects non-array guild responses from Discord', async () => {
     await assert.rejects(
-      () => fetchDiscordUserGuilds({
-        accessToken: 'discord-access-token',
-        fetchImpl: async () => jsonResponse({ not: 'an array' })
-      }),
+      () =>
+        fetchDiscordUserGuilds({
+          accessToken: 'discord-access-token',
+          fetchImpl: async () => jsonResponse({ not: 'an array' })
+        }),
       /discord_guilds_invalid/
     );
   });
@@ -204,12 +206,13 @@ describe('discordOAuthPlugin helpers', () => {
   it('skips malformed guild entries without crashing', async () => {
     const guilds = await fetchDiscordUserGuilds({
       accessToken: 'discord-access-token',
-      fetchImpl: async () => jsonResponse([
-        { id: 'good', name: 'Good Guild', icon: null, owner: false, permissions: '0' },
-        { id: null, name: 'Bad ID' },
-        null,
-        { id: 'also-good', name: 'Another', icon: 'x', owner: true, permissions: '8' }
-      ])
+      fetchImpl: async () =>
+        jsonResponse([
+          { id: 'good', name: 'Good Guild', icon: null, owner: false, permissions: '0' },
+          { id: null, name: 'Bad ID' },
+          null,
+          { id: 'also-good', name: 'Another', icon: 'x', owner: true, permissions: '8' }
+        ])
     });
 
     assert.equal(guilds.length, 2);

@@ -7,9 +7,7 @@ export const name = 'queue';
 export const aliases = ['q'];
 export const allowNoPrefix = true;
 
-export const data = new SlashCommandBuilder()
-  .setName('queue')
-  .setDescription('Show the current music queue.');
+export const data = new SlashCommandBuilder().setName('queue').setDescription('Show the current music queue.');
 
 async function executeQueue(guildId, playerService, respond) {
   const queue = playerService?.getGuildQueue(guildId);

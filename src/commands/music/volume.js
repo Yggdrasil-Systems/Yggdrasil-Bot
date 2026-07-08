@@ -9,11 +9,9 @@ export const allowNoPrefix = true;
 export const data = new SlashCommandBuilder()
   .setName('volume')
   .setDescription('Set the playback volume.')
-  .addIntegerOption(option =>
-    option.setName('level')
-      .setDescription('Volume level (0-100)')
-      .setMinValue(0)
-      .setMaxValue(100));
+  .addIntegerOption((option) =>
+    option.setName('level').setDescription('Volume level (0-100)').setMinValue(0).setMaxValue(100)
+  );
 
 async function executeVolume(level, guildId, playerService, respond) {
   const queue = playerService?.getGuildQueue(guildId);

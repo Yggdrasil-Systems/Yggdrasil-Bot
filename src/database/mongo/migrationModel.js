@@ -19,5 +19,4 @@ const migrationSchema = new mongoose.Schema(
   { timestamps: false }
 );
 
-export const Migration = mongoose.models.Migration
-  ?? mongoose.model('Migration', migrationSchema, 'migrations');
+export const Migration = mongoose.models.Migration ?? mongoose.model('Migration', migrationSchema, 'migrations');

@@ -37,10 +37,7 @@ test('loadCommands rejects modules without the expected command contract', async
   try {
     await writeFile(path.join(root, 'broken.js'), 'export const data = { name: "broken" };');
 
-    await assert.rejects(
-      () => loadCommands(root),
-      /Invalid command module/
-    );
+    await assert.rejects(() => loadCommands(root), /Invalid command module/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -59,10 +56,7 @@ test('loadCommands rejects duplicate command names', async () => {
       "export const data = { name: 'duplicate', toJSON() { return { name: 'duplicate' }; } }; export async function execute() {}"
     );
 
-    await assert.rejects(
-      () => loadCommands(root),
-      /Duplicate command name: duplicate/
-    );
+    await assert.rejects(() => loadCommands(root), /Duplicate command name: duplicate/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

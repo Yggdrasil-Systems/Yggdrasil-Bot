@@ -17,10 +17,7 @@
  * @module interactions/registerAllHandlers
  */
 
-import {
-  registerHandler,
-  _resetRegistryForTesting
-} from './registry.js';
+import { registerHandler, _resetRegistryForTesting } from './registry.js';
 
 import * as help from './helpInteractionHandler.js';
 import * as musicFilter from './musicFilterInteractionHandler.js';

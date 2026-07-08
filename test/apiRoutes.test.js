@@ -5,7 +5,7 @@ import { DEFAULT_AUTOMOD, DEFAULT_MODERATION_SETTINGS } from '../src/utils/const
 
 describe('API Routes', () => {
   let app;
-  
+
   const mockDiscordClient = {
     isReady: () => true,
     ws: { ping: 42 },
@@ -41,7 +41,7 @@ describe('API Routes', () => {
     app.services.moderationService = {
       listCases: async ({ guildId, targetUserId, limit, filters }) => {
         if (guildId === 'error') return { ok: false, reason: 'DB error' };
-        
+
         const cases = [
           {
             caseId: 2,
@@ -69,7 +69,7 @@ describe('API Routes', () => {
             _id: 'another_mongo_id'
           });
         }
-        
+
         return { ok: true, cases };
       },
       getCaseStats: async ({ guildId }) => {
@@ -100,11 +100,11 @@ describe('API Routes', () => {
 
       assert.strictEqual(response.statusCode, 200);
       const payload = JSON.parse(response.payload);
-      
+
       assert.strictEqual(payload.guildId, '123');
       assert.strictEqual(payload.trustedAdminRoleIds[0], 'role1');
       assert.strictEqual(payload.automod.enabled, true);
-      
+
       // Zod validation should strip these automatically
       assert.strictEqual(payload._id, undefined);
       assert.strictEqual(payload.__v, undefined);
@@ -120,7 +120,7 @@ describe('API Routes', () => {
 
       assert.strictEqual(response.statusCode, 200);
       const payload = JSON.parse(response.payload);
-      
+
       assert.strictEqual(payload.data.length, 2);
       assert.strictEqual(payload.data[0].caseId, 2);
       assert.strictEqual(payload.data[1].caseId, 1);
@@ -148,7 +148,7 @@ describe('API Routes', () => {
 
       assert.strictEqual(response.statusCode, 200);
       const payload = JSON.parse(response.payload);
-      
+
       assert.strictEqual(payload.moderation.total, 5);
       assert.strictEqual(payload.moderation.byAction.warn, 5);
       assert.strictEqual(payload.server.memberCount, 100);

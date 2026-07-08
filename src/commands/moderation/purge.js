@@ -13,8 +13,17 @@ export const data = new SlashCommandBuilder()
   .setName('purge')
   .setDescription('Delete recent messages and record a moderation case.')
   .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageMessages)
-  .addIntegerOption((option) => option.setName('amount').setDescription('Number of messages to delete.').setRequired(true).setMinValue(1).setMaxValue(100))
-  .addStringOption((option) => option.setName('reason').setDescription('Why these messages are being removed.').setRequired(false));
+  .addIntegerOption((option) =>
+    option
+      .setName('amount')
+      .setDescription('Number of messages to delete.')
+      .setRequired(true)
+      .setMinValue(1)
+      .setMaxValue(100)
+  )
+  .addStringOption((option) =>
+    option.setName('reason').setDescription('Why these messages are being removed.').setRequired(false)
+  );
 
 export async function execute(interaction) {
   const moderatorMember = await getInteractionModerator(interaction);
@@ -30,13 +39,20 @@ export async function execute(interaction) {
     reason: interaction.options.getString('reason') ?? 'Message purge'
   });
 
-  await replyToInteraction(interaction, {
-    embeds: [
-      result.ok
-        ? buildSuccessEmbed('Messages purged', `Removed ${result.moderationCase.deletedMessageCount} message(s). Case #${result.moderationCase.caseId}.`)
-        : buildErrorEmbed('Purge failed', result.reason)
-    ]
-  }, { ephemeral: !result.ok });
+  await replyToInteraction(
+    interaction,
+    {
+      embeds: [
+        result.ok
+          ? buildSuccessEmbed(
+              'Messages purged',
+              `Removed ${result.moderationCase.deletedMessageCount} message(s). Case #${result.moderationCase.caseId}.`
+            )
+          : buildErrorEmbed('Purge failed', result.reason)
+      ]
+    },
+    { ephemeral: !result.ok }
+  );
 }
 
 export async function executeMessage(context) {
@@ -49,7 +65,10 @@ export async function executeMessage(context) {
   await context.respond({
     embeds: [
       result.ok
-        ? buildSuccessEmbed('Messages purged', `Removed ${result.moderationCase.deletedMessageCount} message(s). Case #${result.moderationCase.caseId}.`)
+        ? buildSuccessEmbed(
+            'Messages purged',
+            `Removed ${result.moderationCase.deletedMessageCount} message(s). Case #${result.moderationCase.caseId}.`
+          )
         : buildErrorEmbed('Purge failed', result.reason)
     ]
   });

@@ -20,27 +20,32 @@ The remaining issues are now more about consistency and operational polish than 
 ## Phase 1 Assessment
 
 Phase 1 is functionally solid:
+
 - Fastify bootstrapping is clean.
 - Auth/session plugins are isolated.
 - Validation and request handling are consistent.
 - Tests cover the API server, auth routes, and env validation.
 
 Observed improvement during the audit:
+
 - I normalized a few hot-path error logs so they now pass `Error` objects into the structured logger instead of dropping stack/context.
 
 Residual concerns:
+
 - Logging is good now, but a few modules still emit user-facing operational strings that could be further standardized.
 - Health and rate limiting are present, but the ops story is still basic compared with a production service.
 
 ## Phase 2 Assessment
 
 Phase 2 is the strongest architecture work in the repo:
+
 - `commandRouter.js` is no longer the old god file.
 - Interaction handling is registry-driven.
 - Message command handling and music channel logic are separated.
 - `AppContext` has replaced client-side state pollution as the primary dependency boundary.
 
 Residual concerns:
+
 - A small amount of compatibility coupling remains in bootstrap and some command helpers.
 - The no-prefix / admin / owner trust model is implemented, but it should stay documented because it is easy to misunderstand.
 
@@ -49,12 +54,14 @@ Residual concerns:
 The music system is the largest remaining complexity center.
 
 Strengths:
+
 - Player state is no longer a global mutable export.
 - `yt-dlp` stream bridging is isolated in one place.
 - Queue/playback interaction handlers are split into focused modules.
 - Music channel auto-play is separated into its own service.
 
 Weaknesses:
+
 - The lifecycle still relies on a large event surface from `discord-player`.
 - `yt-dlp` cleanup is handled, but the code still depends on external process behavior and should be monitored under long-running load.
 - Error reporting was previously string-only in a few places; I normalized those logs during this audit.
@@ -62,6 +69,7 @@ Weaknesses:
 ## Git History Observations
 
 Recent commits reviewed:
+
 - `7f903d9` Updated README according to recent improvements.
 - `4fee198` Introduced interaction registry and player service DI.
 - `35b6ff3` README update.
@@ -69,18 +77,21 @@ Recent commits reviewed:
 - `bb4f45d` Removed client bootstrap coupling.
 
 Observed pattern:
+
 - The last few commits are coherent and move in the same direction as the audit roadmap.
 - There is no sign of a rushed architectural reversal or a temporary debug branch being left behind.
 
 ## Cross-Dependency Analysis
 
 Dependencies now flow in the right direction most of the time:
+
 - bootstrap builds `AppContext`
 - loaders attach that context to events
 - routers read context from the interaction/message
 - services remain the business-logic boundary
 
 Hidden coupling still visible:
+
 - `AppContext` carries both `config` and `runtimeConfig` for compatibility.
 - Some command helpers still accept context + client-shaped inputs.
 - The music subsystem still depends on `discord-player` behavior and external stream tooling.
@@ -96,12 +107,14 @@ The repo is materially above average for a solo-maintained Discord bot. The main
 **Good, with a few edges left**
 
 Good:
+
 - broad tests
 - strict env validation
 - auth/session correctness
 - clear error handling in most API paths
 
 Still worth watching:
+
 - music process cleanup under real load
 - large-guild cache growth
 - long-running memory pressure
@@ -111,6 +124,7 @@ Still worth watching:
 **Good for current scale**
 
 No obvious hot-path waste stood out beyond:
+
 - repeated settings lookups in some routing paths
 - unbounded in-memory cache risk in the service layer
 - music playback depending on external process startup and stream resolution
@@ -120,6 +134,7 @@ No obvious hot-path waste stood out beyond:
 **Strong for this project class**
 
 Positives:
+
 - encrypted cookie sessions
 - PKCE OAuth flow
 - signed cookies
@@ -128,6 +143,7 @@ Positives:
 - explicit trust-boundary handling
 
 Watch items:
+
 - no-prefix privilege semantics must stay documented
 - future write APIs will need the same discipline as auth/session code
 
@@ -136,12 +152,14 @@ Watch items:
 **Good and improving**
 
 Positives:
+
 - service boundaries are sane
 - tests are extensive
 - helper modules are reusable
 - interaction registry is cleaner than the old router
 
 Still due:
+
 - bounded caches / LRU policy
 - tighter documentation sync
 - possible removal of a few remaining compatibility aliases
@@ -149,6 +167,7 @@ Still due:
 ## Improvements Performed
 
 During this audit I made the following safe improvements:
+
 - normalized several hot-path error logs to pass real `Error` objects into the structured logger
 - updated music command error handling so stack/context is preserved in logs
 - kept the existing behavior intact while improving observability
@@ -164,9 +183,10 @@ During this audit I made the following safe improvements:
 ## Verification
 
 Passed:
+
 - `npm test`
 
 Result:
+
 - 232 tests passed
 - 0 failed
-

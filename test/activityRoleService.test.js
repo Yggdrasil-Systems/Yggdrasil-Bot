@@ -84,7 +84,9 @@ test('activityRoleService grants Spotify role when user starts listening', async
   let roleAdded = false;
   const role = createMockRole({ id: 'spotify-role', position: 1 });
   const member = createMockMember({ id: 'user-1', roles: [] });
-  member.roles.add = async (roleId) => { roleAdded = true; };
+  member.roles.add = async (roleId) => {
+    roleAdded = true;
+  };
 
   const oldPresence = createMockPresence({ activities: [] });
   oldPresence.member = member;
@@ -116,7 +118,9 @@ test('activityRoleService grants Spotify role when old presence is unavailable',
   let roleAdded = false;
   const role = createMockRole({ id: 'spotify-role', position: 1 });
   const member = createMockMember({ id: 'user-1', roles: [] });
-  member.roles.add = async () => { roleAdded = true; };
+  member.roles.add = async () => {
+    roleAdded = true;
+  };
 
   const newPresence = createMockPresence({
     activities: [createMockActivity({ name: 'Spotify', type: ActivityType.Listening })]
@@ -144,7 +148,9 @@ test('activityRoleService removes Spotify role when user stops listening', async
   const role = createMockRole({ id: 'spotify-role', position: 1 });
   const member = createMockMember({ id: 'user-1', roles: [role] });
   member.roles.cache.set(role.id, role);
-  member.roles.remove = async (roleId) => { roleRemoved = true; };
+  member.roles.remove = async (roleId) => {
+    roleRemoved = true;
+  };
 
   const oldPresence = createMockPresence({
     activities: [createMockActivity({ name: 'Spotify', type: ActivityType.Listening })]
@@ -297,7 +303,9 @@ test('activityRoleService handles streaming activity', async () => {
   let roleAdded = false;
   const role = createMockRole({ id: 'streaming-role', position: 1 });
   const member = createMockMember({ id: 'user-1', roles: [] });
-  member.roles.add = async () => { roleAdded = true; };
+  member.roles.add = async () => {
+    roleAdded = true;
+  };
 
   const oldPresence = createMockPresence({ activities: [] });
   oldPresence.member = member;
@@ -330,7 +338,9 @@ test('activityRoleService does not re-add role if user already has it', async ()
   const role = createMockRole({ id: 'spotify-role', position: 1 });
   const member = createMockMember({ id: 'user-1', roles: [role] });
   member.roles.cache.set(role.id, role);
-  member.roles.add = async () => { addCalls += 1; };
+  member.roles.add = async () => {
+    addCalls += 1;
+  };
 
   const oldPresence = createMockPresence({ activities: [] });
   oldPresence.member = member;
@@ -360,7 +370,9 @@ test('activityRoleService does not remove role if user does not have it', async 
   let removeCalls = 0;
   const role = createMockRole({ id: 'spotify-role', position: 1 });
   const member = createMockMember({ id: 'user-1', roles: [] });
-  member.roles.remove = async () => { removeCalls += 1; };
+  member.roles.remove = async () => {
+    removeCalls += 1;
+  };
 
   const oldPresence = createMockPresence({
     activities: [createMockActivity({ name: 'Spotify', type: ActivityType.Listening })]
@@ -400,7 +412,7 @@ test('activityRoleService grants voice role when user joins voice', async () => 
     ownerId: 'owner-1',
     roles: {
       cache: new Map([[role.id, role]]),
-      fetch: async (id) => role.id === id ? role : null
+      fetch: async (id) => (role.id === id ? role : null)
     },
     members: member.guild.members
   };
@@ -438,7 +450,7 @@ test('activityRoleService removes voice role when user leaves voice', async () =
     ownerId: 'owner-1',
     roles: {
       cache: new Map([[role.id, role]]),
-      fetch: async (id) => role.id === id ? role : null
+      fetch: async (id) => (role.id === id ? role : null)
     },
     members: member.guild.members
   };

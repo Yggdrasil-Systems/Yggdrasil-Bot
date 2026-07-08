@@ -6,9 +6,7 @@ export const name = 'resume';
 export const aliases = ['togglepause'];
 export const allowNoPrefix = true;
 
-export const data = new SlashCommandBuilder()
-  .setName('resume')
-  .setDescription('Resume the current track.');
+export const data = new SlashCommandBuilder().setName('resume').setDescription('Resume the current track.');
 
 async function executeResume(guildId, playerService, respond) {
   const queue = playerService?.getGuildQueue(guildId);

@@ -11,10 +11,7 @@ export const aliases = ['role'];
 export const data = new SlashCommandBuilder()
   .setName('roleinfo')
   .setDescription('View role details.')
-  .addRoleOption((option) => option
-    .setName('role')
-    .setDescription('The role to inspect.')
-    .setRequired(true));
+  .addRoleOption((option) => option.setName('role').setDescription('The role to inspect.').setRequired(true));
 
 export async function execute(interaction) {
   const role = interaction.options.getRole('role', true);

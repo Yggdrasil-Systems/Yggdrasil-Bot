@@ -70,7 +70,12 @@ export async function handle(interaction, { resolveQueue = getQueue } = {}) {
   await interaction.deferUpdate();
   await queue.filters.ffmpeg.toggle([dpFilterName]);
   await interaction.editReply({
-    embeds: [buildSuccessEmbed(`🎛️ ${FILTER_LABELS[filterName] ?? dpFilterName}`, `**${FILTER_LABELS[filterName] ?? dpFilterName}** filter has been toggled.`)],
+    embeds: [
+      buildSuccessEmbed(
+        `🎛️ ${FILTER_LABELS[filterName] ?? dpFilterName}`,
+        `**${FILTER_LABELS[filterName] ?? dpFilterName}** filter has been toggled.`
+      )
+    ],
     components: buildFilterComponents()
   });
 

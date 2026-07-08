@@ -9,7 +9,7 @@ export async function collectJavaScriptFiles(directory) {
     const fullPath = path.join(directory, entry.name);
 
     if (entry.isDirectory()) {
-      files.push(...await collectJavaScriptFiles(fullPath));
+      files.push(...(await collectJavaScriptFiles(fullPath)));
       continue;
     }
 

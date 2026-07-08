@@ -8,13 +8,10 @@ function counterIdForGuild(guildId) {
   return `moderationCase:${guildId}`;
 }
 
-
 async function nextCaseId(model, counterModel, guildId) {
-  const counter = await counterModel.findOneAndUpdate(
-    { _id: counterIdForGuild(guildId) },
-    { $inc: { seq: 1 } },
-    upsertOptions()
-  ).lean();
+  const counter = await counterModel
+    .findOneAndUpdate({ _id: counterIdForGuild(guildId) }, { $inc: { seq: 1 } }, upsertOptions())
+    .lean();
 
   return counter.seq;
 }
@@ -24,19 +21,15 @@ async function alignCounterToExistingCases(model, counterModel, guildId) {
     return;
   }
 
-  const latestCase = await model.findOne({ guildId })
-    .sort({ caseId: -1 })
-    .lean();
+  const latestCase = await model.findOne({ guildId }).sort({ caseId: -1 }).lean();
 
   if (!latestCase?.caseId) {
     return;
   }
 
-  await counterModel.findOneAndUpdate(
-    { _id: counterIdForGuild(guildId) },
-    { $max: { seq: latestCase.caseId } },
-    upsertOptions()
-  ).lean();
+  await counterModel
+    .findOneAndUpdate({ _id: counterIdForGuild(guildId) }, { $max: { seq: latestCase.caseId } }, upsertOptions())
+    .lean();
 }
 
 export function createModerationRepository(model = ModerationCase, counterModel = Counter) {
@@ -91,8 +84,7 @@ export function createModerationRepository(model = ModerationCase, counterModel 
         queryFilter.caseId = { $lt: filters.cursor };
       }
 
-      const query = model.find(queryFilter)
-        .sort({ caseId: -1 });
+      const query = model.find(queryFilter).sort({ caseId: -1 });
 
       if (typeof query.limit === 'function') {
         query.limit(limit);
@@ -102,44 +94,49 @@ export function createModerationRepository(model = ModerationCase, counterModel 
     },
 
     async listWarnings(guildId, targetUserId) {
-      return model.find({
-        guildId,
-        targetUserId,
-        actionType: { $in: ['warn', 'automod_warn'] },
-        status: { $ne: 'deleted' }
-      })
+      return model
+        .find({
+          guildId,
+          targetUserId,
+          actionType: { $in: ['warn', 'automod_warn'] },
+          status: { $ne: 'deleted' }
+        })
         .sort({ createdAt: -1, caseId: -1 })
         .lean();
     },
 
     async resolveCase({ guildId, caseId, resolvedBy, resolutionReason }) {
-      return model.findOneAndUpdate(
-        { guildId, caseId, status: { $ne: 'deleted' } },
-        {
-          $set: {
-            status: 'resolved',
-            resolvedAt: new Date(),
-            resolvedBy,
-            resolutionReason
-          }
-        },
-        { returnDocument: 'after', runValidators: true }
-      ).lean();
+      return model
+        .findOneAndUpdate(
+          { guildId, caseId, status: { $ne: 'deleted' } },
+          {
+            $set: {
+              status: 'resolved',
+              resolvedAt: new Date(),
+              resolvedBy,
+              resolutionReason
+            }
+          },
+          { returnDocument: 'after', runValidators: true }
+        )
+        .lean();
     },
 
     async softDeleteCase({ guildId, caseId, resolvedBy, resolutionReason }) {
-      return model.findOneAndUpdate(
-        { guildId, caseId },
-        {
-          $set: {
-            status: 'deleted',
-            resolvedAt: new Date(),
-            resolvedBy,
-            resolutionReason
-          }
-        },
-        { returnDocument: 'after', runValidators: true }
-      ).lean();
+      return model
+        .findOneAndUpdate(
+          { guildId, caseId },
+          {
+            $set: {
+              status: 'deleted',
+              resolvedAt: new Date(),
+              resolvedBy,
+              resolutionReason
+            }
+          },
+          { returnDocument: 'after', runValidators: true }
+        )
+        .lean();
     },
 
     async getCaseStats(guildId) {
@@ -154,22 +151,28 @@ export function createModerationRepository(model = ModerationCase, counterModel 
           }
         ]);
 
-        return rows.reduce((stats, row) => {
-          stats.total += row.count;
-          stats.byAction[row._id.actionType] = (stats.byAction[row._id.actionType] ?? 0) + row.count;
-          stats.byStatus[row._id.status] = (stats.byStatus[row._id.status] ?? 0) + row.count;
-          return stats;
-        }, { total: 0, byAction: {}, byStatus: {} });
+        return rows.reduce(
+          (stats, row) => {
+            stats.total += row.count;
+            stats.byAction[row._id.actionType] = (stats.byAction[row._id.actionType] ?? 0) + row.count;
+            stats.byStatus[row._id.status] = (stats.byStatus[row._id.status] ?? 0) + row.count;
+            return stats;
+          },
+          { total: 0, byAction: {}, byStatus: {} }
+        );
       }
 
       const cases = await model.find({ guildId, status: { $ne: 'deleted' } }).lean();
 
-      return cases.reduce((stats, moderationCase) => {
-        stats.total += 1;
-        stats.byAction[moderationCase.actionType] = (stats.byAction[moderationCase.actionType] ?? 0) + 1;
-        stats.byStatus[moderationCase.status] = (stats.byStatus[moderationCase.status] ?? 0) + 1;
-        return stats;
-      }, { total: 0, byAction: {}, byStatus: {} });
+      return cases.reduce(
+        (stats, moderationCase) => {
+          stats.total += 1;
+          stats.byAction[moderationCase.actionType] = (stats.byAction[moderationCase.actionType] ?? 0) + 1;
+          stats.byStatus[moderationCase.status] = (stats.byStatus[moderationCase.status] ?? 0) + 1;
+          return stats;
+        },
+        { total: 0, byAction: {}, byStatus: {} }
+      );
     }
   };
 }

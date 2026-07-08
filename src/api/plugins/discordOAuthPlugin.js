@@ -1,8 +1,4 @@
-import {
-  createHash,
-  randomBytes,
-  timingSafeEqual
-} from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 import fp from 'fastify-plugin';
 
@@ -161,12 +157,7 @@ export function isTimingSafeEqual(left, right) {
   return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-export function buildAuthorizeUrl({
-  clientId,
-  redirectUri,
-  state,
-  codeChallenge
-}) {
+export function buildAuthorizeUrl({ clientId, redirectUri, state, codeChallenge }) {
   const authorizeUrl = new URL(DISCORD_AUTHORIZE_URL);
 
   authorizeUrl.searchParams.set('response_type', 'code');
@@ -198,13 +189,18 @@ export async function exchangeDiscordCode({
     code_verifier: codeVerifier
   });
 
-  const response = await fetchWithTimeout(fetchImpl, DISCORD_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/x-www-form-urlencoded'
+  const response = await fetchWithTimeout(
+    fetchImpl,
+    DISCORD_TOKEN_URL,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      body
     },
-    body
-  }, timeoutMs);
+    timeoutMs
+  );
 
   if (!response.ok) {
     throw new DiscordOAuthError('token_exchange_failed', response.status);
@@ -233,12 +229,17 @@ export async function fetchDiscordUser({
   fetchImpl = globalThis.fetch,
   timeoutMs = DISCORD_REQUEST_TIMEOUT_MS
 }) {
-  const response = await fetchWithTimeout(fetchImpl, DISCORD_USER_URL, {
-    method: 'GET',
-    headers: {
-      authorization: `Bearer ${accessToken}`
-    }
-  }, timeoutMs);
+  const response = await fetchWithTimeout(
+    fetchImpl,
+    DISCORD_USER_URL,
+    {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${accessToken}`
+      }
+    },
+    timeoutMs
+  );
 
   if (response.status === 401) {
     throw new DiscordOAuthError('discord_identity_unauthorized', 401);
@@ -258,12 +259,17 @@ export async function fetchDiscordUserGuilds({
   fetchImpl = globalThis.fetch,
   timeoutMs = DISCORD_REQUEST_TIMEOUT_MS
 }) {
-  const response = await fetchWithTimeout(fetchImpl, DISCORD_USER_GUILDS_URL, {
-    method: 'GET',
-    headers: {
-      authorization: `Bearer ${accessToken}`
-    }
-  }, timeoutMs);
+  const response = await fetchWithTimeout(
+    fetchImpl,
+    DISCORD_USER_GUILDS_URL,
+    {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${accessToken}`
+      }
+    },
+    timeoutMs
+  );
 
   if (response.status === 401) {
     throw new DiscordOAuthError('discord_guilds_unauthorized', 401);
@@ -289,85 +295,80 @@ export async function fetchDiscordUserGuilds({
   }, []);
 }
 
-export const discordOAuthPlugin = fp(async (fastify, opts) => {
-  const {
-    clientId,
-    clientSecret,
-    dashboardOrigin,
-    apiOrigin,
-    isProduction = false,
-    fetchImpl = globalThis.fetch
-  } = opts;
+export const discordOAuthPlugin = fp(
+  async (fastify, opts) => {
+    const {
+      clientId,
+      clientSecret,
+      dashboardOrigin,
+      apiOrigin,
+      isProduction = false,
+      fetchImpl = globalThis.fetch
+    } = opts;
 
-  assertNonEmptyString(clientId, 'CLIENT_ID');
-  assertNonEmptyString(clientSecret, 'DISCORD_CLIENT_SECRET');
-  assertNonEmptyString(dashboardOrigin, 'DASHBOARD_ORIGIN');
-  assertNonEmptyString(apiOrigin, 'API_ORIGIN');
+    assertNonEmptyString(clientId, 'CLIENT_ID');
+    assertNonEmptyString(clientSecret, 'DISCORD_CLIENT_SECRET');
+    assertNonEmptyString(dashboardOrigin, 'DASHBOARD_ORIGIN');
+    assertNonEmptyString(apiOrigin, 'API_ORIGIN');
 
-  const redirectUri = buildRedirectUri(apiOrigin);
+    const redirectUri = buildRedirectUri(apiOrigin);
 
-  fastify.decorateReply('setOAuthStateCookie', function setOAuthStateCookie(state) {
-    return this.setCookie(
-      OAUTH_STATE_COOKIE_NAME,
-      state,
-      buildOAuthCookieOptions(isProduction)
-    );
-  });
+    fastify.decorateReply('setOAuthStateCookie', function setOAuthStateCookie(state) {
+      return this.setCookie(OAUTH_STATE_COOKIE_NAME, state, buildOAuthCookieOptions(isProduction));
+    });
 
-  fastify.decorateReply('setPkceVerifierCookie', function setPkceVerifierCookie(verifier) {
-    return this.setCookie(
-      OAUTH_PKCE_COOKIE_NAME,
-      verifier,
-      buildOAuthCookieOptions(isProduction)
-    );
-  });
+    fastify.decorateReply('setPkceVerifierCookie', function setPkceVerifierCookie(verifier) {
+      return this.setCookie(OAUTH_PKCE_COOKIE_NAME, verifier, buildOAuthCookieOptions(isProduction));
+    });
 
-  fastify.decorateReply('clearOAuthCookies', function clearOAuthCookies() {
-    this.clearCookie(OAUTH_STATE_COOKIE_NAME, buildClearOAuthCookieOptions(isProduction));
-    return this.clearCookie(OAUTH_PKCE_COOKIE_NAME, buildClearOAuthCookieOptions(isProduction));
-  });
+    fastify.decorateReply('clearOAuthCookies', function clearOAuthCookies() {
+      this.clearCookie(OAUTH_STATE_COOKIE_NAME, buildClearOAuthCookieOptions(isProduction));
+      return this.clearCookie(OAUTH_PKCE_COOKIE_NAME, buildClearOAuthCookieOptions(isProduction));
+    });
 
-  fastify.decorate('discordOAuth', {
-    clientId,
-    dashboardOrigin,
-    redirectUri,
-    buildAuthorizeUrl({ state, codeChallenge }) {
-      return buildAuthorizeUrl({
-        clientId,
-        redirectUri,
-        state,
-        codeChallenge
-      });
-    },
-    generateOAuthState,
-    generatePkceVerifier,
-    createPkceChallenge,
-    isTimingSafeEqual,
-    readSignedCookie,
-    exchangeCode({ code, codeVerifier }) {
-      return exchangeDiscordCode({
-        code,
-        codeVerifier,
-        clientId,
-        clientSecret,
-        redirectUri,
-        fetchImpl
-      });
-    },
-    fetchDiscordUser({ accessToken }) {
-      return fetchDiscordUser({
-        accessToken,
-        fetchImpl
-      });
-    },
-    fetchDiscordUserGuilds({ accessToken }) {
-      return fetchDiscordUserGuilds({
-        accessToken,
-        fetchImpl
-      });
-    }
-  });
-}, {
-  name: 'discordOAuthPlugin',
-  dependencies: ['cookiePlugin', 'sessionPlugin']
-});
+    fastify.decorate('discordOAuth', {
+      clientId,
+      dashboardOrigin,
+      redirectUri,
+      buildAuthorizeUrl({ state, codeChallenge }) {
+        return buildAuthorizeUrl({
+          clientId,
+          redirectUri,
+          state,
+          codeChallenge
+        });
+      },
+      generateOAuthState,
+      generatePkceVerifier,
+      createPkceChallenge,
+      isTimingSafeEqual,
+      readSignedCookie,
+      exchangeCode({ code, codeVerifier }) {
+        return exchangeDiscordCode({
+          code,
+          codeVerifier,
+          clientId,
+          clientSecret,
+          redirectUri,
+          fetchImpl
+        });
+      },
+      fetchDiscordUser({ accessToken }) {
+        return fetchDiscordUser({
+          accessToken,
+          fetchImpl
+        });
+      },
+      fetchDiscordUserGuilds({ accessToken }) {
+        return fetchDiscordUserGuilds({
+          accessToken,
+          fetchImpl
+        });
+      }
+    });
+  },
+  {
+    name: 'discordOAuthPlugin',
+    dependencies: ['cookiePlugin', 'sessionPlugin']
+  }
+);

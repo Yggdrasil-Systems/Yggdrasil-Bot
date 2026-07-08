@@ -16,30 +16,34 @@ export const getStatsParamsSchema = z.object({
 });
 
 export async function statsRoutes(fastify, opts) {
-  fastify.get('/', {
-    preHandler: fastify.guildAdminGuard,
-    schema: {
-      params: getStatsParamsSchema,
-      response: {
-        200: statsResponseSchema
+  fastify.get(
+    '/',
+    {
+      preHandler: fastify.guildAdminGuard,
+      schema: {
+        params: getStatsParamsSchema,
+        response: {
+          200: statsResponseSchema
+        }
       }
-    }
-  }, async (request, reply) => {
-    const { guildId } = request.params;
-    const { moderationService, discordClient } = fastify.services;
+    },
+    async (request, reply) => {
+      const { guildId } = request.params;
+      const { moderationService, discordClient } = fastify.services;
 
-    const statsResult = await moderationService.getCaseStats({ guildId });
-    if (!statsResult.ok) {
-      throw fastify.httpErrors.internalServerError('Failed to fetch case stats.');
-    }
-
-    const guild = discordClient?.guilds?.cache?.get(guildId);
-    
-    return {
-      moderation: statsResult.stats,
-      server: {
-        memberCount: guild?.memberCount ?? null
+      const statsResult = await moderationService.getCaseStats({ guildId });
+      if (!statsResult.ok) {
+        throw fastify.httpErrors.internalServerError('Failed to fetch case stats.');
       }
-    };
-  });
+
+      const guild = discordClient?.guilds?.cache?.get(guildId);
+
+      return {
+        moderation: statsResult.stats,
+        server: {
+          memberCount: guild?.memberCount ?? null
+        }
+      };
+    }
+  );
 }

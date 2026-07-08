@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-import {
-  OAUTH_PKCE_COOKIE_NAME,
-  OAUTH_STATE_COOKIE_NAME
-} from '../../../plugins/discordOAuthPlugin.js';
+import { OAUTH_PKCE_COOKIE_NAME, OAUTH_STATE_COOKIE_NAME } from '../../../plugins/discordOAuthPlugin.js';
 
 const meResponseSchema = z.object({
   id: z.string(),
@@ -12,12 +9,14 @@ const meResponseSchema = z.object({
   avatar: z.string().nullable()
 });
 
-const guildsResponseSchema = z.array(z.object({
-  id: z.string(),
-  name: z.string(),
-  icon: z.string().nullable(),
-  botInGuild: z.boolean()
-}));
+const guildsResponseSchema = z.array(
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    icon: z.string().nullable(),
+    botInGuild: z.boolean()
+  })
+);
 
 const logoutResponseSchema = z.object({
   ok: z.boolean()
@@ -79,10 +78,7 @@ export async function authRoutes(fastify) {
       codeChallenge
     });
 
-    return reply
-      .setOAuthStateCookie(state)
-      .setPkceVerifierCookie(verifier)
-      .redirect(authorizeUrl);
+    return reply.setOAuthStateCookie(state).setPkceVerifierCookie(verifier).redirect(authorizeUrl);
   });
 
   fastify.get('/callback', authRouteConfig, async (request, reply) => {
@@ -130,103 +126,115 @@ export async function authRoutes(fastify) {
     }
   });
 
-  fastify.get('/me', {
-    ...authRouteConfig,
-    preHandler: fastify.sessionGuard,
-    schema: {
-      response: {
-        200: meResponseSchema
+  fastify.get(
+    '/me',
+    {
+      ...authRouteConfig,
+      preHandler: fastify.sessionGuard,
+      schema: {
+        response: {
+          200: meResponseSchema
+        }
+      }
+    },
+    async (request, reply) => {
+      try {
+        const user = await fastify.discordOAuth.fetchDiscordUser({
+          accessToken: request.session.accessToken
+        });
+
+        return user;
+      } catch (error) {
+        request.log.warn(
+          {
+            authError: getAuthErrorCode(error),
+            statusCode: getAuthErrorStatus(error),
+            discordUserId: request.session.discordUserId
+          },
+          'Discord identity fetch failed'
+        );
+
+        if (error?.statusCode === 401 || error?.code === 'discord_identity_unauthorized') {
+          reply.clearSessionCookie();
+          return invalidSession(reply);
+        }
+
+        return badGateway(reply);
       }
     }
-  }, async (request, reply) => {
-    try {
-      const user = await fastify.discordOAuth.fetchDiscordUser({
-        accessToken: request.session.accessToken
-      });
+  );
 
-      return user;
-    } catch (error) {
-      request.log.warn(
-        {
-          authError: getAuthErrorCode(error),
-          statusCode: getAuthErrorStatus(error),
-          discordUserId: request.session.discordUserId
-        },
-        'Discord identity fetch failed'
-      );
-
-      if (error?.statusCode === 401 || error?.code === 'discord_identity_unauthorized') {
-        reply.clearSessionCookie();
-        return invalidSession(reply);
+  fastify.get(
+    '/guilds',
+    {
+      ...authRouteConfig,
+      preHandler: fastify.sessionGuard,
+      schema: {
+        response: {
+          200: guildsResponseSchema
+        }
       }
+    },
+    async (request, reply) => {
+      try {
+        const rawGuilds = await fastify.discordOAuth.fetchDiscordUserGuilds({
+          accessToken: request.session.accessToken
+        });
 
-      return badGateway(reply);
-    }
-  });
+        const { discordClient } = fastify.services;
+        const botOwnerId = discordClient.appContext?.config?.botOwnerId;
 
-  fastify.get('/guilds', {
-    ...authRouteConfig,
-    preHandler: fastify.sessionGuard,
-    schema: {
-      response: {
-        200: guildsResponseSchema
-      }
-    }
-  }, async (request, reply) => {
-    try {
-      const rawGuilds = await fastify.discordOAuth.fetchDiscordUserGuilds({
-        accessToken: request.session.accessToken
-      });
+        const managedGuilds = rawGuilds.filter((guild) => {
+          if (request.session.discordUserId === botOwnerId) return true;
+          if (guild.owner) return true;
 
-      const { discordClient } = fastify.services;
-      const botOwnerId = discordClient.appContext?.config?.botOwnerId;
+          const perms = BigInt(guild.permissions);
+          const MANAGE_GUILD = 1n << 5n;
+          const ADMINISTRATOR = 1n << 3n;
 
-      const managedGuilds = rawGuilds.filter(guild => {
-        if (request.session.discordUserId === botOwnerId) return true;
-        if (guild.owner) return true;
-        
-        const perms = BigInt(guild.permissions);
-        const MANAGE_GUILD = 1n << 5n;
-        const ADMINISTRATOR = 1n << 3n;
-        
-        return (perms & MANAGE_GUILD) === MANAGE_GUILD || (perms & ADMINISTRATOR) === ADMINISTRATOR;
-      });
+          return (perms & MANAGE_GUILD) === MANAGE_GUILD || (perms & ADMINISTRATOR) === ADMINISTRATOR;
+        });
 
-      return managedGuilds.map(guild => ({
-        id: guild.id,
-        name: guild.name,
-        icon: guild.icon,
-        botInGuild: discordClient.guilds.cache.has(guild.id)
-      }));
-    } catch (error) {
-      request.log.warn(
-        {
-          authError: getAuthErrorCode(error),
-          statusCode: getAuthErrorStatus(error),
-          discordUserId: request.session.discordUserId
-        },
-        'Discord guilds fetch failed'
-      );
+        return managedGuilds.map((guild) => ({
+          id: guild.id,
+          name: guild.name,
+          icon: guild.icon,
+          botInGuild: discordClient.guilds.cache.has(guild.id)
+        }));
+      } catch (error) {
+        request.log.warn(
+          {
+            authError: getAuthErrorCode(error),
+            statusCode: getAuthErrorStatus(error),
+            discordUserId: request.session.discordUserId
+          },
+          'Discord guilds fetch failed'
+        );
 
-      if (error?.statusCode === 401 || error?.code === 'discord_guilds_unauthorized') {
-        reply.clearSessionCookie();
-        return invalidSession(reply);
-      }
+        if (error?.statusCode === 401 || error?.code === 'discord_guilds_unauthorized') {
+          reply.clearSessionCookie();
+          return invalidSession(reply);
+        }
 
-      return badGateway(reply);
-    }
-  });
-
-  fastify.post('/logout', {
-    ...authRouteConfig,
-    preHandler: fastify.sessionGuard,
-    schema: {
-      response: {
-        200: logoutResponseSchema
+        return badGateway(reply);
       }
     }
-  }, async (request, reply) => {
-    reply.clearSessionCookie();
-    return { ok: true };
-  });
+  );
+
+  fastify.post(
+    '/logout',
+    {
+      ...authRouteConfig,
+      preHandler: fastify.sessionGuard,
+      schema: {
+        response: {
+          200: logoutResponseSchema
+        }
+      }
+    },
+    async (request, reply) => {
+      reply.clearSessionCookie();
+      return { ok: true };
+    }
+  );
 }

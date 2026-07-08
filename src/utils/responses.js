@@ -8,9 +8,7 @@ function applyEphemeralFlag(payload) {
 }
 
 export async function replyToInteraction(interaction, payload, options = {}) {
-  const responsePayload = options.ephemeral && !interaction.deferred
-    ? applyEphemeralFlag(payload)
-    : payload;
+  const responsePayload = options.ephemeral && !interaction.deferred ? applyEphemeralFlag(payload) : payload;
 
   if (interaction.deferred && !interaction.replied) {
     return interaction.editReply(payload);

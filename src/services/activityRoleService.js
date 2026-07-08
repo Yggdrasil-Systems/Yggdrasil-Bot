@@ -84,12 +84,9 @@ function shouldSkipActivityRole(guildMember, role, botMember, log) {
   return { skip: false };
 }
 
-export function createActivityRoleService({
-  settingsService = null,
-  log = logger
-} = {}) {
+export function createActivityRoleService({ settingsService = null, log = logger } = {}) {
   async function getConfiguredRole(guild, config) {
-    return guild.roles.cache.get(config.roleId) ?? await guild.roles.fetch(config.roleId).catch(() => null);
+    return guild.roles.cache.get(config.roleId) ?? (await guild.roles.fetch(config.roleId).catch(() => null));
   }
 
   async function applyActivityRoleChange({
@@ -122,7 +119,9 @@ export function createActivityRoleService({
         return { action: 'removed', activityType, userId: guildMember.id };
       }
     } catch (error) {
-      log.error?.(`[ActivityRole] Failed to manage ${activityType} role for ${guildMember.user?.tag}: ${error.message}`);
+      log.error?.(
+        `[ActivityRole] Failed to manage ${activityType} role for ${guildMember.user?.tag}: ${error.message}`
+      );
       return { action: 'failed', activityType, userId: guildMember.id, error: error.message };
     }
 

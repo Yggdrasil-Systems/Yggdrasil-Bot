@@ -22,13 +22,16 @@ test('settingsService normalizes legacy guild settings with nested automod defau
 
 test('settingsService invalidates cache after updates', async () => {
   let calls = 0;
-  const service = createSettingsService({
-    getOrCreate: async () => {
-      calls += 1;
-      return { guildId: 'guild', trustedAdminRoleIds: [] };
+  const service = createSettingsService(
+    {
+      getOrCreate: async () => {
+        calls += 1;
+        return { guildId: 'guild', trustedAdminRoleIds: [] };
+      },
+      setModLogChannel: async () => ({ guildId: 'guild', modLogChannelId: 'logs' })
     },
-    setModLogChannel: async () => ({ guildId: 'guild', modLogChannelId: 'logs' })
-  }, { cacheTtlMs: 10000 });
+    { cacheTtlMs: 10000 }
+  );
 
   await service.getEffectiveSettings('guild');
   await service.getEffectiveSettings('guild');
@@ -39,3 +42,11 @@ test('settingsService invalidates cache after updates', async () => {
   assert.equal(calls, 2);
 });
 
+test('settingsService allows setting modLogChannelId to null to disable it', async () => {
+  const service = createSettingsService({
+    setModLogChannel: async (guildId, channelId) => ({ guildId, modLogChannelId: channelId })
+  });
+
+  const settings = await service.setModLogChannel('guild', null);
+  assert.equal(settings.modLogChannelId, null);
+});

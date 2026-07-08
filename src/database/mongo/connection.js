@@ -73,9 +73,7 @@ export async function connectMongo(mongoUri, options = {}) {
         throw error;
       }
 
-      logger.warn(
-        `MongoDB connection attempt ${attempt}/${maxRetries} failed. Retrying in ${retryDelayMs / 1000}s...`
-      );
+      logger.warn(`MongoDB connection attempt ${attempt}/${maxRetries} failed. Retrying in ${retryDelayMs / 1000}s...`);
       await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
     }
   }

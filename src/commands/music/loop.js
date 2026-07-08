@@ -9,15 +9,17 @@ export const allowNoPrefix = true;
 export const data = new SlashCommandBuilder()
   .setName('loop')
   .setDescription('Set the loop mode for the current queue.')
-  .addStringOption(option =>
-    option.setName('mode')
+  .addStringOption((option) =>
+    option
+      .setName('mode')
       .setDescription('Loop mode')
       .addChoices(
         { name: 'Off', value: 'off' },
         { name: 'Track', value: 'track' },
         { name: 'Queue', value: 'queue' },
         { name: 'Autoplay', value: 'autoplay' }
-      ));
+      )
+  );
 
 const MODE_MAP = { off: 0, track: 1, queue: 2, autoplay: 3 };
 const MODE_LABELS = { 0: '➡️ Off', 1: '🔂 Track', 2: '🔁 Queue', 3: '📻 Autoplay' };

@@ -24,13 +24,23 @@ async function executeAutoplay(guildId, playerService, respond) {
   if (wasAutoplay) {
     queue.setRepeatMode(0);
     return respond({
-      embeds: [buildSuccessEmbed('📻 Autoplay Disabled', 'Autoplay has been turned off. The queue will stop after the last track.')]
+      embeds: [
+        buildSuccessEmbed(
+          '📻 Autoplay Disabled',
+          'Autoplay has been turned off. The queue will stop after the last track.'
+        )
+      ]
     });
   }
 
   queue.setRepeatMode(3);
   return respond({
-    embeds: [buildSuccessEmbed('📻 Autoplay Enabled', 'Autoplay is now on! Related songs will be automatically queued when the queue ends.')]
+    embeds: [
+      buildSuccessEmbed(
+        '📻 Autoplay Enabled',
+        'Autoplay is now on! Related songs will be automatically queued when the queue ends.'
+      )
+    ]
   });
 }
 

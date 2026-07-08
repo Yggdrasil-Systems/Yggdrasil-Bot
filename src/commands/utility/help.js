@@ -7,15 +7,17 @@ export const name = 'help';
 export const aliases = ['commands'];
 export const allowNoPrefix = true;
 
-export const data = new SlashCommandBuilder()
-  .setName('help')
-  .setDescription('Learn how to use World Tree.');
+export const data = new SlashCommandBuilder().setName('help').setDescription('Learn how to use World Tree.');
 
 export async function execute(interaction) {
-  await replyToInteraction(interaction, {
-    embeds: [buildHelpEmbed()],
-    components: buildHelpComponents({ requesterId: interaction.user.id })
-  }, { ephemeral: true });
+  await replyToInteraction(
+    interaction,
+    {
+      embeds: [buildHelpEmbed()],
+      components: buildHelpComponents({ requesterId: interaction.user.id })
+    },
+    { ephemeral: true }
+  );
 }
 
 export async function executeMessage(context) {

@@ -66,11 +66,10 @@ function parseNoPrefixCommand(content, noPrefixCommandNames) {
   };
 }
 
-export function parseMessageCommand(content, {
-  prefix = BOT.prefix,
-  allowNoPrefix = false,
-  noPrefixCommandNames = new Set()
-} = {}) {
+export function parseMessageCommand(
+  content,
+  { prefix = BOT.prefix, allowNoPrefix = false, noPrefixCommandNames = new Set() } = {}
+) {
   if (!content || !content.trim()) {
     return null;
   }

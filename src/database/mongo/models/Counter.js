@@ -15,5 +15,4 @@ const counterSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const Counter = mongoose.models.Counter
-  ?? mongoose.model('Counter', counterSchema, 'counters');
+export const Counter = mongoose.models.Counter ?? mongoose.model('Counter', counterSchema, 'counters');

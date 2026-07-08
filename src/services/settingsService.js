@@ -1,5 +1,10 @@
 import { settingsRepository } from '../database/mongo/repositories/settingsRepository.js';
-import { DEFAULT_AUTOMOD, DEFAULT_MODERATION_SETTINGS, DEFAULT_ACTIVITY_ROLES, ACTIVITY_TYPES } from '../utils/constants.js';
+import {
+  DEFAULT_AUTOMOD,
+  DEFAULT_MODERATION_SETTINGS,
+  DEFAULT_ACTIVITY_ROLES,
+  ACTIVITY_TYPES
+} from '../utils/constants.js';
 import { LruCache } from '../utils/lruCache.js';
 import ms from 'ms';
 
@@ -31,9 +36,10 @@ export function normalizeGuildSettings(settings = {}) {
 
   automod.enabled = Boolean(settings.automod?.enabled ?? settings.automodEnabled ?? automod.enabled);
 
-  const musicPanel = settings.musicChannelId && settings.musicMessageId
-    ? { channelId: settings.musicChannelId, messageId: settings.musicMessageId }
-    : null;
+  const musicPanel =
+    settings.musicChannelId && settings.musicMessageId
+      ? { channelId: settings.musicChannelId, messageId: settings.musicMessageId }
+      : null;
 
   return {
     ...settings,
@@ -65,11 +71,16 @@ function assertAction(action) {
 
 function assertActivityType(activityType) {
   if (!VALID_ACTIVITY_TYPES.has(activityType)) {
-    throw new Error(`Unsupported activity type: ${activityType}. Valid types: ${Array.from(VALID_ACTIVITY_TYPES).join(', ')}`);
+    throw new Error(
+      `Unsupported activity type: ${activityType}. Valid types: ${Array.from(VALID_ACTIVITY_TYPES).join(', ')}`
+    );
   }
 }
 
-export function createSettingsService(repository = settingsRepository, { cacheTtlMs = DEFAULT_CACHE_TTL_MS, maxSize = 1000 } = {}) {
+export function createSettingsService(
+  repository = settingsRepository,
+  { cacheTtlMs = DEFAULT_CACHE_TTL_MS, maxSize = 1000 } = {}
+) {
   const cache = new LruCache(maxSize);
 
   function clearCache(guildId) {
@@ -155,16 +166,20 @@ export function createSettingsService(repository = settingsRepository, { cacheTt
         }
       }
 
-      const settings = normalizeGuildSettings(await repository.updateAutomodPunishment(guildId, ruleName, {
-        action,
-        timeoutDuration
-      }));
+      const settings = normalizeGuildSettings(
+        await repository.updateAutomodPunishment(guildId, ruleName, {
+          action,
+          timeoutDuration
+        })
+      );
       clearCache(guildId);
       return settings;
     },
 
     async addBadWord(guildId, word) {
-      const normalizedWord = String(word ?? '').trim().toLowerCase();
+      const normalizedWord = String(word ?? '')
+        .trim()
+        .toLowerCase();
 
       if (!normalizedWord) {
         throw new Error('Bad word cannot be empty.');
@@ -176,7 +191,14 @@ export function createSettingsService(repository = settingsRepository, { cacheTt
     },
 
     async removeBadWord(guildId, word) {
-      const settings = normalizeGuildSettings(await repository.removeBadWord(guildId, String(word ?? '').trim().toLowerCase()));
+      const settings = normalizeGuildSettings(
+        await repository.removeBadWord(
+          guildId,
+          String(word ?? '')
+            .trim()
+            .toLowerCase()
+        )
+      );
       clearCache(guildId);
       return settings;
     },
@@ -185,7 +207,9 @@ export function createSettingsService(repository = settingsRepository, { cacheTt
 
     async setActivityRole(guildId, activityType, { enabled, roleId }) {
       assertActivityType(activityType);
-      const settings = normalizeGuildSettings(await repository.setActivityRole(guildId, activityType, { enabled, roleId }));
+      const settings = normalizeGuildSettings(
+        await repository.setActivityRole(guildId, activityType, { enabled, roleId })
+      );
       clearCache(guildId);
       return settings;
     },

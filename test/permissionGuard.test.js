@@ -48,13 +48,7 @@ test('canUseNoPrefixShortcuts allows only bot owner or explicit no-prefix grants
 });
 
 test('hasTrustedAdminRole checks guild-level trusted admin roles', () => {
-  assert.equal(
-    hasTrustedAdminRole(
-      { roles: { cache: new Map([['role-a', {}]]) } },
-      ['role-a']
-    ),
-    true
-  );
+  assert.equal(hasTrustedAdminRole({ roles: { cache: new Map([['role-a', {}]]) } }, ['role-a']), true);
 });
 
 test('canUseNoPrefixShortcuts rejects normal members', () => {
