@@ -30,6 +30,10 @@ export async function connectMongo(mongoUri, options = {}) {
     runMigrations = true
   } = options;
 
+  if (!mongoUri || typeof mongoUri !== 'string') {
+    throw new Error('mongoUri is required and must be a non-empty string.');
+  }
+
   mongoose.set('strictQuery', true);
 
   if (!hasRegisteredConnectionLogger) {

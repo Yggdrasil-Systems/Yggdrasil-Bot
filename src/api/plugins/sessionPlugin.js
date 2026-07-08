@@ -7,12 +7,14 @@ import {
 
 import fp from 'fastify-plugin';
 
+import { LruCache } from '../../utils/lruCache.js';
+
 import { canUseAdminCommand } from '../../middleware/permissionGuard.js';
 
 const ADMIN_GUARD_CACHE_TTL_MS = 300_000;
 const ADMIN_GUARD_CACHE_MAX_SIZE = 500;
 
-const adminGuardCache = new Map();
+const adminGuardCache = new LruCache(ADMIN_GUARD_CACHE_MAX_SIZE);
 
 function getCachedAdminAuthorization(guildId, userId) {
   const key = `${guildId}:${userId}`;
@@ -27,10 +29,6 @@ function getCachedAdminAuthorization(guildId, userId) {
 
 function setCachedAdminAuthorization(guildId, userId, authorized) {
   const key = `${guildId}:${userId}`;
-  if (adminGuardCache.size >= ADMIN_GUARD_CACHE_MAX_SIZE) {
-    const firstKey = adminGuardCache.keys().next().value;
-    adminGuardCache.delete(firstKey);
-  }
   adminGuardCache.set(key, { authorized, timestamp: Date.now() });
 }
 

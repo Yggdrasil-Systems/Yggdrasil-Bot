@@ -19,7 +19,18 @@ const AUTH_ENV = Object.freeze({
 
 const mockDiscordClient = {
   isReady: () => true,
-  ws: { ping: 42 }
+  ws: { ping: 42 },
+  guilds: {
+    cache: new Map([
+      ['guild-owner', {}],
+      ['guild-manage', {}]
+    ])
+  },
+  appContext: {
+    config: {
+      botOwnerId: 'bot-owner-id'
+    }
+  }
 };
 
 function jsonResponse(body, status = 200) {
@@ -77,6 +88,7 @@ function createFetchStub({
   tokenStatus = 200,
   userStatus = 200,
   userStatuses = null,
+  guildsStatus = 200,
   token = 'discord-access-token',
   userId = '123456789'
 } = {}) {
@@ -111,6 +123,20 @@ function createFetchStub({
             }
           : { message: 'Unauthorized' },
         currentUserStatus
+      );
+    }
+
+    if (url === 'https://discord.com/api/v10/users/@me/guilds') {
+      return jsonResponse(
+        guildsStatus === 200
+          ? [
+              { id: 'guild-owner', name: 'Owner Guild', icon: 'icon1', owner: true, permissions: '0' },
+              { id: 'guild-admin', name: 'Admin Guild', icon: 'icon2', owner: false, permissions: '8' },
+              { id: 'guild-manage', name: 'Manage Guild', icon: 'icon3', owner: false, permissions: '32' },
+              { id: 'guild-none', name: 'Normal Guild', icon: 'icon4', owner: false, permissions: '0' }
+            ]
+          : { message: 'Unauthorized' },
+        guildsStatus
       );
     }
 
@@ -435,6 +461,73 @@ describe('auth routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/auth/logout'
+    });
+
+    await app.close();
+
+    assert.equal(response.statusCode, 401);
+  });
+
+  it('returns filtered Discord guilds from /auth/guilds and checks botInGuild', async () => {
+    const { fetchImpl } = createFetchStub();
+    const app = await buildAuthApp(fetchImpl);
+    const login = await startLogin(app);
+    const callback = await completeCallback(app, login);
+    const sessionCookie = getCookiePair(findSetCookie(callback, SESSION_COOKIE_NAME));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/auth/guilds',
+      headers: { cookie: sessionCookie }
+    });
+
+    await app.close();
+
+    assert.equal(response.statusCode, 200);
+    const guilds = JSON.parse(response.payload);
+    
+    // Only owner, admin, and manage should be returned. 'Normal Guild' is filtered out.
+    assert.equal(guilds.length, 3);
+    assert.deepEqual(guilds, [
+      { id: 'guild-owner', name: 'Owner Guild', icon: 'icon1', botInGuild: true },
+      { id: 'guild-admin', name: 'Admin Guild', icon: 'icon2', botInGuild: false },
+      { id: 'guild-manage', name: 'Manage Guild', icon: 'icon3', botInGuild: true }
+    ]);
+  });
+
+  it('bypasses guild permissions filtering if the user is the global bot owner', async () => {
+    const { fetchImpl } = createFetchStub({ userId: 'bot-owner-id' });
+    const app = await buildAuthApp(fetchImpl);
+    const login = await startLogin(app);
+    const callback = await completeCallback(app, login);
+    const sessionCookie = getCookiePair(findSetCookie(callback, SESSION_COOKIE_NAME));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/auth/guilds',
+      headers: { cookie: sessionCookie }
+    });
+
+    await app.close();
+
+    assert.equal(response.statusCode, 200);
+    const guilds = JSON.parse(response.payload);
+    
+    // Bot owner gets all 4 guilds
+    assert.equal(guilds.length, 4);
+  });
+
+  it('rejects /auth/guilds if Discord API returns an error', async () => {
+    const { fetchImpl } = createFetchStub({ guildsStatus: 401 });
+    const app = await buildAuthApp(fetchImpl);
+    const login = await startLogin(app);
+    const callback = await completeCallback(app, login);
+    const sessionCookie = getCookiePair(findSetCookie(callback, SESSION_COOKIE_NAME));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/auth/guilds',
+      headers: { cookie: sessionCookie }
     });
 
     await app.close();

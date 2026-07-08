@@ -6,10 +6,12 @@ import {
   DISCORD_AUTHORIZE_URL,
   DISCORD_TOKEN_URL,
   DISCORD_USER_URL,
+  DISCORD_USER_GUILDS_URL,
   buildAuthorizeUrl,
   createPkceChallenge,
   exchangeDiscordCode,
   fetchDiscordUser,
+  fetchDiscordUserGuilds,
   generateOAuthState,
   generatePkceVerifier,
   isTimingSafeEqual
@@ -145,5 +147,73 @@ describe('discordOAuthPlugin helpers', () => {
       globalName: 'World Tree',
       avatar: 'avatar-hash'
     });
+  });
+
+  it('fetches Discord user guilds with bearer auth and exposes safe fields', async () => {
+    let capturedRequest;
+    const guilds = await fetchDiscordUserGuilds({
+      accessToken: 'discord-access-token',
+      fetchImpl: async (url, options) => {
+        capturedRequest = { url, options };
+        return jsonResponse([
+          {
+            id: 'guild1',
+            name: 'Test Guild',
+            icon: 'icon-hash',
+            owner: true,
+            permissions: '2147483647',
+            features: ['COMMUNITY']
+          }
+        ]);
+      }
+    });
+
+    assert.equal(capturedRequest.url, DISCORD_USER_GUILDS_URL);
+    assert.equal(capturedRequest.options.method, 'GET');
+    assert.equal(capturedRequest.options.headers.authorization, 'Bearer discord-access-token');
+    assert.deepEqual(guilds, [
+      {
+        id: 'guild1',
+        name: 'Test Guild',
+        icon: 'icon-hash',
+        owner: true,
+        permissions: '2147483647'
+      }
+    ]);
+  });
+
+  it('rejects non-array guild responses from Discord', async () => {
+    await assert.rejects(
+      () => fetchDiscordUserGuilds({
+        accessToken: 'discord-access-token',
+        fetchImpl: async () => jsonResponse({ not: 'an array' })
+      }),
+      /discord_guilds_invalid/
+    );
+  });
+
+  it('returns empty array when Discord returns no guilds', async () => {
+    const guilds = await fetchDiscordUserGuilds({
+      accessToken: 'discord-access-token',
+      fetchImpl: async () => jsonResponse([])
+    });
+
+    assert.deepEqual(guilds, []);
+  });
+
+  it('skips malformed guild entries without crashing', async () => {
+    const guilds = await fetchDiscordUserGuilds({
+      accessToken: 'discord-access-token',
+      fetchImpl: async () => jsonResponse([
+        { id: 'good', name: 'Good Guild', icon: null, owner: false, permissions: '0' },
+        { id: null, name: 'Bad ID' },
+        null,
+        { id: 'also-good', name: 'Another', icon: 'x', owner: true, permissions: '8' }
+      ])
+    });
+
+    assert.equal(guilds.length, 2);
+    assert.equal(guilds[0].id, 'good');
+    assert.equal(guilds[1].id, 'also-good');
   });
 });

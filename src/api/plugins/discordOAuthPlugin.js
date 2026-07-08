@@ -279,7 +279,14 @@ export async function fetchDiscordUserGuilds({
     throw new DiscordOAuthError('discord_guilds_invalid', 502);
   }
 
-  return payload.map(normalizeDiscordGuild);
+  return payload.reduce((guilds, entry) => {
+    try {
+      guilds.push(normalizeDiscordGuild(entry));
+    } catch {
+      // Skip malformed guild entries from Discord's response
+    }
+    return guilds;
+  }, []);
 }
 
 export const discordOAuthPlugin = fp(async (fastify, opts) => {

@@ -3,6 +3,7 @@ import { PermissionsBitField } from 'discord.js';
 import { test } from 'node:test';
 
 import {
+  canUseAdminCommand,
   canUseNoPrefixShortcuts,
   hasPermission,
   hasTrustedAdminRole
@@ -83,4 +84,40 @@ test('hasPermission checks member permissions safely', () => {
   );
 
   assert.equal(hasPermission(null, PermissionsBitField.Flags.ManageMessages), false);
+});
+
+test('canUseAdminCommand grants access to members with MANAGE_GUILD permission', () => {
+  const member = {
+    permissions: new PermissionsBitField(PermissionsBitField.Flags.ManageGuild),
+    roles: { cache: new Map() }
+  };
+
+  assert.equal(
+    canUseAdminCommand({
+      userId: 'user',
+      guildOwnerId: 'owner',
+      botOwnerId: 'bot-owner',
+      member,
+      trustedAdminRoleIds: []
+    }),
+    true
+  );
+});
+
+test('canUseAdminCommand denies access to members without admin or manage guild permissions', () => {
+  const member = {
+    permissions: new PermissionsBitField(PermissionsBitField.Flags.SendMessages),
+    roles: { cache: new Map() }
+  };
+
+  assert.equal(
+    canUseAdminCommand({
+      userId: 'user',
+      guildOwnerId: 'owner',
+      botOwnerId: 'bot-owner',
+      member,
+      trustedAdminRoleIds: []
+    }),
+    false
+  );
 });

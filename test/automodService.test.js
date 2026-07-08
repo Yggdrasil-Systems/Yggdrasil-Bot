@@ -177,3 +177,35 @@ test('automodState enforces maxEntries with batch eviction', () => {
   state.dispose();
 });
 
+test('automodState handles maxEntries of 1 correctly', () => {
+  const state = createAutomodState({ maxEntries: 1 });
+
+  state.setRepeatedMessages('first', [{ createdAt: Date.now() }]);
+  assert.equal(state.size, 1);
+
+  state.setRepeatedMessages('second', [{ createdAt: Date.now() }]);
+  assert.equal(state.size, 1);
+  assert.equal(state.getRepeatedMessages('first').length, 0);
+  assert.equal(state.getRepeatedMessages('second').length, 1);
+
+  state.dispose();
+});
+
+test('automodState does not evict when updating an existing key', () => {
+  const maxEntries = 3;
+  const state = createAutomodState({ maxEntries });
+
+  state.setRepeatedMessages('key-0', [{ createdAt: Date.now() }]);
+  state.setRepeatedMessages('key-1', [{ createdAt: Date.now() }]);
+  state.setRepeatedMessages('key-2', [{ createdAt: Date.now() }]);
+  assert.equal(state.size, 3);
+
+  // Updating an existing key should NOT trigger eviction — size stays at 3
+  state.setRepeatedMessages('key-1', [{ createdAt: Date.now() }, { createdAt: Date.now() }]);
+  assert.equal(state.size, 3);
+  assert.equal(state.getRepeatedMessages('key-0').length, 1);
+  assert.equal(state.getRepeatedMessages('key-1').length, 2);
+  assert.equal(state.getRepeatedMessages('key-2').length, 1);
+
+  state.dispose();
+});

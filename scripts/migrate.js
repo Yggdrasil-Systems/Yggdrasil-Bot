@@ -24,7 +24,8 @@ if (!mongoUri) {
 
 try {
   await connectMongo(mongoUri, {
-    serverSelectionTimeoutMS: parseInt(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || '10000', 10)
+    serverSelectionTimeoutMS: parseInt(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || '10000', 10),
+    runMigrations: false
   });
 
   const result = await runPendingMigrations();

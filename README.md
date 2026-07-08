@@ -128,6 +128,7 @@ world-tree/
 │   │   │   ├── nowplaying.js            # Current track embed with interactive controls
 │   │   │   ├── skip.js                  # Skip the current track
 │   │   │   ├── stop.js                  # Stop playback, clear queue, disconnect
+│   │   │   ├── pause.js                 # Pause the current track
 │   │   │   ├── resume.js               # Toggle pause/resume
 │   │   │   ├── volume.js               # Set volume (0–100)
 │   │   │   ├── queue.js                # Display the current queue
@@ -189,8 +190,13 @@ world-tree/
 │   ├── database/mongo/                   # ── Data Layer ────────────────────────────────────
 │   │   ├── connection.js                 # Mongoose connection with configurable timeout
 │   │   ├── queryOptions.js               # Shared upsert/lean options
+│   │   ├── migrationRunner.js            # Migration execution and tracking
+│   │   ├── migrations/                   # Database migration scripts
+│   │   │   ├── 001_init.js               # Initial schema setup
+│   │   │   └── 002_ensure_activity_roles.js # Activity roles schema update
 │   │   ├── models/
 │   │   │   ├── GuildSettings.js          # Per-guild config: automod, moderation, trusted/activity roles
+│   │   │   ├── Migration.js              # State tracking for applied migrations
 │   │   │   ├── ModerationCase.js         # Case records: warn, timeout, kick, ban, purge
 │   │   │   ├── Counter.js               # Atomic auto-increment for case IDs
 │   │   │   └── NoPrefixPrivilege.js      # Global no-prefix user grants
@@ -207,14 +213,15 @@ world-tree/
 │   │
 │   ├── interactions/                     # ── Component Interaction Handlers + Registry ──────
 │   │   ├── registry.js                   # Prefix-keyed interaction handler registry — register/dispatch/unregister
-│   │   ├── registerAllHandlers.js        # Registers all 7 interaction handlers (idempotent)
+│   │   ├── registerAllHandlers.js        # Registers all 8 interaction handlers (idempotent)
 │   │   ├── helpInteractionHandler.js     # Help select menu routing and response updates
 │   │   ├── pingInteractionHandler.js     # Ping refresh button handling
 │   │   ├── musicPlaybackInteractionHandler.js # Playback controls: pause/resume/skip/queue/volume
 │   │   ├── musicFilterInteractionHandler.js   # Filter panel actions and filter toggles
 │   │   ├── queueInteractionHandler.js    # Queue clear button handling
 │   │   ├── searchInteractionHandler.js   # Search result select handling
-│   │   └── musicSettingsInteractionHandler.js # Playback settings panel handling
+│   │   ├── musicSettingsInteractionHandler.js # Playback settings panel handling
+│   │   └── settingsButtonInteractionHandler.js # Guild settings dashboard navigation buttons
 │   │
 │   ├── loaders/
 │   │   ├── commandLoader.js              # Recursive command discovery + contract validation
@@ -222,7 +229,8 @@ world-tree/
 │   │
 │   ├── config/
 │   │   ├── env.js                        # Environment profiles: runtime, registration, core
-│   │   └── discord.js                    # Gateway intents + partial configuration
+│   │   ├── discord.js                    # Gateway intents + partial configuration
+│   │   └── queueDefaults.js              # discord-player queue initialization options
 │   │
 │   ├── events/
 │   │   ├── ready.js                      # Client ready — log confirmation + activity status
@@ -234,6 +242,7 @@ world-tree/
 │   └── utils/
 │       ├── embeds.js                     # Visual embed system — moderation, music, utility, help
 │       ├── components.js                 # Button rows — music player, queue, settings, filters
+│       ├── lruCache.js                   # Zero-dependency LRU cache logic
 │       ├── constants.js                  # Colors, limits, automod defaults, bot identity
 │       ├── responses.js                  # Interaction/message reply abstraction
 │       ├── logger.js                     # Pino-backed structured logger with redaction
@@ -243,7 +252,7 @@ world-tree/
 │       ├── moderationInputs.js           # Shared moderation command input extraction
 │       └── fileDiscovery.js              # Recursive .js file finder for loaders
 │
-├── test/                                 # ── 44 Test Files ──────────────────────────────────
+├── test/                                 # ── 48 Test Files ──────────────────────────────────
 │   ├── activityRoleCommand.test.js       # Prefix command routing for activity roles
 │   ├── activityRoleService.test.js       # Presence/voice role assignment behavior
 │   ├── apiRoutes.test.js                 # Route serialization, pagination, field stripping
@@ -264,8 +273,10 @@ world-tree/
 │   ├── helpCommand.test.js               # Help embed and category menu construction
 │   ├── helpInteractionHandler.test.js    # Help category select menu interaction
 │   ├── logger.test.js                    # Log formatting, levels, environment behavior
+│   ├── lruCache.test.js                  # LRU Cache logic and eviction behavior
 │   ├── messageCommandRouter.test.js      # Prefix routing, no-prefix, admin guards
 │   ├── messageParser.test.js             # Prefix detection, quoted args, edge cases
+│   ├── migrationRunner.test.js           # Database migration execution and error handling
 │   ├── moderationRepository.test.js      # Atomic counters, case creation, warning listing
 │   ├── moderationService.test.js         # Permission enforcement, hierarchy, case lifecycle
 │   ├── musicChannelService.test.js       # Music-channel auto-play delegation
@@ -276,6 +287,7 @@ world-tree/
 │   ├── musicPlaybackInteractionHandler.test.js # Playback control button interactions
 │   ├── noPrefixRepository.test.js        # Privilege upsert operations
 │   ├── noPrefixService.test.js           # Owner override, add/remove, cache behavior
+│   ├── pauseResumeCommands.test.js       # Playback pause/resume commands
 │   ├── permissionGuard.test.js           # Admin, moderation, no-prefix permission checks
 │   ├── pingInteractionHandler.test.js    # Ping refresh button interaction
 │   ├── playerService.test.js             # Music player factory closure behavior
@@ -284,13 +296,15 @@ world-tree/
 │   ├── registry.test.js                  # Interaction handler registry contract
 │   ├── responses.test.js                 # Reply/followUp/edit interaction abstraction
 │   ├── sessionPlugin.test.js             # Crypto roundtrip, tamper detection, expiry, cookie attrs
+│   ├── settingsButtonInteractionHandler.test.js # Settings panel button interactions
 │   ├── settingsRepository.test.js        # CRUD, mod-log, automod rule updates
 │   ├── settingsService.test.js           # Settings normalization, cache invalidation
 │   ├── settingsServiceActivityRoles.test.js # Activity role settings persistence
 │   └── utilityService.test.js            # Ping, avatar, user/server/bot/role info
 │
 ├── scripts/
-│   └── registerCommands.js               # Guild-scoped slash command deployment
+│   ├── registerCommands.js               # Guild-scoped slash command deployment
+│   └── migrate.js                        # Standalone migration CLI runner
 │
 ├── dashboard/                            # ── Future Dashboard Contracts ────────────────────
 │   ├── contracts/
@@ -305,11 +319,12 @@ world-tree/
 ├── .env.example                          # Environment variable template
 ├── .gitignore                            # Git ignore rules (node_modules, .env, logs)
 ├── Tree.jpg                              # Bot avatar / project logo
-├── Checklist.txt                         # Development progress checklist
-├── Implementation_Plan.txt               # Original implementation planning document
-├── PRD.txt                               # Product requirements document
-├── System_Architecture.txt               # System architecture design notes
-├── Technical_Specification.txt           # Technical specification reference
+├── docs/                                 # ── Documentation ─────────────────────────────────
+│   ├── Checklist.txt                     # Development progress checklist
+│   ├── Implementation_Plan.txt           # Original implementation planning document
+│   ├── PRD.txt                           # Product requirements document
+│   ├── System_Architecture.txt           # System architecture design notes
+│   └── Technical_Specification.txt       # Technical specification reference
 └── package.json                          # Node.js ≥ 20.0.0, ESM modules
 ```
 

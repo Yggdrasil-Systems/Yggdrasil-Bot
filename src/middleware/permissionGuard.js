@@ -26,6 +26,7 @@ export function canUseAdminCommand({
   return userId === guildOwnerId
     || userId === botOwnerId
     || hasPermission(member, PermissionsBitField.Flags.Administrator)
+    || hasPermission(member, PermissionsBitField.Flags.ManageGuild)
     || hasTrustedAdminRole(member, trustedAdminRoleIds);
 }
 
