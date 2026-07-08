@@ -809,6 +809,13 @@ The PM2 process uses fork mode with bounded restarts and separate stdout/stderr 
 | `moderation_cases` | Case records with atomic auto-increment IDs |
 | `counters` | Atomic counter sequences for case ID generation |
 | `no_prefix_privileges` | Global no-prefix user grants |
+| `migrations` | Tracks applied database migrations |
+
+### Database Migrations
+A custom, zero-dependency migration system ensures MongoDB schemas stay consistent as fields are added or modified.
+- Migrations live in `src/database/mongo/migrations/`.
+- They automatically run sequentially on bot startup after connecting to MongoDB.
+- A standalone CLI runner is available via `npm run migrate` or `node scripts/migrate.js`.
 
 ---
 
@@ -824,7 +831,8 @@ World Tree is transitioning from a Discord bot into a backend platform. Each pha
 | **Structural Architecture Cleanup** | ✅ Complete | Prefix-keyed interaction handler registry, playerService factory injection via AppContext, commandRouter as thin dispatcher (see `PHASE_2_VERIFICATION.md`) |
 | **Phase 3a — Session Infrastructure** | ✅ Complete | AES-256-GCM sessions, HMAC-signed cookies, HKDF key derivation |
 | **Phase 3b — OAuth2 Flow** | ✅ Complete | Discord OAuth2 + PKCE login/callback/me/logout |
-| **Phase 3c — Guild Authorization** | Planned | Protected route scoping, MANAGE_GUILD verification |
+| **Phase 3c — Data & Resource Hardening** | ✅ Complete | Zero-dependency LRU caching, Automod state batch eviction, DB migration runner, and Mongoose connection retries |
+| **Phase 3d — Guild Authorization** | Planned | Protected route scoping, MANAGE_GUILD verification |
 | **Phase 4 — Dashboard** | Future | Authenticated web UI integration |
 
 ---

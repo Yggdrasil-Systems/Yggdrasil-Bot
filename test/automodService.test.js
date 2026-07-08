@@ -152,3 +152,28 @@ test('automodState dispose clears interval and state without error', () => {
   // Idempotent: calling dispose again should not throw.
   state.dispose();
 });
+
+test('automodState enforces maxEntries with batch eviction', () => {
+  const maxEntries = 10;
+  const state = createAutomodState({ maxEntries });
+
+  for (let i = 0; i < maxEntries; i++) {
+    state.setRepeatedMessages(`key-${i}`, [{ createdAt: Date.now() }]);
+  }
+  
+  assert.equal(state.size, maxEntries);
+
+  // Setting the 11th entry should trigger eviction of the oldest 10% (1 entry)
+  state.setRepeatedMessages('key-10', [{ createdAt: Date.now() }]);
+  
+  // size should be 10 again (11 added, 1 evicted)
+  assert.equal(state.size, maxEntries);
+  
+  // 'key-0' should be the one evicted as it was the oldest
+  assert.equal(state.getRepeatedMessages('key-0').length, 0);
+  assert.equal(state.getRepeatedMessages('key-1').length, 1);
+  assert.equal(state.getRepeatedMessages('key-10').length, 1);
+  
+  state.dispose();
+});
+
