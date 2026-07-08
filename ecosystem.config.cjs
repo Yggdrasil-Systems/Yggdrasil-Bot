@@ -3,18 +3,34 @@ module.exports = {
     {
       name: 'world-tree',
       script: './src/index.js',
+      cwd: '/home/opc/apps/Yggdrasil-Bot',
+
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '500M',
+
+      autorestart: true,
+      watch: false,
+
+      min_uptime: '30s',
       max_restarts: 10,
       restart_delay: 5000,
       exp_backoff_restart_delay: 1000,
+
+      max_memory_restart: '500M',
+
       kill_timeout: 10000,
-      wait_ready: false,
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      listen_timeout: 10000,
+
+      time: true,
+      merge_logs: true,
+
       out_file: './logs/world-tree.out.log',
       error_file: './logs/world-tree.err.log',
-      merge_logs: true,
+
+      env: {
+        NODE_ENV: 'development'
+      },
+
       env_production: {
         NODE_ENV: 'production'
       }
