@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # World Tree Operational Layer Configuration Constants
 export OPS_VERSION="1.0.0"
 

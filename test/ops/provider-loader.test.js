@@ -24,8 +24,10 @@ describe('Operations SDK - Provider Loader', () => {
       source ops/lib/providers/template.sh
       echo $PROVIDER_API
       provider_name
-    `).trim().split('\n');
-    
+    `)
+      .trim()
+      .split('\n');
+
     assert.equal(output[0], '1');
     assert.equal(output[1], 'template');
   });
@@ -36,7 +38,7 @@ describe('Operations SDK - Provider Loader', () => {
       export OPS_PROVIDER=doesnotexist
       source ops/lib/common.sh
     `);
-    
+
     assert.equal(result.success, false);
     assert.ok(result.output.includes('not found'), 'Should log a not found error');
   });

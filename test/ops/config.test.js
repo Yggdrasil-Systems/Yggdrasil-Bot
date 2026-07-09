@@ -24,7 +24,9 @@ describe('Operations SDK - Config', () => {
       echo $APP_NAME
       echo $SERVICE_NAME
       echo $EXPECTED_PROVIDER_API
-    `).trim().split('\n');
+    `)
+      .trim()
+      .split('\n');
 
     assert.equal(output[0], 'world-tree');
     assert.equal(output[1], 'world-tree.service');

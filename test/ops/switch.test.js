@@ -43,7 +43,7 @@ describe('Operations SDK - Switch Logic', () => {
 
     const result = runBashCatch(`bash ops/switch.sh pm2`);
     assert.equal(result.success, true);
-    
+
     const newConfig = fs.readFileSync(CONFIG_PATH, 'utf-8');
     assert.ok(newConfig.includes('OPS_PROVIDER=pm2'), 'Should have replaced with pm2');
   });
