@@ -19,12 +19,17 @@
     "ops:update": "bash ops/update.sh",
     "ops:start": "bash ops/start.sh",
     "ops:stop": "bash ops/stop.sh",
+    "ops:restart": "bash ops/restart.sh",
     "ops:switch": "bash ops/switch.sh",
     "ops:health": "bash ops/health.sh",
     "ops:status": "bash ops/status.sh",
     "ops:info": "bash ops/info.sh",
     "ops:logs": "bash ops/logs.sh",
-    "ops:verify": "bash ops/verify.sh"
+    "ops:verify": "bash ops/verify.sh",
+    "ops:doctor": "bash ops/doctor.sh",
+    "ops:backup": "bash ops/backup.sh",
+    "ops:restore": "bash ops/restore.sh",
+    "ops:rollback": "bash ops/rollback.sh"
   },
   "engines": {
     "node": ">=20.0.0"

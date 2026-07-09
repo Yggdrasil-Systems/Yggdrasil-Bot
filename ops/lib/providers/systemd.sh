@@ -95,7 +95,7 @@ backend_runtime_health() {
   # API check logic
   ENABLE_API=$(grep -E "^ENABLE_API=" .env 2>/dev/null | cut -d '=' -f2 | tr -d '"' | tr -d "'" || echo "false")
   if [ "$ENABLE_API" = "true" ]; then
-    if curl -sSf -m 2 http://127.0.0.1:3000/health > /dev/null; then
+    if curl -sSf -m 2 http://127.0.0.1:3000/v1/health > /dev/null; then
       echo "API: Responding"
     else
       echo "API: Not responding or not implemented"
