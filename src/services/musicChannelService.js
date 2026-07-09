@@ -1,12 +1,13 @@
 import { logger } from '../utils/logger.js';
+import { normalizeCommandName } from '../utils/commandNames.js';
 import { replyToMessage } from '../utils/responses.js';
 
 function getCommandAliases(command) {
-  return [command.name, ...(command.aliases ?? [])].map((alias) => alias.toLowerCase());
+  return [command.name, ...(command.aliases ?? [])].map(normalizeCommandName);
 }
 
 function findMessageCommand(commands, commandName) {
-  const normalizedCommandName = commandName.toLowerCase();
+  const normalizedCommandName = normalizeCommandName(commandName);
 
   return (
     [...commands.values()].find((command) => {

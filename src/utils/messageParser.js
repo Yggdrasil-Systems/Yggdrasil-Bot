@@ -1,4 +1,5 @@
 import { BOT } from './constants.js';
+import { normalizeCommandName } from './commandNames.js';
 
 function tokenize(input) {
   const tokens = [];
@@ -40,7 +41,7 @@ function parsePrefixedCommand(content, prefix) {
 
   return {
     mode: 'prefix',
-    commandName: commandName.toLowerCase(),
+    commandName: normalizeCommandName(commandName),
     args
   };
 }
@@ -53,7 +54,7 @@ function parseNoPrefixCommand(content, noPrefixCommandNames) {
     return null;
   }
 
-  const normalizedCommandName = commandName.toLowerCase();
+  const normalizedCommandName = normalizeCommandName(commandName);
 
   if (!noPrefixCommandNames.has(normalizedCommandName)) {
     return null;

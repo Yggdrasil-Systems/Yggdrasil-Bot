@@ -2,6 +2,7 @@ import { Collection } from 'discord.js';
 import { pathToFileURL } from 'node:url';
 
 import { collectJavaScriptFiles } from '../utils/fileDiscovery.js';
+import { normalizeCommandName } from '../utils/commandNames.js';
 
 function getCommandModule(module) {
   return module.default ?? module;
@@ -24,11 +25,13 @@ function getCommandName(command) {
 }
 
 function normalizeRegistrationName(name, filePath) {
-  if (typeof name !== 'string' || name.trim().length === 0) {
+  const normalizedName = normalizeCommandName(name);
+
+  if (!normalizedName) {
     throw new Error(`Invalid command name or alias: ${filePath}`);
   }
 
-  return name.toLowerCase();
+  return normalizedName;
 }
 
 function normalizeCommand(command) {
@@ -49,14 +52,14 @@ export async function loadCommands(commandsPath) {
 
     assertCommandContract(command, filePath);
 
-    if (commands.has(command.name)) {
+    const commandKey = normalizeRegistrationName(command.name, filePath);
+
+    if (commands.has(commandKey)) {
       throw new Error(`Duplicate command name: ${command.name}`);
     }
 
-    const commandKey = normalizeRegistrationName(command.name, filePath);
-
     if (registeredNamesAndAliases.has(commandKey)) {
-      throw new Error(`Duplicate command name or alias: ${command.name}`);
+      throw new Error(`Duplicate command name or alias: ${commandKey}`);
     }
     registeredNamesAndAliases.add(commandKey);
 
@@ -65,13 +68,13 @@ export async function loadCommands(commandsPath) {
         const aliasKey = normalizeRegistrationName(alias, filePath);
 
         if (registeredNamesAndAliases.has(aliasKey)) {
-          throw new Error(`Duplicate command name or alias: ${alias}`);
+          throw new Error(`Duplicate command name or alias: ${aliasKey}`);
         }
         registeredNamesAndAliases.add(aliasKey);
       }
     }
 
-    commands.set(command.name, command);
+    commands.set(commandKey, { ...command, name: commandKey });
   }
 
   return commands;

@@ -68,7 +68,14 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
 
   const tracks = result.tracks.slice(0, 5);
   const cacheKey = `search_select_${user.id}:${randomUUID()}`;
-  searchCache.set(cacheKey, { tracks, voiceChannel, textChannel, playerService, timestamp: Date.now() });
+  searchCache.set(cacheKey, {
+    userId: user.id,
+    tracks,
+    voiceChannel,
+    textChannel,
+    playerService,
+    timestamp: Date.now()
+  });
 
   // Auto-clean cache after TTL
   const cleanupTimer = setTimeout(() => {
@@ -120,13 +127,20 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
 }
 
 // Handle the select menu callback
-export async function handleSearchSelect(interaction) {
+export async function handleSearchSelect(interaction, { cache = searchCache, play = executePlay } = {}) {
   const cacheKey = interaction.customId;
-  const cached = searchCache.get(cacheKey);
+  const cached = cache.get(cacheKey);
 
   if (!cached) {
     return interaction.followUp({
       embeds: [buildErrorEmbed('Search Expired', 'This search has expired. Please run `tree search` again.')],
+      flags: 64
+    });
+  }
+
+  if (cached.userId !== interaction.user.id) {
+    return interaction.followUp({
+      embeds: [buildErrorEmbed('Not Your Search', 'Only the person who searched can pick a result.')],
       flags: 64
     });
   }
@@ -141,10 +155,10 @@ export async function handleSearchSelect(interaction) {
     });
   }
 
-  searchCache.delete(cacheKey);
+  cache.delete(cacheKey);
 
   // Play the selected track using its URL for exact match
-  await executePlay(
+  await play(
     track.url,
     interaction.member?.voice?.channel,
     interaction.user,

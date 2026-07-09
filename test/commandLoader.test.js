@@ -5,6 +5,13 @@ import path from 'node:path';
 import { test } from 'node:test';
 
 import { loadCommands } from '../src/loaders/commandLoader.js';
+import { normalizeCommandName } from '../src/utils/commandNames.js';
+
+test('normalizeCommandName trims and lowercases registration keys', () => {
+  assert.equal(normalizeCommandName('Ping'), 'ping');
+  assert.equal(normalizeCommandName(' ping '), 'ping');
+  assert.equal(normalizeCommandName('PING'), 'ping');
+});
 
 test('loadCommands recursively loads command modules with data and execute exports', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'world-tree-commands-'));
@@ -62,7 +69,7 @@ test('loadCommands rejects duplicate command names', async () => {
   }
 });
 
-test('loadCommands rejects case-insensitive alias collisions', async () => {
+test('loadCommands rejects trimmed, case-insensitive alias collisions', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'world-tree-alias-collision-'));
 
   try {
@@ -72,7 +79,7 @@ test('loadCommands rejects case-insensitive alias collisions', async () => {
     );
     await writeFile(
       path.join(root, 'second.js'),
-      "export const name = 'second'; export const aliases = ['ping']; export async function executeMessage() {}"
+      "export const name = 'second'; export const aliases = [' ping ']; export async function executeMessage() {}"
     );
 
     await assert.rejects(() => loadCommands(root), /Duplicate command name or alias: ping/);

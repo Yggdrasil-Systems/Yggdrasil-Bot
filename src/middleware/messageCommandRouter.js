@@ -1,4 +1,5 @@
 import { buildErrorEmbed } from '../utils/embeds.js';
+import { normalizeCommandName } from '../utils/commandNames.js';
 import { BOT } from '../utils/constants.js';
 import { logger } from '../utils/logger.js';
 import { parseMessageCommand } from '../utils/messageParser.js';
@@ -10,19 +11,19 @@ import { handleMessageCommandError } from './errorHandler.js';
 import { replyToMessage } from '../utils/responses.js';
 
 function getCommandAliases(command) {
-  return [command.name, ...(command.aliases ?? [])].map((alias) => alias.toLowerCase());
+  return [command.name, ...(command.aliases ?? [])].map(normalizeCommandName);
 }
 
 function getNoPrefixCommandNames(commands) {
   return new Set(
     [...commands.values()]
       .filter((command) => command.allowNoPrefix && typeof command.executeMessage === 'function')
-      .map((command) => command.name.toLowerCase())
+      .map((command) => normalizeCommandName(command.name))
   );
 }
 
 function findMessageCommand(commands, commandName) {
-  const normalizedCommandName = commandName.toLowerCase();
+  const normalizedCommandName = normalizeCommandName(commandName);
 
   return (
     [...commands.values()].find((command) => {

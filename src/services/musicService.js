@@ -159,7 +159,11 @@ export async function initializePlayer(client, playerService) {
 
   // Load extractors only after error listeners are attached: some providers
   // emit startup failures while probing their remote backends.
-  await player.extractors.loadMulti(DefaultExtractors);
+  try {
+    await player.extractors.loadMulti(DefaultExtractors);
+  } catch (err) {
+    logger.error('Failed to load default music extractors. Some sources may be unavailable.', err);
+  }
 
   try {
     await player.extractors.register(YoutubeiExtractor, {

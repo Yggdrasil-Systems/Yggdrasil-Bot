@@ -15,6 +15,7 @@
  */
 
 import { buildErrorEmbed } from '../utils/embeds.js';
+import { normalizeCommandName } from '../utils/commandNames.js';
 import { logger } from '../utils/logger.js';
 import { replyToInteraction } from '../utils/responses.js';
 import { getAppContext } from '../context/appContext.js';
@@ -93,7 +94,7 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
   const commands = appContext.commands ?? new Map();
   const runtimeConfig = appContext.runtimeConfig ?? {};
   const settingsService = appContext.settingsService ?? null;
-  const command = commands.get(interaction.commandName);
+  const command = commands.get(normalizeCommandName(interaction.commandName));
 
   if (!command) {
     await handleUnknownCommand(interaction, log);

@@ -42,7 +42,12 @@ test('play defers slash responses before searching external providers', async ()
     user: { id: 'user-1' },
     appContext: {
       playerService: {
-        getPlayer: () => ({ search: async () => ({ hasTracks: () => false }) })
+        getPlayer: () => ({
+          search: async () => {
+            assert.equal(deferred, true);
+            return { hasTracks: () => false };
+          }
+        })
       }
     },
     deferReply: async () => {
