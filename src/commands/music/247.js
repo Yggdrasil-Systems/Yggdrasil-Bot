@@ -1,11 +1,13 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { QUEUE_DEFAULTS } from '../../config/queueDefaults.js';
 import { getAppContext } from '../../context/appContext.js';
+import { isQueueVoiceChannelMatch } from '../../services/playerService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = '247';
 export const aliases = ['stay', '24/7'];
 export const allowNoPrefix = true;
+export const requiresSameVoiceChannel = true;
 
 export const data = new SlashCommandBuilder()
   .setName('247')
@@ -28,12 +30,20 @@ async function execute247(voiceChannel, textChannel, playerService, respond) {
 
   let queue = playerService?.getGuildQueue(voiceChannel.guild.id);
 
+  if (!isQueueVoiceChannelMatch(queue, voiceChannel)) {
+    return respond({
+      embeds: [buildErrorEmbed('Wrong Voice Channel', 'Join my voice channel before using this command.')]
+    });
+  }
+
+  const currentMode = Boolean(queue?.metadata?.is247);
+
   if (!queue) {
     queue = musicPlayer.nodes.create(voiceChannel.guild, {
       ...QUEUE_DEFAULTS,
       metadata: {
         channel: textChannel,
-        is247: true
+        is247: false
       },
       leaveOnEmpty: false,
       leaveOnEnd: false
@@ -50,8 +60,7 @@ async function execute247(voiceChannel, textChannel, playerService, respond) {
   }
 
   // Toggle 24/7 mode
-  const currentMode = queue.metadata.is247 || false;
-  queue.metadata.is247 = !currentMode;
+  queue.metadata = { ...(queue.metadata ?? {}), is247: !currentMode };
 
   if (queue.metadata.is247) {
     queue.options.leaveOnEmpty = false;

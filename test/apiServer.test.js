@@ -44,6 +44,15 @@ describe('API Server', () => {
     assert.strictEqual(typeof payload.memory.heapUsed, 'number');
   });
 
+  it('does not register protected guild routes without session infrastructure', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/guilds/123/settings'
+    });
+
+    assert.strictEqual(response.statusCode, 404);
+  });
+
   it('returns 503 from /v1/health when Discord is disconnected', async () => {
     const unhealthyApp = await createServer(
       {

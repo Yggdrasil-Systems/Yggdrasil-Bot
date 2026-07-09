@@ -1,6 +1,7 @@
 import { pathToFileURL } from 'node:url';
 
 import { collectJavaScriptFiles } from '../utils/fileDiscovery.js';
+import { logger } from '../utils/logger.js';
 
 function getEventModule(module) {
   return module.default ?? module;
@@ -22,12 +23,20 @@ export async function loadEvents(client, eventsPath) {
 
     assertEventContract(event, filePath);
 
+    const listener = async (...args) => {
+      try {
+        await event.execute(...args, client, appContext);
+      } catch (error) {
+        logger.error(`Event handler failed: ${event.name}`, error);
+      }
+    };
+
     if (event.once) {
-      client.once(event.name, (...args) => event.execute(...args, client, appContext));
+      client.once(event.name, listener);
       continue;
     }
 
-    client.on(event.name, (...args) => event.execute(...args, client, appContext));
+    client.on(event.name, listener);
   }
 
   return eventFiles.length;

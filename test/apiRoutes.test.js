@@ -5,6 +5,7 @@ import { DEFAULT_AUTOMOD, DEFAULT_MODERATION_SETTINGS } from '../src/utils/const
 
 describe('API Routes', () => {
   let app;
+  let sessionCookie;
 
   const mockDiscordClient = {
     isReady: () => true,
@@ -16,11 +17,26 @@ describe('API Routes', () => {
           return undefined;
         }
       }
-    }
+    },
+    appContext: { config: { botOwnerId: 'bot-owner-id' } }
   };
 
   before(async () => {
-    app = await createServer(mockDiscordClient);
+    app = await createServer(mockDiscordClient, {
+      env: { sessionSecret: '12345678901234567890123456789012', isProduction: false }
+    });
+
+    app.get('/test/issue-session', async (_request, reply) => {
+      reply.setSessionCookie({
+        discordUserId: 'bot-owner-id',
+        accessToken: 'test-access-token',
+        expiresAt: Math.floor(Date.now() / 1000) + 60
+      });
+      return { ok: true };
+    });
+
+    const sessionResponse = await app.inject({ method: 'GET', url: '/test/issue-session' });
+    sessionCookie = sessionResponse.headers['set-cookie'].split(';')[0];
 
     // Mock the services specifically for these route tests
     app.services.settingsService = {
@@ -95,7 +111,8 @@ describe('API Routes', () => {
     it('returns settings and strips MongoDB internal fields', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/v1/guilds/123/settings'
+        url: '/v1/guilds/123/settings',
+        headers: { cookie: sessionCookie }
       });
 
       assert.strictEqual(response.statusCode, 200);
@@ -115,7 +132,8 @@ describe('API Routes', () => {
     it('returns paginated cases and nextCursor, stripping internal fields', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/v1/guilds/123/cases?limit=2'
+        url: '/v1/guilds/123/cases?limit=2',
+        headers: { cookie: sessionCookie }
       });
 
       assert.strictEqual(response.statusCode, 200);
@@ -131,7 +149,8 @@ describe('API Routes', () => {
     it('handles query parameter validation', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/v1/guilds/123/cases?limit=1000'
+        url: '/v1/guilds/123/cases?limit=1000',
+        headers: { cookie: sessionCookie }
       });
 
       // Limit should be constrained by max 50
@@ -143,7 +162,8 @@ describe('API Routes', () => {
     it('combines moderation stats and discord stats', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/v1/guilds/123/stats'
+        url: '/v1/guilds/123/stats',
+        headers: { cookie: sessionCookie }
       });
 
       assert.strictEqual(response.statusCode, 200);

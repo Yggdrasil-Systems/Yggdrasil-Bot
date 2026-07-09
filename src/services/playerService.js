@@ -48,3 +48,7 @@ export function createPlayerService() {
 
   return { setPlayer, getPlayer, getGuildQueue };
 }
+
+export function isQueueVoiceChannelMatch(queue, voiceChannel) {
+  return !queue?.channel?.id || queue.channel.id === voiceChannel?.id;
+}

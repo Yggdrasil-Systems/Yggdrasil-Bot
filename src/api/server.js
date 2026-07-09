@@ -138,9 +138,14 @@ export async function createServer(
 
   // Register Routes
   app.register(healthRoutes, { prefix: '/v1/health', dbConnection });
-  app.register(settingsRoutes, { prefix: '/v1/guilds/:guildId/settings' });
-  app.register(casesRoutes, { prefix: '/v1/guilds/:guildId/cases' });
-  app.register(statsRoutes, { prefix: '/v1/guilds/:guildId/stats' });
+
+  // Guild data is always session-protected. Without session infrastructure,
+  // omitting these routes is safer than exposing them without their guard.
+  if (env.sessionSecret) {
+    app.register(settingsRoutes, { prefix: '/v1/guilds/:guildId/settings' });
+    app.register(casesRoutes, { prefix: '/v1/guilds/:guildId/cases' });
+    app.register(statsRoutes, { prefix: '/v1/guilds/:guildId/stats' });
+  }
 
   return app;
 }

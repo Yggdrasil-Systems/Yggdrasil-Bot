@@ -23,6 +23,14 @@ function getCommandName(command) {
   return command.name ?? command.data.name;
 }
 
+function normalizeRegistrationName(name, filePath) {
+  if (typeof name !== 'string' || name.trim().length === 0) {
+    throw new Error(`Invalid command name or alias: ${filePath}`);
+  }
+
+  return name.toLowerCase();
+}
+
 function normalizeCommand(command) {
   return {
     ...command,
@@ -45,17 +53,21 @@ export async function loadCommands(commandsPath) {
       throw new Error(`Duplicate command name: ${command.name}`);
     }
 
-    if (registeredNamesAndAliases.has(command.name)) {
+    const commandKey = normalizeRegistrationName(command.name, filePath);
+
+    if (registeredNamesAndAliases.has(commandKey)) {
       throw new Error(`Duplicate command name or alias: ${command.name}`);
     }
-    registeredNamesAndAliases.add(command.name);
+    registeredNamesAndAliases.add(commandKey);
 
     if (Array.isArray(command.aliases)) {
       for (const alias of command.aliases) {
-        if (registeredNamesAndAliases.has(alias)) {
+        const aliasKey = normalizeRegistrationName(alias, filePath);
+
+        if (registeredNamesAndAliases.has(aliasKey)) {
           throw new Error(`Duplicate command name or alias: ${alias}`);
         }
-        registeredNamesAndAliases.add(alias);
+        registeredNamesAndAliases.add(aliasKey);
       }
     }
 

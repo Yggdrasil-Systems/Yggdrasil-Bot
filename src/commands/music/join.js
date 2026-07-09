@@ -1,11 +1,13 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { QUEUE_DEFAULTS } from '../../config/queueDefaults.js';
 import { getAppContext } from '../../context/appContext.js';
+import { isQueueVoiceChannelMatch } from '../../services/playerService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'join';
 export const aliases = ['connect', 'summon'];
 export const allowNoPrefix = true;
+export const requiresSameVoiceChannel = true;
 
 export const data = new SlashCommandBuilder().setName('join').setDescription('Makes the bot join your voice channel.');
 
@@ -25,6 +27,12 @@ async function executeJoin(voiceChannel, textChannel, playerService, respond) {
   }
 
   let queue = playerService?.getGuildQueue(voiceChannel.guild.id);
+
+  if (!isQueueVoiceChannelMatch(queue, voiceChannel)) {
+    return respond({
+      embeds: [buildErrorEmbed('Wrong Voice Channel', 'Join my voice channel before using this command.')]
+    });
+  }
 
   if (!queue) {
     queue = musicPlayer.nodes.create(voiceChannel.guild, {

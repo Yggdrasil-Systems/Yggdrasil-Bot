@@ -6,6 +6,7 @@ import { formatMusicErrorMessage } from './play.js';
 export const name = 'filter';
 export const aliases = ['fx', 'filters'];
 export const allowNoPrefix = true;
+export const requiresSameVoiceChannel = true;
 
 export const data = new SlashCommandBuilder()
   .setName('filter')

@@ -5,6 +5,7 @@ import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 export const name = 'shuffle';
 export const aliases = ['mix'];
 export const allowNoPrefix = true;
+export const requiresSameVoiceChannel = true;
 
 export const data = new SlashCommandBuilder().setName('shuffle').setDescription('Shuffles the current music queue.');
 

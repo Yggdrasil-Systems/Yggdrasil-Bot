@@ -12,7 +12,7 @@ test('search select interaction delegates valid selections to the provided handl
   const handled = await handleSearchSelectInteraction(
     {
       isStringSelectMenu: () => true,
-      customId: 'search_select_user-1',
+      customId: 'search_select_user-1:selection-1',
       user: { id: 'user-1' },
       deferUpdate: async () => {
         deferCalled = true;
@@ -35,7 +35,7 @@ test('search select interaction rejects mismatched users', async () => {
 
   const handled = await handleSearchSelectInteraction({
     isStringSelectMenu: () => true,
-    customId: 'search_select_user-1',
+    customId: 'search_select_user-1:selection-1',
     user: { id: 'user-2' },
     reply: async (payload) => {
       replies.push(payload);

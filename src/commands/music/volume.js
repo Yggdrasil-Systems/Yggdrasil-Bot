@@ -5,6 +5,7 @@ import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 export const name = 'volume';
 export const aliases = ['vol'];
 export const allowNoPrefix = true;
+export const requiresSameVoiceChannel = true;
 
 export const data = new SlashCommandBuilder()
   .setName('volume')

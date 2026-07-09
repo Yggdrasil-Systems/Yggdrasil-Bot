@@ -5,6 +5,7 @@ import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 export const name = 'loop';
 export const aliases = ['repeat'];
 export const allowNoPrefix = true;
+export const requiresSameVoiceChannel = true;
 
 export const data = new SlashCommandBuilder()
   .setName('loop')

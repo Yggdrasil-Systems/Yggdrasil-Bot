@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
 import { getSourceEmoji } from '../../services/musicService.js';
+import { isQueueVoiceChannelMatch } from '../../services/playerService.js';
 import { getAppContext } from '../../context/appContext.js';
 import { QUEUE_DEFAULTS } from '../../config/queueDefaults.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
@@ -9,6 +10,7 @@ import { logger } from '../../utils/logger.js';
 export const name = 'play';
 export const aliases = ['p'];
 export const allowNoPrefix = true;
+export const requiresSameVoiceChannel = true;
 
 export const data = new SlashCommandBuilder()
   .setName('play')
@@ -90,6 +92,12 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
 
   // ─── Enqueue ────────────────────────────────────────────────────────────
   const existingQueue = playerService?.getGuildQueue(voiceChannel.guild.id);
+
+  if (!isQueueVoiceChannelMatch(existingQueue, voiceChannel)) {
+    return respond({
+      embeds: [buildErrorEmbed('Wrong Voice Channel', 'Join my voice channel before adding to this queue.')]
+    });
+  }
 
   const is247 = existingQueue?.metadata?.is247 ?? false;
   const queue = musicPlayer.nodes.create(voiceChannel.guild, {
@@ -178,12 +186,9 @@ export async function execute(interaction) {
   const appContext = getAppContext(interaction) ?? {};
   const playerService = appContext.playerService ?? null;
 
+  await interaction.deferReply();
   await executePlay(query, voiceChannel, interaction.user, textChannel, playerService, async (payload) => {
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(payload);
-    } else {
-      await interaction.reply(payload);
-    }
+    await interaction.editReply(payload);
   });
 }
 

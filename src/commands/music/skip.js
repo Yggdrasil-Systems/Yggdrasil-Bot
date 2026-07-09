@@ -5,6 +5,7 @@ import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 export const name = 'skip';
 export const aliases = ['s', 'next'];
 export const allowNoPrefix = true;
+export const requiresSameVoiceChannel = true;
 
 export const data = new SlashCommandBuilder().setName('skip').setDescription('Skip the current track.');
 

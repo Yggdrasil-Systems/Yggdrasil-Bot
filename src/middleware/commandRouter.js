@@ -20,10 +20,15 @@ import { replyToInteraction } from '../utils/responses.js';
 import { getAppContext } from '../context/appContext.js';
 import { handleInteractionError } from './errorHandler.js';
 import { canUseAdminCommand } from './permissionGuard.js';
+import { isQueueVoiceChannelMatch } from '../services/playerService.js';
 import { dispatch } from '../interactions/registry.js';
 import { registerAllInteractionHandlers } from '../interactions/registerAllHandlers.js';
 
 let registered = false;
+
+function isMusicControl(customId) {
+  return /^(music_|settings_|filter_|queue_)/.test(customId ?? '');
+}
 
 function ensureHandlersRegistered() {
   if (registered) return;
@@ -52,6 +57,19 @@ export async function handleComponentInteraction(interaction) {
 
   try {
     ensureHandlersRegistered();
+
+    if (isMusicControl(interaction.customId)) {
+      const queue = interaction.appContext?.playerService?.getGuildQueue(interaction.guildId);
+      if (!isQueueVoiceChannelMatch(queue, interaction.member?.voice?.channel)) {
+        await replyToInteraction(
+          interaction,
+          { embeds: [buildErrorEmbed('Wrong Voice Channel', 'Join my voice channel before using music controls.')] },
+          { ephemeral: true }
+        );
+        return;
+      }
+    }
+
     await dispatch(interaction);
   } catch (error) {
     logger.error('Component interaction error.', error);
@@ -80,6 +98,18 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
   if (!command) {
     await handleUnknownCommand(interaction, log);
     return;
+  }
+
+  if (command.requiresSameVoiceChannel) {
+    const queue = appContext.playerService?.getGuildQueue(interaction.guild?.id);
+    if (!isQueueVoiceChannelMatch(queue, interaction.member?.voice?.channel)) {
+      await replyToInteraction(
+        interaction,
+        { embeds: [buildErrorEmbed('Wrong Voice Channel', 'Join my voice channel before using this command.')] },
+        { ephemeral: true }
+      );
+      return;
+    }
   }
 
   const settings =

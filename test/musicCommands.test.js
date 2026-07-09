@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { executeMessage, formatMusicErrorMessage } from '../src/commands/music/play.js';
+import { execute, executeMessage, formatMusicErrorMessage } from '../src/commands/music/play.js';
 import { executeMessage as execute247 } from '../src/commands/music/247.js';
 
 test('play executeMessage requires a query', async () => {
@@ -31,6 +31,32 @@ test('play executeMessage requires voice channel', async () => {
   await executeMessage(context);
 });
 
+test('play defers slash responses before searching external providers', async () => {
+  let deferred = false;
+  let response;
+
+  await execute({
+    options: { getString: () => 'song' },
+    member: { voice: { channel: { guild: { id: 'guild-1' } } } },
+    channel: {},
+    user: { id: 'user-1' },
+    appContext: {
+      playerService: {
+        getPlayer: () => ({ search: async () => ({ hasTracks: () => false }) })
+      }
+    },
+    deferReply: async () => {
+      deferred = true;
+    },
+    editReply: async (payload) => {
+      response = payload;
+    }
+  });
+
+  assert.equal(deferred, true);
+  assert.match(response.embeds[0].data.title, /No Results Found/);
+});
+
 test('execute247 requires a voice channel', async () => {
   const context = {
     args: [],
@@ -42,6 +68,37 @@ test('execute247 requires a voice channel', async () => {
   };
 
   await execute247(context);
+});
+
+test('execute247 enables 24/7 mode for a newly created queue', async () => {
+  const queue = {
+    metadata: { channel: {}, is247: false },
+    options: {},
+    connection: {},
+    connect: async () => {
+      throw new Error('should not reconnect');
+    }
+  };
+  let payload;
+
+  await execute247({
+    member: { voice: { channel: { guild: { id: 'guild-1' } } } },
+    message: { channel: {} },
+    appContext: {
+      playerService: {
+        getPlayer: () => ({ nodes: { create: () => queue } }),
+        getGuildQueue: () => null
+      }
+    },
+    respond: async (response) => {
+      payload = response;
+    }
+  });
+
+  assert.equal(queue.metadata.is247, true);
+  assert.equal(queue.options.leaveOnEmpty, false);
+  assert.equal(queue.options.leaveOnEnd, false);
+  assert.match(payload.embeds[0].data.title, /Enabled/);
 });
 
 test('formatMusicErrorMessage handles non-Error thrown values', () => {

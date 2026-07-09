@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 import { parseMessageCommand } from '../utils/messageParser.js';
 import { getAppContext } from '../context/appContext.js';
 import { handleMusicChannelMessage } from '../services/musicChannelService.js';
+import { isQueueVoiceChannelMatch } from '../services/playerService.js';
 import { canUseAdminCommand, canUseNoPrefixShortcuts } from './permissionGuard.js';
 import { handleMessageCommandError } from './errorHandler.js';
 import { replyToMessage } from '../utils/responses.js';
@@ -135,6 +136,16 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
     }
 
     return false;
+  }
+
+  if (command.requiresSameVoiceChannel) {
+    const queue = appContext.playerService?.getGuildQueue(message.guild.id);
+    if (!isQueueVoiceChannelMatch(queue, message.member?.voice?.channel)) {
+      await replyToMessage(message, {
+        embeds: [buildErrorEmbed('Wrong Voice Channel', 'Join my voice channel before using this command.')]
+      });
+      return true;
+    }
   }
 
   const privilegeContext = await getPrivilegeContext(message);

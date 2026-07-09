@@ -3,6 +3,11 @@ import { handleSearchSelect } from '../commands/music/search.js';
 
 export const prefix = 'search_select_';
 
+function getOwnerId(customId) {
+  const [ownerId, selectionId] = customId.slice(prefix.length).split(':');
+  return ownerId && selectionId ? ownerId : null;
+}
+
 export async function handle(interaction, { onSelect = handleSearchSelect } = {}) {
   if (!interaction.customId?.startsWith(prefix)) {
     return false;
@@ -12,9 +17,9 @@ export async function handle(interaction, { onSelect = handleSearchSelect } = {}
     return false;
   }
 
-  const ownerId = interaction.customId.replace('search_select_', '');
+  const ownerId = getOwnerId(interaction.customId);
 
-  if (interaction.user.id !== ownerId) {
+  if (!ownerId || interaction.user.id !== ownerId) {
     await interaction.reply({
       embeds: [buildErrorEmbed('Not Your Search', 'Only the person who searched can pick a result.')],
       flags: 64

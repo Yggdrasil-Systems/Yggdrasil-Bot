@@ -187,3 +187,25 @@ test('handleComponentInteraction catches handler errors and replies with an erro
   const description = calls[0][1].embeds[0].data.description;
   assert.match(description, /went wrong/i);
 });
+
+test('handleComponentInteraction rejects music controls from another voice channel', async () => {
+  let replyPayload;
+
+  await handleComponentInteraction({
+    isButton: () => true,
+    isStringSelectMenu: () => false,
+    customId: 'music_skip',
+    guildId: 'guild-1',
+    member: { voice: { channel: { id: 'voice-2' } } },
+    appContext: {
+      playerService: {
+        getGuildQueue: () => ({ channel: { id: 'voice-1' } })
+      }
+    },
+    reply: async (payload) => {
+      replyPayload = payload;
+    }
+  });
+
+  assert.match(replyPayload.embeds[0].data.title, /Wrong Voice Channel/);
+});

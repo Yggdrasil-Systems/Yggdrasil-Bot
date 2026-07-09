@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
+import { randomUUID } from 'node:crypto';
 import { QueryType } from 'discord-player';
 import { getAppContext } from '../../context/appContext.js';
 import { buildBaseEmbed, buildErrorEmbed } from '../../utils/embeds.js';
@@ -9,6 +10,7 @@ import { COLORS } from '../../utils/constants.js';
 export const name = 'search';
 export const aliases = ['find'];
 export const allowNoPrefix = true;
+export const requiresSameVoiceChannel = true;
 
 export const data = new SlashCommandBuilder()
   .setName('search')
@@ -16,7 +18,7 @@ export const data = new SlashCommandBuilder()
   .addStringOption((option) => option.setName('query').setDescription('Song name or artist').setRequired(true));
 
 // Store search results temporarily for select menu resolution.
-// Keyed by user ID — each user can have at most one pending search.
+// Keyed by a unique component ID so concurrent searches cannot overwrite each other.
 const searchCache = new Map();
 const SEARCH_CACHE_TTL_MS = 60_000;
 
@@ -65,22 +67,17 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
   }
 
   const tracks = result.tracks.slice(0, 5);
-  const cacheKey = user.id;
-
-  // Clear any previous search for this user before caching the new one,
-  // so the old setTimeout cleanup doesn't delete the fresh entry.
-  searchCache.delete(cacheKey);
-
+  const cacheKey = `search_select_${user.id}:${randomUUID()}`;
   searchCache.set(cacheKey, { tracks, voiceChannel, textChannel, playerService, timestamp: Date.now() });
 
   // Auto-clean cache after TTL
-  setTimeout(() => {
-    // Only delete if the entry is still the one we set (timestamp guard)
+  const cleanupTimer = setTimeout(() => {
     const entry = searchCache.get(cacheKey);
     if (entry && Date.now() - entry.timestamp >= SEARCH_CACHE_TTL_MS) {
       searchCache.delete(cacheKey);
     }
   }, SEARCH_CACHE_TTL_MS);
+  cleanupTimer.unref?.();
 
   const options = tracks.map((track, i) => {
     const src = (track.source || '').toLowerCase();
@@ -100,7 +97,7 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
   });
 
   const menu = new StringSelectMenuBuilder()
-    .setCustomId(`search_select_${user.id}`)
+    .setCustomId(cacheKey)
     .setPlaceholder('Pick a track to play...')
     .addOptions(options);
 
@@ -124,7 +121,7 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
 
 // Handle the select menu callback
 export async function handleSearchSelect(interaction) {
-  const cacheKey = interaction.user.id;
+  const cacheKey = interaction.customId;
   const cached = searchCache.get(cacheKey);
 
   if (!cached) {
@@ -149,7 +146,7 @@ export async function handleSearchSelect(interaction) {
   // Play the selected track using its URL for exact match
   await executePlay(
     track.url,
-    cached.voiceChannel,
+    interaction.member?.voice?.channel,
     interaction.user,
     cached.textChannel,
     cached.playerService,
@@ -166,12 +163,9 @@ export async function execute(interaction) {
   const appContext = getAppContext(interaction) ?? {};
   const playerService = appContext.playerService ?? null;
 
+  await interaction.deferReply();
   await executeSearch(query, voiceChannel, interaction.user, textChannel, playerService, async (payload) => {
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(payload);
-    } else {
-      await interaction.reply(payload);
-    }
+    await interaction.editReply(payload);
   });
 }
 

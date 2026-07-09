@@ -62,6 +62,25 @@ test('loadCommands rejects duplicate command names', async () => {
   }
 });
 
+test('loadCommands rejects case-insensitive alias collisions', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'world-tree-alias-collision-'));
+
+  try {
+    await writeFile(
+      path.join(root, 'first.js'),
+      "export const name = 'first'; export const aliases = ['Ping']; export async function executeMessage() {}"
+    );
+    await writeFile(
+      path.join(root, 'second.js'),
+      "export const name = 'second'; export const aliases = ['ping']; export async function executeMessage() {}"
+    );
+
+    await assert.rejects(() => loadCommands(root), /Duplicate command name or alias: ping/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('loadCommands loads prefix-only command modules', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'world-tree-prefix-only-'));
 
