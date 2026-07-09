@@ -20,9 +20,9 @@ CONFIG_FILE="$(dirname "$0")/lib/config.sh"
 if [ "$DRY_RUN" = true ]; then
   info "[DRY RUN] Would set OPS_PROVIDER=$NEW_PROVIDER in $CONFIG_FILE"
 else
-  # Use sed to replace the OPS_PROVIDER line
-  # We do this safely without perl or complex seds to maintain compat on Oracle Linux
-  run_cmd sed -i "s/^OPS_PROVIDER=.*/OPS_PROVIDER=\"\${OPS_PROVIDER:-$NEW_PROVIDER}\"/" "$CONFIG_FILE"
+  # We do this safely without perl or complex seds to maintain compat across macOS/Linux
+  run_cmd sed "s/^OPS_PROVIDER=.*/OPS_PROVIDER=\"\${OPS_PROVIDER:-$NEW_PROVIDER}\"/" "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
+  run_cmd mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
 fi
 
 success "Successfully switched to provider: $NEW_PROVIDER"
