@@ -39,7 +39,6 @@ test('settings_loop_off sets repeat mode to 0 and updates the message', async ()
 });
 
 test('settings_loop_track sets repeat mode to 1', async () => {
-  let payload;
   const queue = createQueue({ repeatMode: 0 });
 
   const handled = await handleSettingsButtonInteraction(
@@ -48,9 +47,7 @@ test('settings_loop_track sets repeat mode to 1', async () => {
       customId: 'settings_loop_track',
       guildId: 'guild-1',
       deferUpdate: async () => {},
-      editReply: async (response) => {
-        payload = response;
-      }
+      editReply: async () => {}
     },
     { resolveQueue: () => queue }
   );

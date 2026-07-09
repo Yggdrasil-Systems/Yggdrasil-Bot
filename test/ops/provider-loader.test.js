@@ -2,11 +2,19 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
+import fs from 'node:fs';
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 
 function runBash(script) {
-  return execSync(`bash -c "${script}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8', stdio: 'pipe' });
+  const tempFileName = `.temp-test-${Date.now()}-${Math.random().toString(36).substring(7)}.sh`;
+  const tempFilePath = path.join(PROJECT_ROOT, tempFileName);
+  try {
+    fs.writeFileSync(tempFilePath, script, 'utf-8');
+    return execSync(`bash "${tempFileName}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8', stdio: 'pipe' });
+  } finally {
+    if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+  }
 }
 
 function runBashCatch(script) {
@@ -18,10 +26,7 @@ function runBashCatch(script) {
   }
 }
 
-const isWindows = process.platform === 'win32';
-const describeOrSkip = isWindows ? describe.skip : describe;
-
-describeOrSkip('Operations SDK - Provider Loader', () => {
+describe('Operations SDK - Provider Loader', () => {
   it('should load template.sh correctly and expose PROVIDER_API=1', () => {
     const output = runBash('source ops/lib/providers/template.sh && echo -e "$PROVIDER_API\\n$(provider_name)"')
       .trim()
@@ -41,12 +46,15 @@ describeOrSkip('Operations SDK - Provider Loader', () => {
 
   it('should fail elegantly if PROVIDER_API is incorrect', () => {
     // Create a temporary bad provider
-    runBash("echo -e '#!/usr/bin/env bash\\nexport PROVIDER_API=999' > ops/lib/providers/badapi.sh");
+    const badProviderPath = path.join(PROJECT_ROOT, 'ops', 'lib', 'providers', 'badapi.sh');
+    fs.writeFileSync(badProviderPath, '#!/usr/bin/env bash\nexport PROVIDER_API=999\n', 'utf-8');
 
-    const result = runBashCatch('export OPS_PROVIDER=badapi && source ops/lib/common.sh');
-
-    // Clean up
-    runBash('rm ops/lib/providers/badapi.sh');
+    let result;
+    try {
+      result = runBashCatch('export OPS_PROVIDER=badapi && source ops/lib/common.sh');
+    } finally {
+      if (fs.existsSync(badProviderPath)) fs.unlinkSync(badProviderPath);
+    }
 
     assert.equal(result.success, false);
     assert.ok(result.output.includes('requires API version'), 'Should log API version error');

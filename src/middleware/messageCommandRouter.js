@@ -85,7 +85,6 @@ export async function handleMessageCommand(message, { log = logger } = {}) {
   }
 
   const appContext = getAppContext(message) ?? {};
-  const runtimeConfig = appContext.runtimeConfig ?? {};
   const settingsService = appContext.settingsService ?? null;
   const commands = appContext.commands ?? new Map();
 

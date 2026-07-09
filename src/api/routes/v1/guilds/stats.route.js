@@ -15,7 +15,7 @@ export const getStatsParamsSchema = z.object({
   guildId: z.string()
 });
 
-export async function statsRoutes(fastify, opts) {
+export async function statsRoutes(fastify, _opts) {
   fastify.get(
     '/',
     {
@@ -27,7 +27,7 @@ export async function statsRoutes(fastify, opts) {
         }
       }
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { guildId } = request.params;
       const { moderationService, discordClient } = fastify.services;
 

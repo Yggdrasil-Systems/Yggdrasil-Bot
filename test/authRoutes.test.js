@@ -182,7 +182,6 @@ describe('auth routes', () => {
 
     await app.close();
 
-    const params = getAuthorizeParams(response);
     const url = new URL(response.headers.location);
     const stateCookie = findSetCookie(response, OAUTH_STATE_COOKIE_NAME);
     const pkceCookie = findSetCookie(response, OAUTH_PKCE_COOKIE_NAME);

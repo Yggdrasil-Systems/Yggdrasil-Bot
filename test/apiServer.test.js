@@ -168,7 +168,7 @@ describe('API Server', () => {
           })
         }
       },
-      async (request, reply) => {
+      async (_request, _reply) => {
         return { success: true };
       }
     );

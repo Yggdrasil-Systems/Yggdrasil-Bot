@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
-import { getSourceEmoji, getSourceLabel } from '../../services/musicService.js';
+import { getSourceEmoji } from '../../services/musicService.js';
 import { getAppContext } from '../../context/appContext.js';
 import { QUEUE_DEFAULTS } from '../../config/queueDefaults.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';

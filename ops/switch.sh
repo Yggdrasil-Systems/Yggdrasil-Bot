@@ -22,7 +22,7 @@ if [ "$DRY_RUN" = true ]; then
 else
   # Use sed to replace the OPS_PROVIDER line
   # We do this safely without perl or complex seds to maintain compat on Oracle Linux
-  run_cmd sed -i "s/^OPS_PROVIDER=.*/OPS_PROVIDER=$NEW_PROVIDER/" "$CONFIG_FILE"
+  run_cmd sed -i "s/^OPS_PROVIDER=.*/OPS_PROVIDER=\"\${OPS_PROVIDER:-$NEW_PROVIDER}\"/" "$CONFIG_FILE"
 fi
 
 success "Successfully switched to provider: $NEW_PROVIDER"

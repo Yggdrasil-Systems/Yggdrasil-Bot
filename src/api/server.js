@@ -2,7 +2,6 @@ import fastify from 'fastify';
 import { serializerCompiler, validatorCompiler, jsonSchemaTransform } from 'fastify-type-provider-zod';
 import cors from '@fastify/cors';
 
-import { logger } from '../utils/logger.js';
 import { cookiePlugin } from './plugins/cookiePlugin.js';
 import { discordOAuthPlugin } from './plugins/discordOAuthPlugin.js';
 import { errorHandler } from './plugins/errorHandler.js';
@@ -84,7 +83,7 @@ export async function createServer(
   }
 
   // Clean request logging
-  app.addHook('onRequest', async (request, reply) => {
+  app.addHook('onRequest', async (request, _reply) => {
     app.log.debug({ req: request }, 'Incoming request');
   });
 

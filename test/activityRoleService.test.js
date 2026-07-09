@@ -84,7 +84,7 @@ test('activityRoleService grants Spotify role when user starts listening', async
   let roleAdded = false;
   const role = createMockRole({ id: 'spotify-role', position: 1 });
   const member = createMockMember({ id: 'user-1', roles: [] });
-  member.roles.add = async (roleId) => {
+  member.roles.add = async (_roleId) => {
     roleAdded = true;
   };
 
@@ -148,7 +148,7 @@ test('activityRoleService removes Spotify role when user stops listening', async
   const role = createMockRole({ id: 'spotify-role', position: 1 });
   const member = createMockMember({ id: 'user-1', roles: [role] });
   member.roles.cache.set(role.id, role);
-  member.roles.remove = async (roleId) => {
+  member.roles.remove = async (_roleId) => {
     roleRemoved = true;
   };
 
@@ -204,7 +204,7 @@ test('activityRoleService skips when bot lacks ManageRoles permission', async ()
   const member = createMockMember();
   const me = {
     id: 'bot-1',
-    permissions: { has: (perm) => false },
+    permissions: { has: (_perm) => false },
     roles: { highest: { position: 10 } }
   };
 
@@ -237,7 +237,7 @@ test('activityRoleService skips when role is higher than bot highest role', asyn
   const member = createMockMember();
   const me = {
     id: 'bot-1',
-    permissions: { has: (perm) => true },
+    permissions: { has: (_perm) => true },
     roles: { highest: { position: 10 } }
   };
 

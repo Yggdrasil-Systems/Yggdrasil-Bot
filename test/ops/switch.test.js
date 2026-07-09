@@ -8,7 +8,14 @@ const PROJECT_ROOT = path.resolve(process.cwd());
 const CONFIG_PATH = path.join(PROJECT_ROOT, 'ops', 'lib', 'config.sh');
 
 function runBash(script) {
-  return execSync(`bash -c "${script}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8', stdio: 'pipe' });
+  const tempFileName = `.temp-test-${Date.now()}-${Math.random().toString(36).substring(7)}.sh`;
+  const tempFilePath = path.join(PROJECT_ROOT, tempFileName);
+  try {
+    fs.writeFileSync(tempFilePath, script, 'utf-8');
+    return execSync(`bash "${tempFileName}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8', stdio: 'pipe' });
+  } finally {
+    if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+  }
 }
 
 function runBashCatch(script) {
@@ -20,10 +27,7 @@ function runBashCatch(script) {
   }
 }
 
-const isWindows = process.platform === 'win32';
-const describeOrSkip = isWindows ? describe.skip : describe;
-
-describeOrSkip('Operations SDK - Switch Logic', () => {
+describe('Operations SDK - Switch Logic', () => {
   let originalConfig = '';
 
   beforeEach(() => {
@@ -42,13 +46,13 @@ describeOrSkip('Operations SDK - Switch Logic', () => {
 
   it('should switch provider successfully to pm2', () => {
     // Force a known state
-    fs.writeFileSync(CONFIG_PATH, 'OPS_PROVIDER=systemd\n', 'utf-8');
+    fs.writeFileSync(CONFIG_PATH, 'OPS_PROVIDER="${OPS_PROVIDER:-systemd}"\n', 'utf-8');
 
     const result = runBashCatch('bash ops/switch.sh pm2');
     assert.equal(result.success, true);
 
     const newConfig = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    assert.ok(newConfig.includes('OPS_PROVIDER=pm2'), 'Should have replaced with pm2');
+    assert.ok(newConfig.includes('OPS_PROVIDER="${OPS_PROVIDER:-pm2}"'), 'Should have replaced default with pm2');
   });
 
   it('should fail elegantly if provider does not exist', () => {

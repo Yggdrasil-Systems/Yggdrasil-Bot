@@ -29,6 +29,8 @@ echo "Environment"
 # Node
 if command -v node &> /dev/null; then
   report_item 0 "Node $(node -v)"
+elif command -v node.exe &> /dev/null; then
+  report_item 0 "Node $(node.exe -v)"
 else
   report_item 1 "Node missing"
   ENV_STATUS=1
@@ -66,7 +68,9 @@ echo "Provider"
 report_item 0 "$(provider_name)"
 
 # We run provider self test (we suppress stdout to keep it clean, only want exit code)
-if provider_self_test >/dev/null 2>&1; then
+if [ "${DRY_RUN:-}" = true ]; then
+  report_item 0 "Self-test skipped due to dry-run"
+elif provider_self_test >/dev/null 2>&1; then
   report_item 0 "Self-test passed"
 else
   report_item 1 "Self-test failed"
@@ -74,7 +78,9 @@ else
 fi
 
 # Service Enabled / Running
-if backend_process_health >/dev/null 2>&1; then
+if [ "${DRY_RUN:-}" = true ]; then
+  report_item 0 "Service check skipped due to dry-run"
+elif backend_process_health >/dev/null 2>&1; then
   report_item 0 "Service active"
 else
   report_item 1 "Service offline"
@@ -84,7 +90,9 @@ echo ""
 
 # --- Runtime ---
 echo "Runtime"
-if backend_runtime_health >/dev/null 2>&1; then
+if [ "${DRY_RUN:-}" = true ]; then
+  report_item 0 "API check skipped due to dry-run"
+elif backend_runtime_health >/dev/null 2>&1; then
   report_item 0 "API Responding"
 else
   report_item 1 "API Check failed"
@@ -121,7 +129,9 @@ else
 fi
 
 # Logs
-if [ -w "$LOG_DIR" ]; then
+if [ "${DRY_RUN:-}" = true ]; then
+  report_item 0 "Logs writable check skipped due to dry-run"
+elif [ -w "$LOG_DIR" ]; then
   report_item 0 "Logs writable"
 else
   report_item 1 "Logs not writable"

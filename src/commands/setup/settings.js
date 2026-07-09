@@ -1,4 +1,4 @@
-import { ChannelType, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
+import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 
 import { settingsService } from '../../services/settingsService.js';
 import {

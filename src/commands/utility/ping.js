@@ -1,8 +1,7 @@
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
-import { getPingSummary, getBotInfoSummary } from '../../services/utilityService.js';
+import { getBotInfoSummary } from '../../services/utilityService.js';
 import { buildPingEmbed } from '../../utils/embeds.js';
-import { replyToInteraction } from '../../utils/responses.js';
 import { formatDuration } from '../../utils/formatters.js';
 
 export const name = 'ping';
@@ -35,7 +34,7 @@ export async function execute(interaction) {
   const displayName = interaction.user.displayName ?? interaction.user.username;
 
   // Send initial response to measure round-trip time
-  const reply = await interaction.reply({
+  await interaction.reply({
     embeds: [
       buildPingEmbed({
         ...buildFullPingSummary(interaction.client, displayName),

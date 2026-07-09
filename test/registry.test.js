@@ -262,14 +262,14 @@ test('dispatch returns true on the FIRST matching handler and skips later matche
   const calls = [];
   registerHandler({
     prefix: 'foo_',
-    handle: (interaction) => {
+    handle: (_interaction) => {
       calls.push('first');
       return true;
     }
   });
   registerHandler({
     prefix: 'foo2_',
-    handle: (interaction) => {
+    handle: (_interaction) => {
       calls.push('second');
       return true;
     }
@@ -340,7 +340,7 @@ test('dispatch returns false when all registered handlers return false', async (
 test('dispatch awaits async handlers and propagates their boolean result', async () => {
   registerHandler({
     prefix: 'foo_',
-    handle: async (interaction) => {
+    handle: async (_interaction) => {
       // Simulate an async operation (e.g. network call to Discord API).
       await Promise.resolve();
       await new Promise((resolve) => setImmediate(resolve));

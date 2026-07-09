@@ -40,8 +40,6 @@ async function createTempMigration(filename, content) {
 test('migration runner runs pending migrations in version order', async () => {
   await cleanTempDir();
 
-  const executionOrder = [];
-
   await createTempMigration(
     '001_first.js',
     `
@@ -62,14 +60,7 @@ test('migration runner runs pending migrations in version order', async () => {
   `
   );
 
-  // Mock the Migration model
   const applied = [];
-  const mockMigrationModel = {
-    find: () => ({ lean: async () => applied }),
-    create: async (doc) => {
-      applied.push(doc);
-    }
-  };
 
   // We need to temporarily replace the import. Since the runner imports
   // Migration at module level, we'll test the core discovery + execution

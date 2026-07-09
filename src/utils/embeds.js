@@ -59,7 +59,8 @@ export function buildPingEmbed(summary) {
         value: [
           `🔌 **Bot Latency** \`\`\`${summary.responseLatency}ms\`\`\``,
           `🌐 **WebSocket Ping** \`\`\`${summary.websocketLatency}ms\`\`\``,
-          `${wsStatus.emoji} **Status:** ${wsStatus.label}`
+          `${botStatus.emoji} **Bot:** ${botStatus.label}`,
+          `${wsStatus.emoji} **Gateway:** ${wsStatus.label}`
         ].join('\n'),
         inline: false
       },

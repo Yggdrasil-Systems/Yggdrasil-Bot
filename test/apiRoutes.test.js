@@ -39,7 +39,7 @@ describe('API Routes', () => {
     };
 
     app.services.moderationService = {
-      listCases: async ({ guildId, targetUserId, limit, filters }) => {
+      listCases: async ({ guildId, targetUserId: _targetUserId, limit, filters: _filters }) => {
         if (guildId === 'error') return { ok: false, reason: 'DB error' };
 
         const cases = [
@@ -72,7 +72,7 @@ describe('API Routes', () => {
 
         return { ok: true, cases };
       },
-      getCaseStats: async ({ guildId }) => {
+      getCaseStats: async ({ guildId: _guildId }) => {
         return {
           ok: true,
           stats: {

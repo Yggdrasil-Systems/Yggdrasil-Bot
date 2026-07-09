@@ -57,7 +57,7 @@ export const getSettingsParamsSchema = z.object({
   guildId: z.string()
 });
 
-export async function settingsRoutes(fastify, opts) {
+export async function settingsRoutes(fastify, _opts) {
   fastify.get(
     '/',
     {
@@ -69,7 +69,7 @@ export async function settingsRoutes(fastify, opts) {
         }
       }
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { guildId } = request.params;
       const { settingsService } = fastify.services;
 

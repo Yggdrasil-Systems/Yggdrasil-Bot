@@ -35,7 +35,7 @@ export const getCasesQuerySchema = z.object({
   targetUserId: z.string().optional()
 });
 
-export async function casesRoutes(fastify, opts) {
+export async function casesRoutes(fastify, _opts) {
   fastify.get(
     '/',
     {
@@ -48,7 +48,7 @@ export async function casesRoutes(fastify, opts) {
         }
       }
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { guildId } = request.params;
       const { limit, cursor, targetUserId } = request.query;
       const { moderationService } = fastify.services;

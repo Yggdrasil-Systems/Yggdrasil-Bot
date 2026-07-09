@@ -17,7 +17,7 @@ fi
 info "Restoring from $BACKUP_FILE..."
 
 if [ "$DRY_RUN" = false ]; then
-  read -p "This will overwrite current config and operational files. Are you sure? [y/N]: " confirm
+  read -r -p "This will overwrite current config and operational files. Are you sure? [y/N]: " confirm
   if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
     fail "Restore cancelled."
   fi

@@ -79,7 +79,6 @@ export function getServerInfoSummary({ guild }) {
 export function getBotInfoSummary({ client, uptimeMs = process.uptime() * 1000 }) {
   const memoryUsage = process.memoryUsage();
   const totalMemMb = (os.totalmem() / 1024 / 1024).toFixed(2);
-  const freeMemMb = (os.freemem() / 1024 / 1024).toFixed(2);
   const usedMemMb = (memoryUsage.heapUsed / 1024 / 1024).toFixed(2);
   const cpuLoad = os.loadavg()[0].toFixed(2);
   const cpuModel = os.cpus()[0]?.model || 'Unknown CPU';

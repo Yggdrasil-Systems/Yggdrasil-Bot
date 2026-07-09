@@ -64,7 +64,7 @@ function isBotAbleToManageRole(botMember, role) {
   return true;
 }
 
-function shouldSkipActivityRole(guildMember, role, botMember, log) {
+function shouldSkipActivityRole(guildMember, role, botMember) {
   if (!guildMember) {
     return { skip: true, reason: 'Member not found in guild' };
   }
@@ -99,7 +99,7 @@ export function createActivityRoleService({ settingsService = null, log = logger
     reason
   }) {
     const role = await getConfiguredRole(guild, config);
-    const skipCheck = shouldSkipActivityRole(guildMember, role, botMember, log);
+    const skipCheck = shouldSkipActivityRole(guildMember, role, botMember);
 
     if (skipCheck.skip) {
       log.debug?.(`[ActivityRole] ${activityType}: ${skipCheck.reason} for ${guildMember.user?.tag} in ${guild.name}`);
