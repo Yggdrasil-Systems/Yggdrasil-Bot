@@ -14,7 +14,17 @@
     "format": "prettier --write \"src/**/*.{js,json,md}\" \"test/**/*.{js,json,md}\" \"scripts/**/*.{js,json,md}\" \"*.js\" \"*.json\" \"*.md\"",
     "format:check": "prettier --check \"src/**/*.{js,json,md}\" \"test/**/*.{js,json,md}\" \"scripts/**/*.{js,json,md}\" \"*.js\" \"*.json\" \"*.md\"",
     "lint": "eslint \"src/**/*.js\" \"test/**/*.js\" \"scripts/**/*.js\" \"*.js\"",
-    "lint:fix": "eslint \"src/**/*.js\" \"test/**/*.js\" \"scripts/**/*.js\" \"*.js\" --fix"
+    "lint:fix": "eslint \"src/**/*.js\" \"test/**/*.js\" \"scripts/**/*.js\" \"*.js\" --fix",
+    "ops:deploy": "bash ops/deploy.sh",
+    "ops:update": "bash ops/update.sh",
+    "ops:start": "bash ops/start.sh",
+    "ops:stop": "bash ops/stop.sh",
+    "ops:switch": "bash ops/switch.sh",
+    "ops:health": "bash ops/health.sh",
+    "ops:status": "bash ops/status.sh",
+    "ops:info": "bash ops/info.sh",
+    "ops:logs": "bash ops/logs.sh",
+    "ops:verify": "bash ops/verify.sh"
   },
   "engines": {
     "node": ">=20.0.0"
