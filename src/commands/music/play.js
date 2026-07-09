@@ -3,7 +3,7 @@ import { QueryType } from 'discord-player';
 import { getSourceEmoji } from '../../services/musicService.js';
 import { isQueueVoiceChannelMatch } from '../../services/playerService.js';
 import { getAppContext } from '../../context/appContext.js';
-import { QUEUE_DEFAULTS } from '../../config/queueDefaults.js';
+import { QUEUE_DEFAULTS, VOICE_CONNECTION_OPTIONS } from '../../config/queueDefaults.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 
@@ -117,7 +117,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
   }
 
   try {
-    if (!queue.connection) await queue.connect(voiceChannel);
+    if (!queue.connection) await queue.connect(voiceChannel, VOICE_CONNECTION_OPTIONS);
   } catch (err) {
     logger.error('Failed to connect to voice channel.', err);
     queue.delete();

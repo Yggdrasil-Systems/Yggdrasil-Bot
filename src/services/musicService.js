@@ -167,9 +167,7 @@ export async function initializePlayer(client, playerService) {
 
   try {
     await player.extractors.register(YoutubeiExtractor, {
-      streamOptions: {
-        useClient: 'IOS'
-      }
+      useYoutubeDL: true
     });
     logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor');
   } catch (err) {

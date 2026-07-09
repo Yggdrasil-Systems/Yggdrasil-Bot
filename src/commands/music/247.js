@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { QUEUE_DEFAULTS } from '../../config/queueDefaults.js';
+import { QUEUE_DEFAULTS, VOICE_CONNECTION_OPTIONS } from '../../config/queueDefaults.js';
 import { getAppContext } from '../../context/appContext.js';
 import { isQueueVoiceChannelMatch } from '../../services/playerService.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
@@ -50,7 +50,7 @@ async function execute247(voiceChannel, textChannel, playerService, respond) {
     });
 
     try {
-      if (!queue.connection) await queue.connect(voiceChannel);
+      if (!queue.connection) await queue.connect(voiceChannel, VOICE_CONNECTION_OPTIONS);
     } catch {
       queue.delete();
       return respond({

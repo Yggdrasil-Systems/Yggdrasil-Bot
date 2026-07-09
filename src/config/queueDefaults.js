@@ -28,3 +28,10 @@ export const QUEUE_DEFAULTS = Object.freeze({
    */
   bufferingTimeout: 3_000
 });
+
+// discord-player 7 enables DAVE by default. Its current voice stack can end
+// outgoing audio immediately after a DAVE transition, so use Discord's normal
+// voice encryption until that upstream path is stable.
+export const VOICE_CONNECTION_OPTIONS = Object.freeze({
+  daveEncryption: false
+});

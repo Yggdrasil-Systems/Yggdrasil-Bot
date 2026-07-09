@@ -86,6 +86,39 @@ test('play rejects a different voice channel before searching', async () => {
   assert.match(response.embeds[0].data.title, /Wrong Voice Channel/);
 });
 
+test('play disables DAVE encryption when connecting', async () => {
+  let connectionOptions;
+  const queue = {
+    metadata: {},
+    connection: null,
+    node: { volume: 80, play: async () => {} },
+    tracks: { data: [] },
+    connect: async (_channel, options) => {
+      connectionOptions = options;
+      queue.connection = {};
+    },
+    addTrack: () => {},
+    isPlaying: () => false
+  };
+
+  await executePlay(
+    'song',
+    { id: 'voice-1', guild: { id: 'guild-1' } },
+    { id: 'user-1' },
+    {},
+    {
+      getPlayer: () => ({
+        search: async () => ({ hasTracks: () => true, tracks: [{ title: 'Song' }], playlist: null }),
+        nodes: { create: () => queue }
+      }),
+      getGuildQueue: () => null
+    },
+    async () => {}
+  );
+
+  assert.deepEqual(connectionOptions, { daveEncryption: false });
+});
+
 test('execute247 requires a voice channel', async () => {
   const context = {
     args: [],
