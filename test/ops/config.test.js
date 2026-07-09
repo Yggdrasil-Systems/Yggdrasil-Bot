@@ -19,7 +19,9 @@ describeOrSkip('Operations SDK - Config', () => {
   });
 
   it('should expose required constants from constants.sh', () => {
-    const output = runBash('source ops/lib/constants.sh && echo -e "$APP_NAME\\n$SERVICE_NAME\\n$EXPECTED_PROVIDER_API"')
+    const output = runBash(
+      'source ops/lib/constants.sh && echo -e "$APP_NAME\\n$SERVICE_NAME\\n$EXPECTED_PROVIDER_API"'
+    )
       .trim()
       .split('\n');
 
