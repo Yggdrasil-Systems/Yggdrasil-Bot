@@ -62,14 +62,18 @@ export async function initializePlayer(client, playerService) {
 
   // 2. Register the YouTubei extractor — this is the critical streaming bridge
   //    Spotify/Apple tracks resolve metadata then bridge through YouTube for audio
-  await player.extractors.register(YoutubeiExtractor, {
-    // Use YouTube Music for better music-specific results
-    streamOptions: {
-      useClient: 'ANDROID_MUSIC'
-    }
-  });
-
-  logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor');
+  //    IOS client is the only one that reliably produces direct stream URLs
+  //    (ANDROID returns HTTP 400, ANDROID_MUSIC is invalid, TV_EMBEDDED is blocked)
+  try {
+    await player.extractors.register(YoutubeiExtractor, {
+      streamOptions: {
+        useClient: 'IOS'
+      }
+    });
+    logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor');
+  } catch (err) {
+    logger.error('Failed to register YoutubeiExtractor. Music playback will be unavailable.', err);
+  }
 
   // ─── Player Events ──────────────────────────────────────────────────────
 

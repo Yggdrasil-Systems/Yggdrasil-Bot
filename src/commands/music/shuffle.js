@@ -11,7 +11,7 @@ export const data = new SlashCommandBuilder().setName('shuffle').setDescription(
 async function executeShuffle(guildId, playerService, respond) {
   const queue = playerService?.getGuildQueue(guildId);
 
-  if (!queue || !queue.isPlaying()) {
+  if (!queue || !queue.currentTrack) {
     return respond({
       embeds: [buildErrorEmbed('No Active Session', 'Nothing is playing right now.')]
     });

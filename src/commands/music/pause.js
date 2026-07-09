@@ -3,6 +3,7 @@ import { getAppContext } from '../../context/appContext.js';
 import { buildErrorEmbed, buildSuccessEmbed } from '../../utils/embeds.js';
 
 export const name = 'pause';
+export const aliases = [];
 export const allowNoPrefix = true;
 
 export const data = new SlashCommandBuilder().setName('pause').setDescription('Pause the current track.');
