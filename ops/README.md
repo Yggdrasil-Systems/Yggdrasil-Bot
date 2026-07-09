@@ -16,12 +16,12 @@ You can run these scripts natively via `bash ops/SCRIPT.sh`, or utilize the `npm
 | switch   | Change provider       | `npm run ops:switch`   |
 | start    | Start service         | `npm run ops:start`    |
 | stop     | Stop service          | `npm run ops:stop`     |
-| restart  | Restart service       |                        |
-| backup   | Create backup         |                        |
-| restore  | Restore backup        |                        |
-| rollback | Roll back Git version |                        |
+| restart  | Restart service       | `npm run ops:restart`  |
+| backup   | Create backup         | `npm run ops:backup`   |
+| restore  | Restore backup        | `npm run ops:restore`  |
+| rollback | Roll back Git version | `npm run ops:rollback` |
 | verify   | Verify environment    | `npm run ops:verify`   |
-| doctor   | Diagnose problems     |                        |
+| doctor   | Diagnose problems     | `npm run ops:doctor`   |
 | status   | Show basic status     | `npm run ops:status`   |
 | logs     | View logs             | `npm run ops:logs`     |
 | health   | Health checks         | `npm run ops:health`   |

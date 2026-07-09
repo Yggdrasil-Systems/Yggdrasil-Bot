@@ -652,30 +652,29 @@ Operational requirements:
 
 ## Deployment Model
 
+World Tree uses a **Provider Operations SDK** that abstracts the process manager, allowing it to run natively on Linux servers.
+
 ```text
 ┌─────────────────────────────────────────┐
-│          antiX Linux (self-hosted)       │
+│          Linux (Oracle Cloud / antiX)    │
 │                                         │
 │  ┌───────────────────────────────────┐  │
-│  │         PM2 Process Manager       │  │
-│  │                                   │  │
+│  │        Operations SDK (ops/)      │  │
 │  │  ┌─────────────────────────────┐  │  │
-│  │  │    world-tree (fork mode)   │  │  │
+│  │  │   systemd (or pm2 plugin)   │  │  │
 │  │  │                             │  │  │
 │  │  │  Discord Client  ◄──────►  Discord API  │
 │  │  │  Fastify API     ◄──────►  :3000        │
 │  │  │  Mongoose        ◄──────►  MongoDB Atlas│
-│  │  │                             │  │  │
-│  │  │  max_memory_restart: 500M   │  │  │
 │  │  └─────────────────────────────┘  │  │
 │  └───────────────────────────────────┘  │
 └─────────────────────────────────────────┘
 ```
 
-- **Single process**, fork mode — no cluster, no workers
-- **PM2** handles restarts, memory limits, and log rotation
+- **Single process** — no cluster, no workers
+- **Operations SDK** (`ops/lib/providers/systemd.sh`) manages restarts, limits, and logging gracefully
 - **Graceful shutdown** orchestrated in `index.js`: Discord client → API server → MongoDB connection
-- **`SIGINT`/`SIGTERM`** handlers ensure clean exit on PM2 stop/restart
+- **`SIGINT`/`SIGTERM`** handlers ensure clean exit on stop/restart
 - **`unhandledRejection`/`uncaughtException`** trigger controlled shutdown — never silently continue in corrupted state
 
 ---
