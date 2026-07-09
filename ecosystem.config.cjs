@@ -20,6 +20,7 @@ module.exports = {
 
       kill_timeout: 10000,
       listen_timeout: 10000,
+      wait_ready: false,
 
       time: true,
       merge_logs: true,

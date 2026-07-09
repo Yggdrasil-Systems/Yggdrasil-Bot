@@ -20,7 +20,10 @@ function runBashCatch(script) {
   }
 }
 
-describe('Operations SDK - Switch Logic', () => {
+const isWindows = process.platform === 'win32';
+const describeOrSkip = isWindows ? describe.skip : describe;
+
+describeOrSkip('Operations SDK - Switch Logic', () => {
   let originalConfig = '';
 
   beforeEach(() => {
@@ -41,7 +44,7 @@ describe('Operations SDK - Switch Logic', () => {
     // Force a known state
     fs.writeFileSync(CONFIG_PATH, 'OPS_PROVIDER=systemd\n', 'utf-8');
 
-    const result = runBashCatch(`bash ops/switch.sh pm2`);
+    const result = runBashCatch('bash ops/switch.sh pm2');
     assert.equal(result.success, true);
 
     const newConfig = fs.readFileSync(CONFIG_PATH, 'utf-8');
@@ -49,7 +52,7 @@ describe('Operations SDK - Switch Logic', () => {
   });
 
   it('should fail elegantly if provider does not exist', () => {
-    const result = runBashCatch(`bash ops/switch.sh imaginary-provider`);
+    const result = runBashCatch('bash ops/switch.sh imaginary-provider');
     assert.equal(result.success, false);
     assert.ok(result.output.includes('does not exist'), 'Should log does not exist error');
   });

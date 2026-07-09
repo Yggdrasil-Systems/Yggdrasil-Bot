@@ -9,22 +9,17 @@ function runBash(script) {
   return execSync(`bash -c "${script}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
 }
 
-describe('Operations SDK - Config', () => {
+const isWindows = process.platform === 'win32';
+const describeOrSkip = isWindows ? describe.skip : describe;
+
+describeOrSkip('Operations SDK - Config', () => {
   it('should expose OPS_PROVIDER from config.sh', () => {
-    const output = runBash(`
-      source ops/lib/config.sh
-      echo $OPS_PROVIDER
-    `).trim();
+    const output = runBash('source ops/lib/config.sh && echo $OPS_PROVIDER').trim();
     assert.ok(['systemd', 'pm2'].includes(output), `Expected systemd or pm2, got ${output}`);
   });
 
   it('should expose required constants from constants.sh', () => {
-    const output = runBash(`
-      source ops/lib/constants.sh
-      echo $APP_NAME
-      echo $SERVICE_NAME
-      echo $EXPECTED_PROVIDER_API
-    `)
+    const output = runBash('source ops/lib/constants.sh && echo -e "$APP_NAME\\n$SERVICE_NAME\\n$EXPECTED_PROVIDER_API"')
       .trim()
       .split('\n');
 
