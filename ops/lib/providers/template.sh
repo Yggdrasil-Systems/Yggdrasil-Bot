@@ -3,13 +3,12 @@
 
 export PROVIDER_API=1
 
-provider_name() { echo "template" }
-provider_version() { echo "1.0" }
-provider_description() { echo "Template Provider" }
+provider_name() { echo "template"; }
+provider_version() { echo "1.0"; }
+provider_description() { echo "Template Provider"; }
 
 provider_capabilities() {
-  cat <<EOF
-EOF
+  echo ""
 }
 
 # Lifecycle Hooks

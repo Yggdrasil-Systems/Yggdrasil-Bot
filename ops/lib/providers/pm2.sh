@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 export PROVIDER_API=1
 
-provider_name() { echo "pm2" }
-provider_version() { echo "1.0" }
-provider_description() { echo "Node.js process manager" }
+provider_name() { echo "pm2"; }
+provider_version() { echo "1.0"; }
+provider_description() { echo "Node.js process manager"; }
 
 provider_capabilities() {
-  cat <<EOF
-reload
-logs
-install
-health
-EOF
+  echo "install"
+  echo "reload"
+  echo "logs"
+  echo "health"
 }
 
 # Lifecycle Hooks

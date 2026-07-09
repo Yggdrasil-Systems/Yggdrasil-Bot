@@ -2,10 +2,10 @@
 set -Eeuo pipefail
 
 # 1. Load Constants
-source "$(dirname "$0")/constants.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/constants.sh"
 
 # 2. Load Config
-source "$(dirname "$0")/config.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 
 # 3. Logging Helpers & Colors
 RESTORE='\033[0m'
@@ -71,11 +71,12 @@ function get_timestamp() {
 }
 
 # 6. Load Provider Plugin
-PROVIDER_FILE="$(dirname "$0")/providers/${OPS_PROVIDER}.sh"
+PROVIDER_FILE="$(dirname "${BASH_SOURCE[0]}")/providers/${OPS_PROVIDER}.sh"
 if [ ! -f "$PROVIDER_FILE" ]; then
   fail "Configured provider '${OPS_PROVIDER}' not found at $PROVIDER_FILE"
 fi
 
+# shellcheck disable=SC1090
 source "$PROVIDER_FILE"
 
 if [ -z "${PROVIDER_API:-}" ] || [ "$PROVIDER_API" != "$EXPECTED_PROVIDER_API" ]; then

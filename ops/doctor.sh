@@ -137,9 +137,9 @@ function print_summary() {
   local name=$1
   local status=$2
   if [ "$status" -eq 0 ]; then
-    printf "%-16s ${GREEN}PASS${RESTORE}\n" "$name"
+    printf "%-16s %bPASS%b\n" "$name" "$GREEN" "$RESTORE"
   else
-    printf "%-16s ${RED}FAIL${RESTORE}\n" "$name"
+    printf "%-16s %bFAIL%b\n" "$name" "$RED" "$RESTORE"
   fi
 }
 
@@ -151,9 +151,9 @@ print_summary "Resources" "$RES_STATUS"
 echo ""
 OVERALL=$((ENV_STATUS + PROV_STATUS + RUN_STATUS + RES_STATUS))
 if [ "$OVERALL" -eq 0 ]; then
-  printf "%-16s ${GREEN}PASS${RESTORE}\n" "Overall"
+  printf "%-16s %bPASS%b\n" "Overall" "$GREEN" "$RESTORE"
   exit 0
 else
-  printf "%-16s ${RED}FAIL${RESTORE}\n" "Overall"
+  printf "%-16s %bFAIL%b\n" "Overall" "$RED" "$RESTORE"
   exit 1
 fi

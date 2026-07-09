@@ -13,7 +13,7 @@ echo -e "${CYAN}Capabilities${RESTORE}   $(provider_capabilities | tr '\n' ' ')"
 echo ""
 
 # System Info
-OS_INFO=$(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d '"' -f 2 || echo "Unknown Linux")
+OS_INFO=$(grep PRETTY_NAME /etc/os-release 2>/dev/null | cut -d '"' -f 2 || echo "Unknown Linux")
 if [ "$OS_INFO" = "Unknown Linux" ] && command -v systeminfo &> /dev/null; then
   OS_INFO="Windows"
 fi

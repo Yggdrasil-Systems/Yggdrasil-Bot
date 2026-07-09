@@ -16,6 +16,7 @@ else
 
   # 2. Environment Variable Presence
   set -a
+  # shellcheck disable=SC1090
   source <(grep -v '^#' .env)
   set +a
 
