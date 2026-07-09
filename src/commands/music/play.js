@@ -56,6 +56,14 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
     });
   }
 
+  const existingQueue = playerService?.getGuildQueue?.(voiceChannel.guild.id);
+
+  if (!isQueueVoiceChannelMatch(existingQueue, voiceChannel)) {
+    return respond({
+      embeds: [buildErrorEmbed('Wrong Voice Channel', 'Join my voice channel before adding to this queue.')]
+    });
+  }
+
   let result;
   try {
     result = await musicPlayer.search(query, {
@@ -91,14 +99,6 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
   }
 
   // ─── Enqueue ────────────────────────────────────────────────────────────
-  const existingQueue = playerService?.getGuildQueue(voiceChannel.guild.id);
-
-  if (!isQueueVoiceChannelMatch(existingQueue, voiceChannel)) {
-    return respond({
-      embeds: [buildErrorEmbed('Wrong Voice Channel', 'Join my voice channel before adding to this queue.')]
-    });
-  }
-
   const is247 = existingQueue?.metadata?.is247 ?? false;
   const queue = musicPlayer.nodes.create(voiceChannel.guild, {
     ...QUEUE_DEFAULTS,

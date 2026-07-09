@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { execute, executeMessage, formatMusicErrorMessage } from '../src/commands/music/play.js';
+import { execute, executeMessage, executePlay, formatMusicErrorMessage } from '../src/commands/music/play.js';
 import { executeMessage as execute247 } from '../src/commands/music/247.js';
 
 test('play executeMessage requires a query', async () => {
@@ -60,6 +60,30 @@ test('play defers slash responses before searching external providers', async ()
 
   assert.equal(deferred, true);
   assert.match(response.embeds[0].data.title, /No Results Found/);
+});
+
+test('play rejects a different voice channel before searching', async () => {
+  let response;
+
+  await executePlay(
+    'song',
+    { id: 'voice-2', guild: { id: 'guild-1' } },
+    { id: 'user-1' },
+    {},
+    {
+      getPlayer: () => ({
+        search: async () => {
+          throw new Error('search should not run');
+        }
+      }),
+      getGuildQueue: () => ({ channel: { id: 'voice-1' } })
+    },
+    async (payload) => {
+      response = payload;
+    }
+  );
+
+  assert.match(response.embeds[0].data.title, /Wrong Voice Channel/);
 });
 
 test('execute247 requires a voice channel', async () => {
