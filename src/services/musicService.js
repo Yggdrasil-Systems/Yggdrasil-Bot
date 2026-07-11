@@ -57,6 +57,28 @@ export async function initializePlayer(client, playerService) {
     })
   );
 
+  // 1. Load default extractors (SoundCloud, Spotify metadata, Apple metadata, etc.)
+  try {
+    await player.extractors.loadMulti(DefaultExtractors);
+  } catch (err) {
+    logger.error('Failed to load DefaultExtractors. Some sources may be unavailable.', err);
+  }
+
+  // 2. Register the YouTubei extractor — this is the critical streaming bridge
+  //    Spotify/Apple tracks resolve metadata then bridge through YouTube for audio
+  //    IOS client is the only one that reliably produces direct stream URLs
+  //    (ANDROID returns HTTP 400, ANDROID_MUSIC is invalid, TV_EMBEDDED is blocked)
+  try {
+    await player.extractors.register(YoutubeiExtractor, {
+      streamOptions: {
+        useClient: 'IOS',
+        generateWithPoToken: true
+      }
+    });
+    logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor');
+  } catch (err) {
+    logger.error('Failed to register YoutubeiExtractor. Music playback will be unavailable.', err);
+  }
   // ─── Player Events ──────────────────────────────────────────────────────
 
   player.events.on('playerStart', (queue, track) => {

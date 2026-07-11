@@ -128,6 +128,7 @@ async function executeSearch(query, voiceChannel, user, textChannel, playerServi
 
 // Handle the select menu callback
 export async function handleSearchSelect(interaction, { cache = searchCache, play = executePlay } = {}) {
+  await interaction.deferUpdate();
   const cacheKey = interaction.customId;
   const cached = cache.get(cacheKey);
 
@@ -171,8 +172,9 @@ export async function handleSearchSelect(interaction, { cache = searchCache, pla
 }
 
 export async function execute(interaction) {
+  await interaction.deferReply();
   const query = interaction.options.getString('query');
-  const voiceChannel = interaction.member.voice.channel;
+  const voiceChannel = interaction.member?.voice?.channel;
   const textChannel = interaction.channel;
   const appContext = getAppContext(interaction) ?? {};
   const playerService = appContext.playerService ?? null;

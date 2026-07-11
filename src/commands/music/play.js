@@ -180,8 +180,9 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
 // ─── Slash Command Handler ──────────────────────────────────────────────────
 
 export async function execute(interaction) {
+  await interaction.deferReply();
   const query = interaction.options.getString('query');
-  const voiceChannel = interaction.member.voice.channel;
+  const voiceChannel = interaction.member?.voice?.channel;
   const textChannel = interaction.channel;
   const appContext = getAppContext(interaction) ?? {};
   const playerService = appContext.playerService ?? null;
