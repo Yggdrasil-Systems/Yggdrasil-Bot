@@ -149,7 +149,9 @@ export function parseDuration(duration) {
     return null;
   }
 
-  return parsedDuration;
+  // Cap at 28 days (2419200000ms) to prevent Discord API 50035 error
+  const maxDuration = 28 * 24 * 60 * 60 * 1000;
+  return Math.min(parsedDuration, maxDuration);
 }
 
 export function canBotManageMessages(message) {
@@ -178,7 +180,6 @@ export function createModerationService({
         guild,
         moderatorMember,
         targetMember,
-        targetCapability: 'manageable',
         reason: finalReason,
         settings
       });

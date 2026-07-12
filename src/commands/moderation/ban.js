@@ -11,7 +11,7 @@ import {
 import { replyToInteraction } from '../../utils/responses.js';
 
 export const name = 'ban';
-export const adminOnly = true;
+export const modOnly = true;
 
 export const data = new SlashCommandBuilder()
   .setName('ban')

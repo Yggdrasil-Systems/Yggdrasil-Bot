@@ -13,6 +13,7 @@
  *
  * @module middleware/commandRouter
  */
+import { PermissionsBitField } from 'discord.js';
 
 import { buildErrorEmbed } from '../utils/embeds.js';
 import { normalizeCommandName } from '../utils/commandNames.js';
@@ -20,7 +21,7 @@ import { logger } from '../utils/logger.js';
 import { replyToInteraction } from '../utils/responses.js';
 import { getAppContext } from '../context/appContext.js';
 import { handleInteractionError } from './errorHandler.js';
-import { canUseAdminCommand } from './permissionGuard.js';
+import { canUseAdminCommand, canRunModerationAction } from './permissionGuard.js';
 import { isQueueVoiceChannelMatch } from '../services/playerService.js';
 import { dispatch } from '../interactions/registry.js';
 import { registerAllInteractionHandlers } from '../interactions/registerAllHandlers.js';
@@ -140,6 +141,25 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
     await replyToInteraction(
       interaction,
       { embeds: [buildErrorEmbed('Permission required', 'You do not have permission to use that command.')] },
+      { ephemeral: true }
+    );
+    return;
+  }
+
+  if (
+    command.modOnly &&
+    !canRunModerationAction(interaction.member, command.data?.default_member_permissions ?? PermissionsBitField.Flags.ModerateMembers) &&
+    !canUseAdminCommand({
+      userId: interaction.user.id,
+      guildOwnerId: interaction.guild?.ownerId ?? null,
+      botOwnerId: runtimeConfig.botOwnerId ?? null,
+      member: interaction.member,
+      trustedAdminRoleIds: [...(runtimeConfig.trustedAdminRoleIds ?? []), ...(settings?.trustedAdminRoleIds ?? [])]
+    })
+  ) {
+    await replyToInteraction(
+      interaction,
+      { embeds: [buildErrorEmbed('Permission required', 'You do not have permission to use that moderation command.')] },
       { ephemeral: true }
     );
     return;

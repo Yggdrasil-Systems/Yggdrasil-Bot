@@ -6,7 +6,7 @@ import { getInteractionModerator, getMessageAmount } from '../../utils/moderatio
 import { replyToInteraction } from '../../utils/responses.js';
 
 export const name = 'purge';
-export const adminOnly = true;
+export const modOnly = true;
 export const allowNoPrefix = true;
 
 export const data = new SlashCommandBuilder()
