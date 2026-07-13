@@ -51,6 +51,9 @@ export function createAutomodState({ maxEntries = 50_000 } = {}) {
     },
 
     setRepeatedMessages(key, entries) {
+      if (repeatedMessages.has(key)) {
+        repeatedMessages.delete(key);
+      }
       repeatedMessages.set(key, entries);
       enforceMaxEntries();
     },

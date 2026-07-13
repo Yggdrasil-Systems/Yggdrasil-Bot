@@ -1,6 +1,7 @@
 import { moderationRepository } from '../../database/mongo/repositories/moderationRepository.js';
 import { parseDuration } from '../moderationService.js';
 import { loggingService } from '../loggingService.js';
+import { logger } from '../../utils/logger.js';
 
 const ACTION_CASE_TYPES = Object.freeze({
   delete: 'automod_delete',
@@ -37,7 +38,11 @@ export function createPunishmentExecutor({ moderationRepo = moderationRepository
       }
 
       if (result.action === 'timeout' && message.member?.timeout) {
-        await message.member.timeout(durationMs, result.reason);
+        try {
+          await message.member.timeout(durationMs, result.reason);
+        } catch (err) {
+          logger.warn(`Failed to apply automod timeout to ${message.author.tag}`, err);
+        }
       }
 
       const moderationCase = await moderationRepo.createCase({
