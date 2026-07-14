@@ -148,7 +148,10 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
 
   if (
     command.modOnly &&
-    !canRunModerationAction(interaction.member, command.data?.default_member_permissions ?? PermissionsBitField.Flags.ModerateMembers) &&
+    !canRunModerationAction(
+      interaction.member,
+      command.data?.default_member_permissions ?? PermissionsBitField.Flags.ModerateMembers
+    ) &&
     !canUseAdminCommand({
       userId: interaction.user.id,
       guildOwnerId: interaction.guild?.ownerId ?? null,
@@ -159,7 +162,9 @@ export async function handleChatInputCommand(interaction, { log = logger } = {})
   ) {
     await replyToInteraction(
       interaction,
-      { embeds: [buildErrorEmbed('Permission required', 'You do not have permission to use that moderation command.')] },
+      {
+        embeds: [buildErrorEmbed('Permission required', 'You do not have permission to use that moderation command.')]
+      },
       { ephemeral: true }
     );
     return;
