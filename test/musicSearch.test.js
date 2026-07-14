@@ -16,6 +16,7 @@ test('search owner can select a cached result', async () => {
       user: { id: 'owner' },
       member: { voice: { channel: {} } },
       values: ['0'],
+      deferUpdate: async () => {},
       followUp: async () => {}
     },
     {
@@ -45,6 +46,7 @@ test('search selection rejects a user who does not own the cached result without
       user: { id: 'other-user' },
       member: { voice: { channel: {} } },
       values: ['0'],
+      deferUpdate: async () => {},
       followUp: async (payload) => {
         reply = payload;
       }
