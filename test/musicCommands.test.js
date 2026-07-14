@@ -51,6 +51,7 @@ test('play defers slash responses before searching external providers', async ()
       }
     },
     deferReply: async () => {
+      if (deferred) throw new Error('InteractionAlreadyReplied');
       deferred = true;
     },
     editReply: async (payload) => {

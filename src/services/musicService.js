@@ -187,14 +187,5 @@ export async function initializePlayer(client, playerService) {
     logger.error('Failed to load default music extractors. Some sources may be unavailable.', err);
   }
 
-  try {
-    await player.extractors.register(YoutubeiExtractor, {
-      useYoutubeDL: true
-    });
-    logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor');
-  } catch (err) {
-    logger.error('Failed to register YoutubeiExtractor. Music playback will be unavailable.', err);
-  }
-
   logger.info('Music player initialized successfully.');
 }

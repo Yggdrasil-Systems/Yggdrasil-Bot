@@ -187,7 +187,6 @@ export async function execute(interaction) {
   const appContext = getAppContext(interaction) ?? {};
   const playerService = appContext.playerService ?? null;
 
-  await interaction.deferReply();
   await executePlay(query, voiceChannel, interaction.user, textChannel, playerService, async (payload) => {
     await interaction.editReply(payload);
   });
