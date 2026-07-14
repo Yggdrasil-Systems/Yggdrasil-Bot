@@ -5,15 +5,8 @@ import { logger } from '../utils/logger.js';
 
 export const name = Events.PresenceUpdate;
 
-// Cache the service instance so we don't re-create it on every presence event.
-// Presence updates fire very frequently in large servers (typing, status, games).
-let cachedService = null;
-
 function getService(settingsService) {
-  if (!cachedService) {
-    cachedService = createActivityRoleService({ settingsService, log: logger });
-  }
-  return cachedService;
+  return createActivityRoleService({ settingsService, log: logger });
 }
 
 export async function execute(oldPresence, newPresence, client, appContext = null) {
