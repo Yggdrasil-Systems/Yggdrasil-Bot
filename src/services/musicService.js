@@ -1,6 +1,6 @@
 import { Player } from 'discord-player';
 import { DefaultExtractors } from '@discord-player/extractor';
-import { YoutubeiExtractor } from 'discord-player-youtubei';
+import { YoutubeExtractor } from 'discord-player-youtubei';
 import { buildNowPlayingEmbed, buildSuccessEmbed, buildErrorEmbed, buildNeutralEmbed } from '../utils/embeds.js';
 import { buildMusicPlayerComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
@@ -235,15 +235,16 @@ export async function initializePlayer(client, playerService) {
   //    IOS client is the only one that reliably produces direct stream URLs
   //    (ANDROID returns HTTP 400, ANDROID_MUSIC is invalid, TV_EMBEDDED is blocked)
   try {
-    await player.extractors.register(YoutubeiExtractor, {
+    await player.extractors.register(YoutubeExtractor, {
       streamOptions: {
         useClient: 'IOS',
         generateWithPoToken: true
       }
     });
-    logger.info('Music extractors loaded: DefaultExtractors + YoutubeiExtractor');
+
+    logger.info('Music extractors loaded: DefaultExtractors + YoutubeExtractor');
   } catch (err) {
-    logger.error('Failed to register YoutubeiExtractor. Music playback will be unavailable.', err);
+    logger.error('Failed to register YoutubeExtractor. Music playback will be unavailable.', err);
   }
 
   // ─── Player Events ──────────────────────────────────────────────────────
