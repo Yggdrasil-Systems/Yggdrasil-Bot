@@ -33,5 +33,5 @@ export const QUEUE_DEFAULTS = Object.freeze({
 // outgoing audio immediately after a DAVE transition, so use Discord's normal
 // voice encryption until that upstream path is stable.
 export const VOICE_CONNECTION_OPTIONS = Object.freeze({
-  daveEncryption: false
+  daveEncryption: true
 });
