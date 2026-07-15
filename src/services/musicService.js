@@ -5,38 +5,58 @@ import { buildNowPlayingEmbed, buildSuccessEmbed, buildErrorEmbed, buildNeutralE
 import { buildMusicPlayerComponents } from '../utils/components.js';
 import { logger } from '../utils/logger.js';
 
-async function runYoutubeiDiagnostic(track, correlationId) {
+// ─── MUSIC_DEBUG helpers ────────────────────────────────────────────────────
+
+const isDebug = () => process.env.MUSIC_DEBUG === 'true';
+
+function dbg(queue, msg) {
+  if (!isDebug()) return;
+  const cid = queue?.metadata?.correlationId || '[MUSIC:SYS]';
+  const t0 = queue?.metadata?.playbackStartedAt;
+  const offset = t0 ? `+${Date.now() - t0}ms` : '+?ms';
+  logger.info(`${cid} ${offset} ${msg}`);
+}
+
+function dbgErr(queue, msg, error) {
+  if (!isDebug()) return;
+  const cid = queue?.metadata?.correlationId || '[MUSIC:SYS]';
+  const t0 = queue?.metadata?.playbackStartedAt;
+  const offset = t0 ? `+${Date.now() - t0}ms` : '+?ms';
+  logger.error(`${cid} ${offset} ${msg}`, {
+    error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error
+  });
+}
+
+// ─── Standalone youtubei.js diagnostic (runs on playerError) ────────────────
+
+async function runYoutubeiDiagnostic(track, queue) {
   try {
     const { Innertube } = await import('youtubei.js');
-    logger.info(`${correlationId} [DEBUG] Running independent youtubei.js diagnostic for track: ${track.title}...`);
+    dbg(queue, `[DIAG] Running independent youtubei.js diagnostic for track: ${track.title}...`);
 
     const yt = await Innertube.create({
       generate_session_locally: true,
       client_type: 'IOS',
       generateWithPoToken: true
     });
-    logger.info(
-      `${correlationId} [DEBUG] Innertube initialized. Client: IOS. PoToken attached: ${!!yt.session.po_token}`
-    );
+    dbg(queue, `[DIAG] Innertube initialized. Client: IOS. PoToken attached: ${!!yt.session.po_token}`);
 
     const search = await yt.search(track.title + ' ' + track.author, { type: 'video' });
     const videoId = search.results?.[0]?.id;
     if (!videoId) {
-      logger.error(`${correlationId} [DEBUG] Standalone search found no results.`);
+      dbg(queue, '[DIAG] Standalone search found no results.');
       return;
     }
 
-    logger.info(`${correlationId} [DEBUG] Standalone search successful. Video ID: ${videoId}`);
+    dbg(queue, `[DIAG] Standalone search successful. Video ID: ${videoId}`);
     const info = await yt.getBasicInfo(videoId);
     const format = info.chooseFormat({ type: 'audio', quality: 'best' });
 
-    logger.info(`${correlationId} [DEBUG] Format selected. Attempting decipher...`);
+    dbg(queue, '[DIAG] Format selected. Attempting decipher...');
     const decipheredUrl = await format.decipher(yt.session.player);
-    logger.info(`${correlationId} [DEBUG] Decipher successful. URL length: ${decipheredUrl?.length}`);
+    dbg(queue, `[DIAG] Decipher successful. URL length: ${decipheredUrl?.length}`);
   } catch (err) {
-    logger.error(`${correlationId} [DEBUG] youtubei.js standalone diagnostic FAILED:`, {
-      error: err instanceof Error ? { message: err.message, stack: err.stack } : err
-    });
+    dbgErr(queue, '[DIAG] youtubei.js standalone diagnostic FAILED:', err);
   }
 }
 
@@ -83,6 +103,110 @@ function formatPlaybackError(error, maxLength = 200) {
   return message.slice(0, maxLength);
 }
 
+// ─── Phase 2: Deep pipeline instrumentation (MUSIC_DEBUG only) ──────────────
+
+function instrumentDispatcher(queue) {
+  if (!isDebug()) return;
+  const dispatcher = queue.dispatcher;
+  if (!dispatcher) return;
+
+  dbg(queue, 'Instrumenting dispatcher: VoiceConnection + AudioPlayer + Networking');
+
+  // ── VoiceConnection state transitions ──
+  let currentNetworking = null;
+
+  dispatcher.voiceConnection.on('stateChange', (oldState, newState) => {
+    dbg(queue, `VoiceConnection: ${oldState.status} -> ${newState.status}`);
+
+    // Re-instrument Networking when it changes
+    const networking = newState.networking;
+    if (networking && networking !== currentNetworking) {
+      currentNetworking = networking;
+      dbg(queue, 'Networking object changed, attaching listeners');
+      networking.on('stateChange', (oldNS, newNS) => {
+        dbg(queue, `Networking: ${oldNS.code} -> ${newNS.code}`);
+      });
+      networking.on('error', (err) => {
+        dbgErr(queue, 'Networking error:', err);
+      });
+      networking.on('close', (code) => {
+        dbg(queue, `Networking close: code=${code}`);
+      });
+      networking.on('debug', (msg) => {
+        dbg(queue, `Networking debug: ${msg}`);
+      });
+    }
+  });
+
+  dispatcher.voiceConnection.on('error', (err) => {
+    dbgErr(queue, 'VoiceConnection error:', err);
+  });
+
+  dispatcher.voiceConnection.on('debug', (msg) => {
+    dbg(queue, `VoiceConnection debug: ${msg}`);
+  });
+
+  // ── AudioPlayer state transitions ──
+  dispatcher.audioPlayer.on('stateChange', (oldState, newState) => {
+    dbg(queue, `AudioPlayer: ${oldState.status} -> ${newState.status}`);
+
+    // When transitioning to buffering, instrument the AudioResource
+    if (newState.status === 'buffering' && newState.resource) {
+      instrumentAudioResource(queue, newState.resource);
+    }
+  });
+
+  dispatcher.audioPlayer.on('error', (error) => {
+    dbgErr(queue, `AudioPlayer error: ${error.message}`, error);
+    if (error.resource) {
+      dbg(
+        queue,
+        `AudioPlayer error resource: started=${error.resource.started}, ended=${error.resource.ended}, playbackDuration=${error.resource.playbackDuration}ms`
+      );
+    }
+  });
+}
+
+function instrumentAudioResource(queue, resource) {
+  if (!isDebug()) return;
+
+  dbg(
+    queue,
+    `AudioResource created: started=${resource.started}, ended=${resource.ended}, silencePaddingFrames=${resource.silencePaddingFrames}, playStream type=${resource.playStream?.constructor?.name}`
+  );
+
+  // ── playStream (Readable) lifecycle ──
+  const ps = resource.playStream;
+  if (ps) {
+    ps.on('error', (err) => {
+      dbgErr(queue, 'playStream error:', err);
+    });
+    ps.on('close', () => {
+      dbg(
+        queue,
+        `playStream close: playbackDuration=${resource.playbackDuration}ms, started=${resource.started}, ended=${resource.ended}`
+      );
+    });
+    ps.on('end', () => {
+      dbg(queue, `playStream end: playbackDuration=${resource.playbackDuration}ms`);
+    });
+
+    // ── FFmpeg process instrumentation ──
+    // If the playStream is an FFmpeg Duplex, it has a .process (ChildProcess) property
+    if (ps.process) {
+      dbg(queue, `FFmpeg process detected (pid=${ps.process.pid})`);
+      ps.process.on('exit', (code, signal) => {
+        dbg(queue, `FFmpeg exit: code=${code}, signal=${signal}`);
+      });
+      if (ps.process.stderr) {
+        ps.process.stderr.on('data', (chunk) => {
+          dbg(queue, `FFmpeg stderr: ${chunk.toString().trim()}`);
+        });
+      }
+    }
+  }
+}
+
 // ─── Player initialization ──────────────────────────────────────────────────
 
 export async function initializePlayer(client, playerService) {
@@ -114,20 +238,52 @@ export async function initializePlayer(client, playerService) {
   } catch (err) {
     logger.error('Failed to register YoutubeiExtractor. Music playback will be unavailable.', err);
   }
+
   // ─── Player Events ──────────────────────────────────────────────────────
 
+  // Single debug listener — MUSIC_DEBUG gets verbose info, production gets logger.debug
   player.events.on('debug', (queue, message) => {
-    if (process.env.MUSIC_DEBUG === 'true') {
-      const correlationId = queue?.metadata?.correlationId || '[MUSIC:SYS]';
-      logger.info(`${correlationId} [discord-player debug]: ${message}`);
+    if (isDebug()) {
+      dbg(queue, `[discord-player] ${message}`);
     }
+    logger.debug(`[Player] ${message}`);
   });
 
+  // ── Connection created: attach deep instrumentation ONCE ──
+  player.events.on('connection', (queue) => {
+    dbg(queue, 'connection event: dispatcher created');
+    instrumentDispatcher(queue);
+  });
+
+  // ── connectionDestroyed: detect premature teardown ──
+  player.events.on('connectionDestroyed', (queue) => {
+    dbg(queue, 'connectionDestroyed event: VoiceConnection was destroyed');
+  });
+
+  // ── willPlayTrack: confirm stream config before dispatch ──
+  player.events.on('willPlayTrack', (queue, track, config, done) => {
+    dbg(
+      queue,
+      `willPlayTrack: "${track.title}" source=${track.source} queryType=${track.queryType} skipFFmpeg=${config?.dispatcherConfig?.skipFFmpeg} streamType=${config?.dispatcherConfig?.type}`
+    );
+    // Signal that we are done (no modifications to config)
+    done();
+  });
+
+  // ── playerTrigger: confirms the player actually received the track ──
+  player.events.on('playerTrigger', (queue, track, reason) => {
+    dbg(queue, `playerTrigger: "${track.title}" reason=${reason}`);
+  });
+
+  // ── playerStart: now playing ──
   player.events.on('playerStart', (queue, track) => {
-    const correlationId = queue?.metadata?.correlationId || '[MUSIC:SYS]';
-    if (process.env.MUSIC_DEBUG === 'true') {
-      logger.info(`${correlationId} Playback started for track: ${track.title} [${track.url}]`);
+    dbg(queue, `playerStart: "${track.title}" [${track.url}]`);
+
+    if (isDebug()) {
+      // Log environment once per playback
+      dbg(queue, `Environment: node=${process.version} platform=${process.platform} arch=${process.arch}`);
     }
+
     const emoji = getSourceEmoji(track);
     safeSend(queue, {
       embeds: [buildNowPlayingEmbed(track, queue)],
@@ -136,25 +292,43 @@ export async function initializePlayer(client, playerService) {
     logger.info(`Now playing: ${emoji} ${track.title} — ${track.author} [${getSourceLabel(track)}]`);
   });
 
+  // ── playerFinish: confirms whether playback completed normally ──
+  player.events.on('playerFinish', (queue, track) => {
+    dbg(queue, `playerFinish: "${track?.title || 'unknown'}"`);
+  });
+
+  // ── playerError: single handler for both logging and user notification ──
   player.events.on('playerError', (queue, error, track) => {
-    const correlationId = queue?.metadata?.correlationId || '[MUSIC:SYS]';
-    if (process.env.MUSIC_DEBUG === 'true') {
-      logger.error(`${correlationId} playerError event emitted for track ${track?.title || 'unknown'}`, {
-        error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
-        environment: {
-          node: process.version,
-          platform: process.platform,
-          arch: process.arch,
-          MUSIC_DEBUG: process.env.MUSIC_DEBUG
-        }
-      });
-    }
     const trackInfo = track ? `**${track.title}**` : 'the current track';
+    dbgErr(queue, `playerError: track="${track?.title || 'unknown'}"`, error);
     logger.error(`Player track error on ${trackInfo}.`, error);
 
-    if (process.env.MUSIC_DEBUG === 'true' && track) {
-      runYoutubeiDiagnostic(track, correlationId);
+    safeSend(queue, {
+      embeds: [
+        buildErrorEmbed(
+          'Track Error',
+          `Failed to stream ${trackInfo}.\n\`\`\`${formatPlaybackError(error)}\`\`\`\nTry playing it again or use a different source.`
+        )
+      ]
+    });
+
+    if (isDebug() && track) {
+      runYoutubeiDiagnostic(track, queue);
     }
+  });
+
+  // ── playerSkip: track skipped due to extraction failure ──
+  player.events.on('playerSkip', (queue, track) => {
+    dbg(queue, `playerSkip: "${track.title}" — this is the "error swallowed" path`);
+    logger.warn(`Skipped unplayable track: ${track.title} — ${track.author}`);
+    safeSend(queue, {
+      embeds: [
+        buildErrorEmbed(
+          'Track Skipped',
+          `Could not play **${track.title}**. Skipping to next track.\nThis can happen with age-restricted or region-locked content.`
+        )
+      ]
+    });
   });
 
   player.events.on('audioTrackAdd', (queue, track) => {
@@ -178,25 +352,15 @@ export async function initializePlayer(client, playerService) {
     });
   });
 
-  player.events.on('playerSkip', (queue, track) => {
-    logger.warn(`Skipped unplayable track: ${track.title} — ${track.author}`);
-    safeSend(queue, {
-      embeds: [
-        buildErrorEmbed(
-          'Track Skipped',
-          `Could not play **${track.title}**. Skipping to next track.\nThis can happen with age-restricted or region-locked content.`
-        )
-      ]
-    });
-  });
-
   player.events.on('disconnect', (queue) => {
+    dbg(queue, 'disconnect event: bot left the voice channel');
     safeSend(queue, {
       embeds: [buildNeutralEmbed('Disconnected', 'Left the voice channel. See you next time! 👋')]
     });
   });
 
   player.events.on('emptyChannel', (queue) => {
+    dbg(queue, 'emptyChannel event');
     if (!queue.metadata?.is247) {
       safeSend(queue, {
         embeds: [buildNeutralEmbed('Empty Channel', 'Everyone left the voice channel. Disconnecting...')]
@@ -205,6 +369,7 @@ export async function initializePlayer(client, playerService) {
   });
 
   player.events.on('emptyQueue', (queue) => {
+    dbg(queue, 'emptyQueue event');
     if (!queue.metadata?.is247) {
       safeSend(queue, {
         embeds: [buildNeutralEmbed('Queue Finished', 'No more tracks in the queue. Add more with `tree play`!')]
@@ -212,7 +377,9 @@ export async function initializePlayer(client, playerService) {
     }
   });
 
+  // ── error: GuildQueue-level errors bubbled from StreamDispatcher ──
   player.events.on('error', (queue, error) => {
+    dbgErr(queue, 'GuildQueue error event:', error);
     logger.error('Player error.', error);
     safeSend(queue, {
       embeds: [
@@ -224,35 +391,9 @@ export async function initializePlayer(client, playerService) {
     });
   });
 
-  player.events.on('playerError', (queue, error, track) => {
-    const trackInfo = track ? `**${track.title}**` : 'the current track';
-    logger.error(`Player track error on ${trackInfo}.`, error);
-    safeSend(queue, {
-      embeds: [
-        buildErrorEmbed(
-          'Track Error',
-          `Failed to stream ${trackInfo}.\n\`\`\`${formatPlaybackError(error)}\`\`\`\nTry playing it again or use a different source.`
-        )
-      ]
-    });
-  });
-
-  // Debug logging — logger.debug is silenced in production automatically
-  player.events.on('debug', (queue, message) => {
-    logger.debug(`[Player] ${message}`);
-  });
-
   player.extractors.on('error', (_context, extractor, error) => {
     logger.error(`Music extractor error: ${extractor?.identifier ?? 'unknown'}`, error);
   });
-
-  // Load extractors only after error listeners are attached: some providers
-  // emit startup failures while probing their remote backends.
-  try {
-    await player.extractors.loadMulti(DefaultExtractors);
-  } catch (err) {
-    logger.error('Failed to load default music extractors. Some sources may be unavailable.', err);
-  }
 
   logger.info('Music player initialized successfully.');
 }

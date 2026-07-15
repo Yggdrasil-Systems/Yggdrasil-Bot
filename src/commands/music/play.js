@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { SlashCommandBuilder } from 'discord.js';
 import { QueryType } from 'discord-player';
 import { getSourceEmoji } from '../../services/musicService.js';
@@ -104,7 +105,8 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
     ...QUEUE_DEFAULTS,
     metadata: existingQueue?.metadata ?? {
       channel: textChannel,
-      is247: false
+      is247: false,
+      correlationId: `[MUSIC:${crypto.randomUUID().slice(0, 6)}]`
     },
     leaveOnEmpty: is247 ? false : QUEUE_DEFAULTS.leaveOnEmpty,
     leaveOnEnd: is247 ? false : QUEUE_DEFAULTS.leaveOnEnd,
@@ -162,6 +164,7 @@ export async function executePlay(query, voiceChannel, user, textChannel, player
 
   if (!queue.isPlaying()) {
     try {
+      queue.metadata.playbackStartedAt = Date.now();
       await queue.node.play();
     } catch (err) {
       logger.error('Failed to start playback.', err);
