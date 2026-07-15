@@ -119,7 +119,7 @@ function instrumentDispatcher(queue) {
     dbg(queue, `VoiceConnection: ${oldState.status} -> ${newState.status}`);
 
     if (newState.status === 'signalling' || newState.status === 'disconnected') {
-      dbg(queue, `VoiceConnection close detail: reason=${newState.reason} closeCode=${newState.closeCode} rejoinAttempts=${dispatcher.voiceConnection.rejoinAttempts}`);
+      dbg(queue, `VoiceConnection close detail: reason="${newState.reason}" ws_close_num=${newState.closeCode} rejoinAttempts=${dispatcher.voiceConnection.rejoinAttempts}`);
     }
 
     // Re-instrument Networking when it changes
@@ -134,7 +134,7 @@ function instrumentDispatcher(queue) {
         dbgErr(queue, 'Networking error:', err);
       });
       networking.on('close', (code) => {
-        dbg(queue, `Networking close: code=${code}`);
+        dbg(queue, `Networking close: ws_close_num=${code}`);
       });
       networking.on('debug', (msg) => {
         dbg(queue, `Networking debug: ${msg}`);
