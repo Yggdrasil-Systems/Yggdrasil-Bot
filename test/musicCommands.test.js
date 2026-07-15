@@ -87,7 +87,7 @@ test('play rejects a different voice channel before searching', async () => {
   assert.match(response.embeds[0].data.title, /Wrong Voice Channel/);
 });
 
-test('play disables DAVE encryption when connecting', async () => {
+test('play enables DAVE encryption when connecting', async () => {
   let connectionOptions;
   const queue = {
     metadata: {},
@@ -117,7 +117,7 @@ test('play disables DAVE encryption when connecting', async () => {
     async () => {}
   );
 
-  assert.deepEqual(connectionOptions, { daveEncryption: false });
+  assert.deepEqual(connectionOptions, { daveEncryption: true });
 });
 
 test('execute247 requires a voice channel', async () => {
