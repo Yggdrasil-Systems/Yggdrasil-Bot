@@ -119,7 +119,10 @@ function instrumentDispatcher(queue) {
     dbg(queue, `VoiceConnection: ${oldState.status} -> ${newState.status}`);
 
     if (newState.status === 'signalling' || newState.status === 'disconnected') {
-      dbg(queue, `VoiceConnection close detail: reason="${newState.reason}" ws_close_num=${newState.closeCode} rejoinAttempts=${dispatcher.voiceConnection.rejoinAttempts}`);
+      dbg(
+        queue,
+        `VoiceConnection close detail: reason="${newState.reason}" ws_close_num=${newState.closeCode} rejoinAttempts=${dispatcher.voiceConnection.rejoinAttempts}`
+      );
     }
 
     // Re-instrument Networking when it changes
@@ -264,7 +267,10 @@ export async function initializePlayer(client, playerService) {
       const guildId = packet.d?.guild_id;
       const queue = player.nodes.get(guildId);
       if (queue) {
-        dbg(queue, `[WS] Raw VOICE_SERVER_UPDATE received: endpoint=${packet.d?.endpoint} token_present=${!!packet.d?.token}`);
+        dbg(
+          queue,
+          `[WS] Raw VOICE_SERVER_UPDATE received: endpoint=${packet.d?.endpoint} token_present=${!!packet.d?.token}`
+        );
       }
     }
   });
