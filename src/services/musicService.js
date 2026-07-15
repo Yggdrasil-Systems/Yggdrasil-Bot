@@ -118,6 +118,10 @@ function instrumentDispatcher(queue) {
   dispatcher.voiceConnection.on('stateChange', (oldState, newState) => {
     dbg(queue, `VoiceConnection: ${oldState.status} -> ${newState.status}`);
 
+    if (newState.status === 'signalling' || newState.status === 'disconnected') {
+      dbg(queue, `VoiceConnection close detail: reason=${newState.reason} closeCode=${newState.closeCode} rejoinAttempts=${dispatcher.voiceConnection.rejoinAttempts}`);
+    }
+
     // Re-instrument Networking when it changes
     const networking = newState.networking;
     if (networking && networking !== currentNetworking) {
@@ -253,6 +257,16 @@ export async function initializePlayer(client, playerService) {
   player.events.on('connection', (queue) => {
     dbg(queue, 'connection event: dispatcher created');
     instrumentDispatcher(queue);
+  });
+
+  client.on('raw', (packet) => {
+    if (isDebug() && packet.t === 'VOICE_SERVER_UPDATE') {
+      const guildId = packet.d?.guild_id;
+      const queue = player.nodes.get(guildId);
+      if (queue) {
+        dbg(queue, `[WS] Raw VOICE_SERVER_UPDATE received: endpoint=${packet.d?.endpoint} token_present=${!!packet.d?.token}`);
+      }
+    }
   });
 
   // ── connectionDestroyed: detect premature teardown ──
