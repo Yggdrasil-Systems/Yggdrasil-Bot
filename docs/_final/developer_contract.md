@@ -1,53 +1,68 @@
 # WorldTree Developer Contract: Music Pipeline Invariants
 
-This document establishes the absolute invariants for the YouTube extraction architecture. Over time, as requirements shift and upstream packages break, engineers must obey these constraints to prevent systemic regressions in the WorldTree music pipeline.
+This document defines the maintained invariants for WorldTree's local YouTube extraction path. The repository implementation and installed dependency versions are the source of truth.
 
 ## 1. Architectural Boundaries
 
-### 1.1 DO NOT MODIFY `discord-player` CORE
-WorldTree only owns three things:
-1. `WorldTreeYoutubeExtractor`
-2. `musicService.js`
-3. The internal test suite.
+### 1.1 Do Not Modify `discord-player` Core
 
-Everything else remains strictly upstream. Do not attempt to monkey-patch or fork the `discord-player` core repository to force fallback logic or custom internal behaviors. 
+WorldTree owns these components:
 
-### 1.2 The Adapter is the ONLY Boundary
-The custom adapter (`WorldTreeYoutubeExtractor.js`) serves as the strict, absolute boundary between `discord-player` and `youtubei.js`. 
-- `discord-player` must know nothing about PoTokens, Ciphers, or YouTube's internal algorithms.
-- `youtubei.js` must know nothing about Discord voice connections, `Track` models, or queues.
+1. `src/services/music/youtube/WorldTreeYoutubeExtractor.js`
+2. `src/services/music/youtube/YoutubeTrackMapper.js`
+3. `src/services/music/youtube/YoutubeStreamResolver.js`
+4. `src/services/music/youtube/youtubeErrors.js`
+5. `src/services/music/youtube/YoutubeDiagnostic.js`
+6. `src/services/musicService.js`
+7. `src/commands/music/play.js`
+8. The music and local YouTube test suites.
 
-### 1.3 Strict Provider Isolation
-Under no circumstances should a YouTube failure silently bridge to SoundCloud or Spotify. 
-- The `musicService.js` routing logic MUST enforce explicit engine binding (`searchEngine: 'ext:WorldTreeYoutube'`).
-- If YouTube extraction fails, the pipeline MUST break cleanly, bubble the error out, and alert the user.
+Do not monkey-patch or fork `discord-player` to alter fallback, queue, or extractor behavior.
 
-## 2. Ownership & Dependency Rules
+### 1.2 Local YouTube Boundary
 
-### 2.1 Never Import `youtubei.js` Outside the Extractor
-Nothing else in the codebase is permitted to call `youtubei.js` directly.
-```
+`WorldTreeYoutubeExtractor.js` is the only WorldTree module that imports and calls `youtubei.js`. It owns Innertube lifecycle, metadata orchestration, stream orchestration, bridge orchestration, and the debug diagnostic work.
+
+`YoutubeDiagnostic.js` is a coordinator, not an Innertube client. It calls the active extractor's diagnostic method, enforces a caller timeout, and deduplicates active diagnostic tasks. It must not import `youtubei.js` or create a second Innertube session.
+
+```text
 youtubei.js
-      ↑
+      ^
 WorldTreeYoutubeExtractor
-      ↑
+      ^
+YoutubeDiagnostic / discord-player
+      ^
 musicService.js
-      ↑
+      ^
 Command Handlers
 ```
-If a command handler needs YouTube metadata six months from now, it must ask `musicService.js`, which asks `discord-player`, which delegates to the extractor. Bypassing this hierarchy breaks the architecture.
 
-### 2.2 `musicService` Remains Unaware of Internals
-`musicService.js` manages Discord channels, queue playback, and user interactions. It must NEVER parse YouTube cipher errors, configure `WEB` clients, or manage PoTokens. Its only responsibility is setting the `searchEngine` flag and catching the standard `playerError` event.
+### 1.3 Strict Provider Isolation
 
-## 3. Maintenance Policy (When Upstream Breaks)
+YouTube failures must never silently bridge to SoundCloud, Spotify, or another provider.
 
-YouTube frequently changes its cipher algorithms, breaking `youtubei.js`. When this happens, the following maintenance workflow is mandatory:
+- `play.js` owns explicit direct-URL routing through `isYoutubeUrl()` and `resolveMusicSearchEngine()`. When the local feature flag is enabled, supported YouTube URLs use `searchEngine: 'ext:WorldTreeYoutube'`.
+- `musicService.js` owns extractor registration and installs the queue-level per-track guard. The guard delegates only `WorldTreeYoutube` tracks to the local extractor before discord-player's generic cross-provider fallback can run.
+- `YoutubeTrackMapper.js` owns metadata conversion only. `YoutubeStreamResolver.js` owns stream strategy sequencing only. `youtubeErrors.js` owns stable error-code constants.
 
-1. **Update `youtubei.js`**: Bump the version in `package.json` to the latest release containing the upstream fix.
-2. **Run Tests**: Execute the native `node --test` suite to verify the update didn't break our internal API usage.
-3. **Update the Adapter ONLY**: If the `youtubei.js` API changed (e.g., they renamed a configuration flag), update `WorldTreeYoutubeExtractor.js` to match the new API.
-4. **Never Touch `musicService.js`**: The service layer must remain completely untouched during upstream outages.
-5. **Never Touch Commands**: The `/play` command handler must remain unaware that YouTube broke.
+## 2. Ownership and Dependency Rules
 
-By isolating the breakage to the adapter, we can restore service in minutes instead of refactoring the entire codebase.
+### 2.1 `musicService` Must Not Own YouTube Internals
+
+`musicService.js` manages player construction, extractor selection, queue hooks, and Discord event handling. It must not create Innertube clients, parse cipher failures, create PoTokens, map YouTube metadata, or resolve streams.
+
+`play.js` owns the explicit URL-to-search-engine decision. Commands must not call the extractor or `youtubei.js` directly.
+
+### 2.2 Dependencies Are Explicit
+
+WorldTree imports `youtubei.js` directly, so it must remain a direct dependency at the tested version. Do not rely on `discord-player-youtubei` to hoist it transitively. Keep `discord-player-youtubei` installed until the staged local rollout is complete and the rollback window has closed.
+
+## 3. Maintenance Policy
+
+When YouTube or an upstream dependency changes:
+
+1. Validate the installed `discord-player`, `youtubei.js`, and `discord-player-youtubei` sources before changing implementation.
+2. Update only the local YouTube boundary for metadata, stream, bridge, or Innertube API changes.
+3. Preserve stable codes from `youtubeErrors.js`; do not use error-message matching for control flow.
+4. Run `npm run lint`, `npm run format:check`, and `npm test` before rollout.
+5. Keep `USE_LOCAL_YOUTUBE_EXTRACTOR=false` as the immediate rollback path until package cleanup is explicitly approved.
