@@ -1,8 +1,8 @@
 /**
  * Shared YouTube extractor error codes.
  *
- * These constants define the local extractor error surface without introducing
- * custom Error classes.
+ * These constants define the future local extractor error surface without
+ * introducing custom Error classes or runtime behaviour in Phase 1.
  */
 
 export const YT_EXTRACTOR_INACTIVE = 'YT_EXTRACTOR_INACTIVE';
@@ -14,4 +14,3 @@ export const YT_STREAM_FAILED = 'YT_STREAM_FAILED';
 export const YT_BRIDGE_FAILED = 'YT_BRIDGE_FAILED';
 export const YT_NO_STREAM = 'YT_NO_STREAM';
 export const YT_DEPENDENCY_MISSING = 'YT_DEPENDENCY_MISSING';
-export const YT_DIAGNOSTIC_TIMEOUT = 'YT_DIAGNOSTIC_TIMEOUT';

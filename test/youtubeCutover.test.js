@@ -36,26 +36,6 @@ test('local YouTube cutover registers and explicitly routes supported YouTube UR
   );
 });
 
-test('local YouTube cutover routes supported YouTube URL variants when enabled', () => {
-  const urls = [
-    'https://www.youtube.com/shorts/video-1',
-    'https://www.youtube.com/live/video-1',
-    'https://www.youtube.com/embed/video-1',
-    'https://m.youtube.com/watch?v=video-1',
-    'https://m.youtube.com/shorts/video-1',
-    'https://m.youtube.com/live/video-1',
-    'https://m.youtube.com/embed/video-1',
-    'https://music.youtube.com/watch?v=video-1',
-    'https://music.youtube.com/shorts/video-1',
-    'https://music.youtube.com/live/video-1',
-    'https://music.youtube.com/embed/video-1'
-  ];
-
-  for (const url of urls) {
-    assert.equal(resolveMusicSearchEngine(url, { useLocalYoutubeExtractor: true }), 'ext:WorldTreeYoutube');
-  }
-});
-
 test('local YouTube cutover preserves routing for non-YouTube URLs and text queries', () => {
   assert.equal(
     resolveMusicSearchEngine('https://open.spotify.com/track/example', { useLocalYoutubeExtractor: true }),

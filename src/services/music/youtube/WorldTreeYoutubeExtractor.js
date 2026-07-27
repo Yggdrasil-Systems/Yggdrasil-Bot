@@ -17,8 +17,6 @@ import {
 
 const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com']);
 const SEARCH_QUERY_TYPES = new Set([QueryType.YOUTUBE, QueryType.YOUTUBE_SEARCH]);
-const MAX_PLAYLIST_PAGES = 25;
-const MAX_PLAYLIST_ITEMS = 500;
 
 function createExtractorError(code, message, cause, { recoverable = false } = {}) {
   const error = cause ? new Error(message, { cause }) : new Error(message);
@@ -218,35 +216,6 @@ export class WorldTreeYoutubeExtractor extends BaseExtractor {
     }
   }
 
-  /**
-   * Run a debug-only diagnostic with this extractor's active Innertube client.
-   * The caller owns timeout and in-flight coordination so this method remains
-   * limited to the actual diagnostic work.
-   *
-   * @param {import('discord-player').Track} track Track that failed playback.
-   * @param {{debug: (message: string) => void}} logger Debug-safe logger.
-   * @returns {Promise<void>}
-   */
-  async diagnose(track, { debug }) {
-    this.#assertActive();
-    debug(`Running local YouTube diagnostic for track: ${track.title}...`);
-
-    const search = await this.innertube.search(`${track.title} ${track.author}`, { type: 'video' });
-    const videoId = search.results?.[0]?.id ?? search.results?.[0]?.video_id;
-    if (!videoId) {
-      debug('Local diagnostic search found no results.');
-      return;
-    }
-
-    debug(`Local diagnostic search successful. Video ID: ${videoId}`);
-    const info = await this.innertube.getBasicInfo(videoId);
-    const format = info.chooseFormat({ type: 'audio', quality: 'best' });
-
-    debug('Local diagnostic format selected. Attempting decipher...');
-    const decipheredUrl = await format.decipher(this.innertube.session.player);
-    debug(`Local diagnostic decipher successful. URL length: ${decipheredUrl?.length}`);
-  }
-
   async #handleVideo(videoId, requestedBy) {
     try {
       this.#debug('resolving YouTube video metadata');
@@ -270,19 +239,11 @@ export class WorldTreeYoutubeExtractor extends BaseExtractor {
       const playlist = await this.innertube.getPlaylist(playlistId);
       const items = [];
       let page = playlist;
-      let pageCount = 0;
 
-      while (page && pageCount < MAX_PLAYLIST_PAGES && items.length < MAX_PLAYLIST_ITEMS) {
-        pageCount += 1;
-        const remainingItems = MAX_PLAYLIST_ITEMS - items.length;
-        items.push(...(page.items ?? []).filter(isPlaylistVideo).slice(0, remainingItems));
-
-        if (items.length === MAX_PLAYLIST_ITEMS || pageCount === MAX_PLAYLIST_PAGES) {
-          break;
-        }
-
+      do {
+        items.push(...(page.items ?? []).filter(isPlaylistVideo));
         page = page.has_continuation ? await page.getContinuation() : null;
-      }
+      } while (page);
 
       const mappedPlaylist = this.mapper.buildPlaylist({ info: playlist.info, items }, { playlistId, requestedBy });
       if (!mappedPlaylist) {

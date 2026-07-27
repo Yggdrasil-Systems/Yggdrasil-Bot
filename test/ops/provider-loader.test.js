@@ -22,10 +22,7 @@ function runBashCatch(script) {
     runBash(script);
     return { success: true, output: '' };
   } catch (error) {
-    return {
-      success: false,
-      output: `${error.stdout ?? ''}${error.stderr ?? ''}${error.message ?? ''}`
-    };
+    return { success: false, output: error.stderr || error.stdout || error.message };
   }
 }
 
