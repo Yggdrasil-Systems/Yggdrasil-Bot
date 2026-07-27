@@ -88,6 +88,10 @@ function isPlaylistVideo(node) {
 export class WorldTreeYoutubeExtractor extends BaseExtractor {
   static identifier = 'WorldTreeYoutube';
 
+  // Prefer the local YouTube bridge over default metadata-provider bridges.
+  // validate() remains strict, so this does not claim non-YouTube searches.
+  priority = 1;
+
   /**
    * Activate the extractor and initialize its local YouTube collaborators.
    *

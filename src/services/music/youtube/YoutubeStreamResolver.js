@@ -31,9 +31,10 @@ function isYoutubeTrack(track) {
 /**
  * Resolves streams through a local YouTube adapter.
  *
- * The adapter owns youtubei.js, PoToken, peer, SABR, and yt-dlp mechanics. This
- * resolver owns only the installed upstream fallback order and the stable
- * failure boundary consumed by the future extractor.
+ * The adapter owns the configured YouTube mechanisms: custom streams, peers,
+ * Innertube adaptive streams, and yt-dlp. SABR remains an optional adapter
+ * slot for a future explicitly approved implementation. This resolver owns
+ * only strategy sequencing and the stable failure boundary.
  */
 export class YoutubeStreamResolver {
   /**

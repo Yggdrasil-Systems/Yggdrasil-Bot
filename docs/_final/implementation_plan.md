@@ -23,6 +23,7 @@ Playlist collection is bounded to 25 continuation pages and 500 playable items t
 - Flag unset or `false`: `musicService.js` registers the existing `discord-player-youtubei` `YoutubeExtractor` with the existing IOS/PoToken options.
 - Flag `true`: `musicService.js` registers `WorldTreeYoutubeExtractor` instead. It does not register both YouTube extractors.
 - `play.js` owns direct URL routing. `isYoutubeUrl()` recognizes supported `youtube.com`, `m.youtube.com`, `music.youtube.com`, and `youtu.be` video/playlist URLs. `resolveMusicSearchEngine()` returns `ext:WorldTreeYoutube` only for those URLs when the flag is enabled.
+- The local extractor has bridge priority `1` while the installed default extractors use the base priority `0`. This makes local YouTube the first bridge target for Spotify/Apple metadata tracks without claiming their URLs or text searches.
 - Non-YouTube URLs and text searches preserve `QueryType.AUTO` and `QueryType.AUTO_SEARCH` behavior.
 
 `discord-player@7.2.0` exposes `disableFallbackStream`, but it is queue-wide. WorldTree deliberately does not enable it because one queue can contain multiple providers. Instead, `musicService.js` installs its documented `onBeforeCreateStream` hook and delegates only local YouTube tracks. A local stream failure cannot enter generic cross-provider fallback.

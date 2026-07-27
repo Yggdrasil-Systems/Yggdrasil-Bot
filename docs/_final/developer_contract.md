@@ -43,6 +43,7 @@ YouTube failures must never silently bridge to SoundCloud, Spotify, or another p
 
 - `play.js` owns explicit direct-URL routing through `isYoutubeUrl()` and `resolveMusicSearchEngine()`. When the local feature flag is enabled, supported YouTube URLs use `searchEngine: 'ext:WorldTreeYoutube'`.
 - `musicService.js` owns extractor registration and installs the queue-level per-track guard. The guard delegates only `WorldTreeYoutube` tracks to the local extractor before discord-player's generic cross-provider fallback can run.
+- `WorldTreeYoutubeExtractor` has bridge priority `1`, ahead of the installed default extractors at priority `0`, so Spotify/Apple bridge attempts prefer the local YouTube boundary. Its strict `validate()` method must continue to reject non-YouTube URLs and generic text queries.
 - `YoutubeTrackMapper.js` owns metadata conversion only. `YoutubeStreamResolver.js` owns stream strategy sequencing only. `youtubeErrors.js` owns stable error-code constants.
 
 ## 2. Ownership and Dependency Rules
