@@ -64,6 +64,21 @@ test('local YouTube cutover preserves routing for non-YouTube URLs and text quer
   assert.equal(resolveMusicSearchEngine('a song title', { useLocalYoutubeExtractor: true }), 'autoSearch');
 });
 
+test('local YouTube cutover rejects unsupported URL shapes', () => {
+  const urls = [
+    'https://youtu.be/video-1/extra',
+    'https://youtu.be/',
+    'https://www.youtube.com/results?search_query=music&list=playlist-1',
+    'https://music.youtube.com/results?search_query=music&list=playlist-1',
+    'https://www.youtube.com/playlist',
+    'https://www.youtube.com/shorts/video-1/extra'
+  ];
+
+  for (const url of urls) {
+    assert.equal(resolveMusicSearchEngine(url, { useLocalYoutubeExtractor: true }), 'auto');
+  }
+});
+
 test('executePlay forwards the local extractor route only for enabled YouTube URLs', async () => {
   let searchOptions;
 

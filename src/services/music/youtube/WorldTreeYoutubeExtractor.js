@@ -35,23 +35,28 @@ function parseYoutubeUrl(query) {
     const host = url.hostname.toLowerCase();
 
     if (host === 'youtu.be') {
-      const videoId = url.pathname.split('/').filter(Boolean)[0];
-      return videoId ? { type: 'video', videoId } : null;
+      const path = url.pathname.split('/').filter(Boolean);
+      return path.length === 1 ? { type: 'video', videoId: path[0] } : null;
     }
 
     if (!YOUTUBE_HOSTS.has(host)) return null;
 
-    const playlistId = url.searchParams.get('list');
-    if (playlistId) return { type: 'playlist', playlistId };
-
     const path = url.pathname.split('/').filter(Boolean);
+    if (url.pathname === '/playlist') {
+      const playlistId = url.searchParams.get('list');
+      return playlistId ? { type: 'playlist', playlistId } : null;
+    }
+
     if (url.pathname === '/watch') {
+      const playlistId = url.searchParams.get('list');
+      if (playlistId) return { type: 'playlist', playlistId };
+
       const videoId = url.searchParams.get('v');
       return videoId ? { type: 'video', videoId } : null;
     }
 
     if (['shorts', 'live', 'embed'].includes(path[0])) {
-      return path[1] ? { type: 'video', videoId: path[1] } : null;
+      return path.length === 2 ? { type: 'video', videoId: path[1] } : null;
     }
   } catch {
     return null;

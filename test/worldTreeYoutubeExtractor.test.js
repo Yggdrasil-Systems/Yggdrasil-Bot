@@ -37,6 +37,8 @@ test('WorldTreeYoutubeExtractor validates YouTube video and playlist URLs withou
   assert.equal(await extractor.validate('https://www.youtube.com/watch?v=video-1'), true);
   assert.equal(await extractor.validate('https://www.youtube.com/playlist?list=playlist-1'), true);
   assert.equal(await extractor.validate('https://open.spotify.com/track/example'), false);
+  assert.equal(await extractor.validate('https://youtu.be/video-1/extra'), false);
+  assert.equal(await extractor.validate('https://www.youtube.com/results?search_query=music&list=playlist-1'), false);
 });
 
 test('WorldTreeYoutubeExtractor maps video metadata into an ExtractorInfo response', async () => {

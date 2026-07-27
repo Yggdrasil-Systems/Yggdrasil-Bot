@@ -34,18 +34,18 @@ function isYoutubeUrl(query) {
     const host = url.hostname.toLowerCase();
 
     if (host === 'youtu.be') {
-      return url.pathname.split('/').some(Boolean);
+      return url.pathname.split('/').filter(Boolean).length === 1;
     }
 
     if (!['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host)) {
       return false;
     }
 
-    if (url.searchParams.get('list')) return true;
-    if (url.pathname === '/watch') return Boolean(url.searchParams.get('v'));
+    if (url.pathname === '/playlist') return Boolean(url.searchParams.get('list'));
+    if (url.pathname === '/watch') return Boolean(url.searchParams.get('v') || url.searchParams.get('list'));
 
-    const [kind, videoId] = url.pathname.split('/').filter(Boolean);
-    return ['shorts', 'live', 'embed'].includes(kind) && Boolean(videoId);
+    const path = url.pathname.split('/').filter(Boolean);
+    return ['shorts', 'live', 'embed'].includes(path[0]) && path.length === 2;
   } catch {
     return false;
   }
