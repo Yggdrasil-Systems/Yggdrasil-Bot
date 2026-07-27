@@ -354,7 +354,8 @@ export async function initializePlayer(client, playerService) {
     });
 
     if (isDebug() && track) {
-      runYoutubeDiagnostic(track, {
+      const localYoutubeExtractor = player.extractors.get(LOCAL_YOUTUBE_EXTRACTOR_ID);
+      void runYoutubeDiagnostic(track, localYoutubeExtractor, {
         debug: (message) => dbg(queue, `[DIAG] ${message}`),
         debugError: (message, error) => dbgErr(queue, `[DIAG] ${message}`, error)
       });

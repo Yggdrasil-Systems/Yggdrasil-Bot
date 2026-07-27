@@ -1,72 +1,54 @@
-# Codex Master Execution Guide: YouTube Extraction Architecture
+# WorldTree YouTube Extraction: Shipped Architecture Record
 
-This document provides the canonical blueprint for implementing the WorldTree-Auth YouTube extraction fork.
+> Status: This supersedes the earlier scaffold-era execution plan. It documents the implementation currently shipped on `feature/local-youtube-extractor`; package cleanup remains intentionally pending.
 
-## 1. Canonical Architectural Decisions [VERIFIED]
+## 1. Current Architecture
 
-### 1.1 Dependency Policy
-- **`discord-player`**: MUST remain pinned at `^7.2.0`. Do not install `latest`, `v6`, or `^6.6.0`.
-- **`youtubei.js`**: MUST be pinned exactly to `17.2.0` in `package.json`.
-- **`discord-player-youtubei`**: Ultimately removed from `package.json`, but ONLY after its internal logic has been successfully ported and compiled.
+The local YouTube boundary is `src/services/music/youtube/`:
 
-### 1.2 Routing Model
-- **The Only Valid Route**: In `src/services/musicService.js`, when a YouTube URL is matched, the search must be explicitly bound to the new custom extractor using `searchEngine: 'ext:WorldTreeYoutube'`.
-- **Prohibited Hacks**:
-  - DO NOT invoke `player.extractors.unregisterAll()`.
-  - DO NOT manipulate `fallbackSearchEngine` inside `player.search()`.
-  - DO NOT mutate the track query text inside the extractor boundary.
+- `WorldTreeYoutubeExtractor.js`: `discord-player` extractor lifecycle, validation, metadata lookup orchestration, streaming delegation, bridging, and the Innertube-backed debug diagnostic.
+- `YoutubeTrackMapper.js`: conversion from YouTube metadata to `discord-player` `Track`, `Playlist`, and search-result structures.
+- `YoutubeStreamResolver.js`: stream resolution strategy sequencing. It preserves the local configured order: custom stream override, configured peer, Innertube adaptive stream, and yt-dlp fallback.
+- `youtubeErrors.js`: stable standard-`Error` codes: `YT_EXTRACTOR_INACTIVE`, `YT_INVALID_QUERY`, `YT_METADATA_FAILED`, `YT_PLAYLIST_FAILED`, `YT_SEARCH_FAILED`, `YT_STREAM_FAILED`, `YT_BRIDGE_FAILED`, `YT_NO_STREAM`, `YT_DEPENDENCY_MISSING`, and `YT_DIAGNOSTIC_TIMEOUT`.
+- `YoutubeDiagnostic.js`: timeout and deduplication coordinator that invokes the active extractor's existing Innertube client. It does not import `youtubei.js`.
 
-### 1.3 `youtubei.js` Canonical API Shape (Abstracted)
-- **DO NOT INVENT API SIGNATURES**: Codex must not assume the internal method names (like `download` or `getBasicInfo`) or configuration object structures of `youtubei.js`.
-- **Implementation Directive**: Inspect the installed `youtubei.js@17.2.0` API and the source code of the `discord-player-youtubei` bridge. Port the exact upstream usage into the local adapter. Do not invent or alter API signatures. Maintain the core constraint that the PoToken generation utilizes the `WEB` client natively.
+`WorldTreeYoutubeExtractor.activate()` creates the active Innertube client with `{ retrieve_player: true }`. The project does not implement the obsolete WEB -> MWEB -> IOS -> ANDROID client rotation or a separate PoToken workflow.
 
-### 1.4 Error Model
-- **Explicit Error Object**: Do not use brittle string matching (`if (err.message.includes(...))`).
-- **Implementation**: When the inner cipher/stream extraction fails in `YoutubeiExtractor.js`, throw a standard `Error` and attach a strict code to it:
-  ```javascript
-  const error = new Error(`Failed to decipher stream: ${err.message}`);
-  error.code = 'YT_EXTRACTION_FAILED';
-  throw error;
-  ```
-- **Service Layer Handling**: Inside `musicService.js`, attach to the `playerError` event. If `error.code === 'YT_EXTRACTION_FAILED'`, completely bypass 0ms fallback playback, short-circuit the queue, and emit a clean "Failed to stream YouTube track" message to the channel.
+Playlist collection is bounded to 25 continuation pages and 500 playable items to prevent unbounded sequential retrieval and memory growth.
 
-### 1.5 Retry Policy
-The extractor must gracefully handle stream failures by falling back to alternative client identities inside `youtubei.js` before giving up and throwing the `YT_EXTRACTION_FAILED` error.
-- **Client Fallback Order**: Try `WEB` first (for robust PoToken support). If extraction fails, automatically retry using `MWEB`, then `IOS`, then `ANDROID`. Only throw the final error if all client types fail.
+## 2. Runtime Cutover
 
-### 1.6 Testing Stack
-- **Framework**: Use the **Node.js Native Test Runner** (`node --test`).
-- **Prohibited Frameworks**: DO NOT use Jest, Mocha, Chai, or Nock.
+`USE_LOCAL_YOUTUBE_EXTRACTOR` is parsed in `src/config/env.js` as `useLocalYoutubeExtractor`.
 
----
+- Flag unset or `false`: `musicService.js` registers the existing `discord-player-youtubei` `YoutubeExtractor` with the existing IOS/PoToken options.
+- Flag `true`: `musicService.js` registers `WorldTreeYoutubeExtractor` instead. It does not register both YouTube extractors.
+- `play.js` owns direct URL routing. `isYoutubeUrl()` recognizes supported `youtube.com`, `m.youtube.com`, `music.youtube.com`, and `youtu.be` video/playlist URLs. `resolveMusicSearchEngine()` returns `ext:WorldTreeYoutube` only for those URLs when the flag is enabled.
+- Non-YouTube URLs and text searches preserve `QueryType.AUTO` and `QueryType.AUTO_SEARCH` behavior.
 
-## 2. Implementation Playbook (Execution Order)
+`discord-player@7.2.0` exposes `disableFallbackStream`, but it is queue-wide. WorldTree deliberately does not enable it because one queue can contain multiple providers. Instead, `musicService.js` installs its documented `onBeforeCreateStream` hook and delegates only local YouTube tracks. A local stream failure cannot enter generic cross-provider fallback.
 
-Codex must strictly follow this physical execution order to prevent dependency breakage:
+## 3. Error and Player Error Handling
 
-### Phase 1: Port Logic & Scaffold
-1. Create directory `src/services/music/extractors/youtube/`.
-2. Create `WorldTreeYoutubeExtractor.js`.
-3. Manually copy the exact source code logic from `node_modules/discord-player-youtubei/dist/` (or its repository source) into the new file.
-4. Set `static identifier = 'WorldTreeYoutube'`.
-5. Adapt the internal `youtubei.js` calls exactly as the upstream wrapper did, injecting the retry loop (`WEB` -> `MWEB` -> `IOS` -> `ANDROID`) and the explicit `error.code = 'YT_EXTRACTION_FAILED'` throw inside the `stream()` method.
+The local extractor throws ordinary `Error` objects with codes from `youtubeErrors.js`. `musicService.js` continues to own the `playerError` user notification path. With `MUSIC_DEBUG=true`, it asks the active local extractor for a timeout-bounded, deduplicated diagnostic. If the local flag is off, the diagnostic is safely skipped because no local extractor is active.
 
-### Phase 2: Compilation & Local Verification
-1. Run `node --test` or start the bot locally to ensure the new `WorldTreeYoutubeExtractor.js` compiles without syntax errors and correctly imports `youtubei.js`.
+## 4. Dependency and Rollback Policy
 
-### Phase 3: Service Layer Integration
-1. Open `src/services/musicService.js`.
-2. Update the import path to point to the new local extractor.
-3. Replace `player.extractors.register(...)` to register the new local class.
-4. Update the `play` search options to use `searchEngine: 'ext:WorldTreeYoutube'` for YouTube URLs.
+`youtubei.js@17.2.0` is a direct dependency because the local extractor imports it directly. `discord-player-youtubei` and `youtube-dl-exec` remain installed during the staged rollout.
 
-### Phase 4: Clean Up
-1. ONLY after the local extractor is actively running and registered, run `npm uninstall discord-player-youtubei` to purge the redundant wrapper from the repository.
+Rollback is configuration-only: set `USE_LOCAL_YOUTUBE_EXTRACTOR=false` and restart. This returns registration and URL routing to the upstream extractor without package changes.
 
----
+## 5. Verification
 
-## 3. Rollback Plan
-If `youtubei.js` introduces an unrecoverable bug in production:
-1. Do NOT destroy the `musicService.js` routing architecture (do not revert to `QueryType.AUTO` everywhere).
-2. Instead, rollback by simply changing the extractor registration in `musicService.js` (e.g., swapping back to the npm package if needed, or disabling the local YouTube extractor registration). 
-3. This isolates the rollback entirely to the extractor layer.
+Use the Node.js native runner. The relevant checks are:
+
+```bash
+npm run lint
+npm run format:check
+npm test
+```
+
+Focused coverage verifies mapper behavior, resolver behavior, extractor lifecycle and bounded playlists, flag-on/off registration selection, direct URL routing, provider isolation, and diagnostic timeout/deduplication.
+
+## 6. Deferred Work
+
+Package cleanup is a separate release decision. Do not remove `discord-player-youtubei` or `youtube-dl-exec` until production rollout evidence supports ending the rollback window.
